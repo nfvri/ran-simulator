@@ -254,7 +254,7 @@ func (c *Client) getCellPCI(ctx context.Context, ncgi ransimtypes.NCGI) (int32, 
 	return int32(cell.PCI), nil
 }
 
-func (c *Client) getARFCN(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) {  //TODO change func name
+func (c *Client) getSSBFrequency(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) {
 	cell, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return 0, err
@@ -301,7 +301,7 @@ func (c *Client) createRICIndicationFormat3(ctx context.Context, cells []ransimt
 			return nil, err
 		}
 
-		earfcn, err := c.getARFCN(ctx, ncgi)
+		earfcn, err := c.getSSBFrequency(ctx, ncgi)
 		if err != nil {
 			return nil, err
 		}
@@ -326,7 +326,7 @@ func (c *Client) createRICIndicationFormat3(ctx context.Context, cells []ransimt
 				return nil, err
 			}
 
-			neighborEarfcn, err := c.getARFCN(ctx, neighborNCGI)
+			neighborEarfcn, err := c.getSSBFrequency(ctx, neighborNCGI)
 			if err != nil {
 				return nil, err
 			}

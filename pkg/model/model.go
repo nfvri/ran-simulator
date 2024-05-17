@@ -101,6 +101,19 @@ type Guami struct {
 	AmfPointer  uint32 `mapstructure:"amfpointer"`
 }
 
+// Channel represents a sl sector operational frequency range
+type Channel struct {
+	SSBFrequency      uint32            `mapstructure:"ssbfrequency"`
+	ArfcnDL           uint32            `mapstructure:"arfcndl"`
+	ArfcnUL           uint32            `mapstructure:"arfcnul"`
+	ChannelPathloss
+}
+
+// TODO properties that has to do with pathloss 
+type ChannelPathloss struct {
+
+}
+
 // Cell represents a section of coverage
 type Cell struct {
 	NCGI              types.NCGI        `mapstructure:"ncgi"`
@@ -111,10 +124,10 @@ type Cell struct {
 	TxPowerDB         float64           `mapstructure:"txpowerdb"`
 	MeasurementParams MeasurementParams `mapstructure:"measurementParams"`
 	PCI               uint32            `mapstructure:"pci"`
-	Earfcn            uint32            `mapstructure:"earfcn"`
 	CellType          types.CellType    `mapstructure:"cellType"`
 	RrcIdleCount      uint32
 	RrcConnectedCount uint32
+	Channel
 }
 
 // UEType represents type of user-equipment

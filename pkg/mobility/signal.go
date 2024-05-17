@@ -61,7 +61,7 @@ func getFreeSpacePathLoss(coord model.Coordinate, cell model.Cell) float64 {
 	distanceKM := getEuclianDistanceFromGPS(coord, cell)
 	// Assuming we're using CBRS frequency 3.6 GHz
 	// 92.45 is the constant value of 20 * log10(4*pi / c) in Kilometer scale
-	pathLoss := 20*math.Log10(distanceKM) + 20*math.Log10(3.6) + 92.45
+	pathLoss := 20*math.Log10(distanceKM) + 20*math.Log10(float64(cell.Channel.SSBFrequency/1000)) + 92.45
 	return pathLoss
 }
 

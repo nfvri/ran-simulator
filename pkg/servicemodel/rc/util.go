@@ -126,13 +126,13 @@ func (sm *Client) getCellPCI(ctx context.Context, ncgi ransimtypes.NCGI) (int32,
 	return int32(cell.PCI), nil
 }
 
-func (sm *Client) getEARFCN(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) {
+func (sm *Client) getEARFCN(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) { //TODO change func name
 	cell, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return 0, err
 	}
 
-	return int32(cell.Earfcn), nil
+	return int32(cell.Channel.SSBFrequency), nil
 }
 
 func (sm *Client) getCellSize(ctx context.Context, ncgi ransimtypes.NCGI) (string, error) {

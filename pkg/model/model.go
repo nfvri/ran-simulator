@@ -125,9 +125,9 @@ type Cell struct {
 	MeasurementParams MeasurementParams `mapstructure:"measurementParams"`
 	PCI               uint32            `mapstructure:"pci"`
 	CellType          types.CellType    `mapstructure:"cellType"`
+	Channel   		  Channel			`mapstructure:"channel"`
 	RrcIdleCount      uint32
 	RrcConnectedCount uint32
-	Channel
 }
 
 // UEType represents type of user-equipment

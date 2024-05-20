@@ -1,0 +1,457 @@
+bands:
+  - id: 1
+    frequency: 2100
+    common_name: IMT
+    uplink_down: 1920
+    uplink_up: 1980
+    downlink_down: 2110
+    downlink_up: 2170
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 2
+    frequency: 1900
+    common_name: PCS
+    uplink_down: 1850
+    uplink_up: 1910
+    downlink_down: 1930
+    downlink_up: 1990
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15, 20]
+  - id: 3
+    frequency: 1800
+    common_name: DCS
+    uplink_down: 1710
+    uplink_up: 1785
+    downlink_down: 1805
+    downlink_up: 1880
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15, 20]
+  - id: 4
+    frequency: 1700
+    common_name: AWS-1
+    uplink_down: 1710
+    uplink_up: 1755
+    downlink_down: 2110
+    downlink_up: 2155
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15, 20]
+  - id: 5
+    frequency: 850
+    common_name: Cellular
+    uplink_down: 824
+    uplink_up: 849
+    downlink_down: 869
+    downlink_up: 894
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10]
+  - id: 7
+    frequency: 2600
+    common_name: IMT-E
+    uplink_down: 2500
+    uplink_up: 2570
+    downlink_down: 2620
+    downlink_up: 2690
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 8
+    frequency: 900
+    common_name: Extended GSM
+    uplink_down: 880
+    uplink_up: 915
+    downlink_down: 925
+    downlink_up: 960
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10]
+  - id: 11
+    frequency: 1500
+    common_name: Lower PDC
+    uplink_down: 1427.9
+    uplink_up: 1447.9
+    downlink_down: 1475.9
+    downlink_up: 1495.9
+    available_channel_bandwidth_MHz: [5, 10]
+  - id: 12
+    frequency: 700
+    common_name: Lower SMH
+    uplink_down: 699
+    uplink_up: 716
+    downlink_down: 729
+    downlink_up: 746
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10]
+  - id: 13
+    frequency: 700
+    common_name: Upper SMH
+    uplink_down: 777
+    uplink_up: 787
+    downlink_down: 746
+    downlink_up: 756
+    available_channel_bandwidth_MHz: [5, 10]
+  - id: 14
+    frequency: 700
+    common_name: Upper SMH
+    uplink_down: 788
+    uplink_up: 798
+    downlink_down: 758
+    downlink_up: 768
+    available_channel_bandwidth_MHz: [5, 10]
+  - id: 17
+    frequency: 700
+    common_name: Lower SMH
+    uplink_down: 704
+    uplink_up: 716
+    downlink_down: 734
+    downlink_up: 746
+    available_channel_bandwidth_MHz: [5, 10]
+  - id: 18
+    frequency: 850
+    common_name: Lower 800
+    uplink_down: 815
+    uplink_up: 830
+    downlink_down: 860
+    downlink_up: 875
+    available_channel_bandwidth_MHz: [5, 10, 15]
+  - id: 19
+    frequency: 850
+    common_name: Upper 800
+    uplink_down: 830
+    uplink_up: 845
+    downlink_down: 875
+    downlink_up: 890
+    available_channel_bandwidth_MHz: [5, 10, 15]
+  - id: 20
+    frequency: 800
+    common_name: Digital Dividend
+    uplink_down: 832
+    uplink_up: 862
+    downlink_down: 791
+    downlink_up: 821
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 21
+    frequency: 1500
+    common_name: Upper PDC
+    uplink_down: 1447.9
+    uplink_up: 1462.9
+    downlink_down: 1495.9
+    downlink_up: 1510.9
+    available_channel_bandwidth_MHz: [5, 10, 15]
+  - id: 24
+    frequency: 1600
+    common_name: Upper L-Band
+    uplink_down: 1626.5
+    uplink_up: 1660.5
+    downlink_down: 1525
+    downlink_up: 1559
+    available_channel_bandwidth_MHz: [5, 10]
+  - id: 25
+    frequency: 1900
+    common_name: Extended PCS
+    uplink_down: 1850
+    uplink_up: 1915
+    downlink_down: 1930
+    downlink_up: 1995
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15, 20]
+  - id: 26
+    frequency: 850
+    common_name: Extended Cellular
+    uplink_down: 814
+    uplink_up: 849
+    downlink_down: 859
+    downlink_up: 894
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15]
+  - id: 28
+    frequency: 700
+    common_name: APT
+    uplink_down: 703
+    uplink_up: 748
+    downlink_down: 758
+    downlink_up: 803
+    available_channel_bandwidth_MHz: [3, 5, 10, 15, 20]
+  - id: 29
+    frequency: 700
+    common_name: Lower SMH
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 717
+    downlink_up: 728
+    available_channel_bandwidth_MHz: [3, 5, 10]
+  - id: 30
+    frequency: 2300
+    common_name: WCS
+    uplink_down: 2305
+    uplink_up: 2315
+    downlink_down: 2350
+    downlink_up: 2360
+    available_channel_bandwidth_MHz: [5, 10]
+  - id: 31
+    frequency: 450
+    common_name: NMT
+    uplink_down: 452.5
+    uplink_up: 457.5
+    downlink_down: 462.5
+    downlink_up: 467.5
+    available_channel_bandwidth_MHz: [1.4, 3, 5]
+  - id: 32
+    frequency: 1500
+    common_name: L-Band
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 1452
+    downlink_up: 1496
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 34
+    frequency: 2000
+    common_name: IMT
+    uplink_down: 2010
+    uplink_up: 2025
+    downlink_down: 2010
+    downlink_up: 2025
+    available_channel_bandwidth_MHz: [5, 10, 15]
+  - id: 37
+    frequency: 1900
+    common_name: PCS
+    uplink_down: 1910
+    uplink_up: 1930
+    downlink_down: 1910
+    downlink_up: 1930
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 38
+    frequency: 2600
+    common_name: IMT-E
+    uplink_down: 2570
+    uplink_up: 2620
+    downlink_down: 2570
+    downlink_up: 2620
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 39
+    frequency: 1900
+    common_name: DCS-IMT Gap
+    uplink_down: 1880
+    uplink_up: 1920
+    downlink_down: 1880
+    downlink_up: 1920
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 40
+    frequency: 2300
+    common_name: S-Band
+    uplink_down: 2300
+    uplink_up: 2400
+    downlink_down: 2300
+    downlink_up: 2400
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 41
+    frequency: 2500
+    common_name: BRS
+    uplink_down: 2496
+    uplink_up: 2690
+    downlink_down: 2496
+    downlink_up: 2690
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 42
+    frequency: 3500
+    common_name: CBRS
+    uplink_down: 3400
+    uplink_up: 3600
+    downlink_down: 3400
+    downlink_up: 3600
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 43
+    frequency: 3700
+    common_name: C-Band
+    uplink_down: 3600
+    uplink_up: 3800
+    downlink_down: 3600
+    downlink_up: 3800
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 46
+    frequency: 5200
+    common_name: U-NII-1-4
+    uplink_down: 5150
+    uplink_up: 5925
+    downlink_down: 5150
+    downlink_up: 5925
+    available_channel_bandwidth_MHz: [10, 20]
+  - id: 47
+    frequency: 5900
+    common_name: U-NII-4
+    uplink_down: 5855
+    uplink_up: 5925
+    downlink_down: 5855
+    downlink_up: 5925
+    available_channel_bandwidth_MHz: [10, 20]
+  - id: 48
+    frequency: 3500
+    common_name: CBRS
+    uplink_down: 3550
+    uplink_up: 3700
+    downlink_down: 3550
+    downlink_up: 3700
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 50
+    frequency: 1500
+    common_name: L-Band
+    uplink_down: 1432
+    uplink_up: 1517
+    downlink_down: 1432
+    downlink_up: 1517
+    available_channel_bandwidth_MHz: [3, 5, 10, 15, 20]
+  - id: 51
+    frequency: 1500
+    common_name: L-Band Extension
+    uplink_down: 1427
+    uplink_up: 1432
+    downlink_down: 1427
+    downlink_up: 1432
+    available_channel_bandwidth_MHz: [3, 5]
+  - id: 53
+    frequency: 2400
+    common_name: S-Band
+    uplink_down: 2483.5
+    uplink_up: 2495
+    downlink_down: 2483.5
+    downlink_up: 2495
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10]
+  - id: 54
+    frequency: 1600
+    common_name: L-Band
+    uplink_down: 1670
+    uplink_up: 1675
+    downlink_down: 1670
+    downlink_up: 1675
+    available_channel_bandwidth_MHz: [1.4, 3, 5]
+  - id: 65
+    frequency: 2100
+    common_name: Extended IMT
+    uplink_down: 1920
+    uplink_up: 2010
+    downlink_down: 2110
+    downlink_up: 2200
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15, 20]
+  - id: 66
+    frequency: 1700
+    common_name: Extended AWS
+    uplink_down: 1710
+    uplink_up: 1780
+    downlink_down: 2110
+    downlink_up: 2200
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15, 20]
+  - id: 67
+    frequency: 700
+    common_name: EU 700
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 738
+    downlink_up: 758
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 69
+    frequency: 2600
+    common_name: IMT-E
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 2570
+    downlink_up: 2620
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 70
+    frequency: 1700
+    common_name: Supplementary AWS
+    uplink_down: 1695
+    uplink_up: 1710
+    downlink_down: 1995
+    downlink_up: 2020
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 71
+    frequency: 600
+    common_name: Digital Dividend
+    uplink_down: 663
+    uplink_up: 698
+    downlink_down: 617
+    downlink_up: 652
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 72
+    frequency: 450
+    common_name: PMR
+    uplink_down: 451
+    uplink_up: 456
+    downlink_down: 461
+    downlink_up: 466
+    available_channel_bandwidth_MHz: [1.4, 3, 5]
+  - id: 73
+    frequency: 450
+    common_name: PMR
+    uplink_down: 450
+    uplink_up: 455
+    downlink_down: 460
+    downlink_up: 465
+    available_channel_bandwidth_MHz: [1.4, 3, 5]
+  - id: 74
+    frequency: 1500
+    common_name: Lower L-Band
+    uplink_down: 1427
+    uplink_up: 1470
+    downlink_down: 1475
+    downlink_up: 1518
+    available_channel_bandwidth_MHz: [1.4, 3, 5, 10, 15, 20]
+  - id: 75
+    frequency: 1500
+    common_name: L-Band
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 1432
+    downlink_up: 1517
+    available_channel_bandwidth_MHz: [5, 10, 15, 20]
+  - id: 76
+    frequency: 1500
+    common_name: L-Band Extension
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 1427
+    downlink_up: 1432
+    available_channel_bandwidth_MHz: [5]
+  - id: 85
+    frequency: 700
+    common_name: Extended Lower SMH
+    uplink_down: 698
+    uplink_up: 716
+    downlink_down: 728
+    downlink_up: 746
+    available_channel_bandwidth_MHz: [5, 10]
+  - id: 87
+    frequency: 410
+    common_name: PMR
+    uplink_down: 410
+    uplink_up: 415
+    downlink_down: 420
+    downlink_up: 425
+    available_channel_bandwidth_MHz: [1.4, 3, 5]
+  - id: 88
+    frequency: 410
+    common_name: PMR
+    uplink_down: 412
+    uplink_up: 417
+    downlink_down: 422
+    downlink_up: 427
+    available_channel_bandwidth_MHz: [1.4, 3, 5]
+  - id: 103
+    frequency: 700
+    common_name: Upper SMH
+    uplink_down: 787
+    uplink_up: 788
+    downlink_down: 757
+    downlink_up: 758
+    available_channel_bandwidth_MHz: [null]
+  - id: 106
+    frequency: 900
+    common_name: LMR
+    uplink_down: 896
+    uplink_up: 901
+    downlink_down: 935
+    downlink_up: 940
+    available_channel_bandwidth_MHz: [1.4, 3]
+  - id: 107
+    frequency: 600
+    common_name: UHF
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 612
+    downlink_up: 652
+    available_channel_bandwidth_MHz: [6, 7, 8]
+  - id: 108
+    frequency: 500
+    common_name: UHF
+    uplink_down: null
+    uplink_up: null
+    downlink_down: 470
+    downlink_up: 698
+    available_channel_bandwidth_MHz: [6, 7, 8]

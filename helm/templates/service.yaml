@@ -23,6 +23,9 @@ spec:
   ports:
     - name: trafficsim
       port: 5150
+      {{- if .Values.service.nodePort.trafficsim }}
+      nodePort: {{ .Values.service.nodePort.trafficsim }}
+      {{- end }}
     - name: exporter
       port: 9090
 # Other ports will be added here dynamically by the application for E2 interface

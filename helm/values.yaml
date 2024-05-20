@@ -48,7 +48,9 @@ ingress:
   enabled: false
 
 service:
-  type: ClusterIP
+  type: NodePort
+  nodePort:
+    trafficsim: 30150
 
 pci:
   modelName: "model"

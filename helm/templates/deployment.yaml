@@ -27,9 +27,7 @@ spec:
         resource: {{ template "ran-simulator.fullname" . }}
         {{- include "ran-simulator.selectorLabels" . | nindent 8 }}
     spec:
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}

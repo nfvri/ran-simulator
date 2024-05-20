@@ -59,26 +59,27 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 ran-simulator image name
 */}}
 {{- define "ran-simulator.imagename" -}}
-{{- if .Values.global.image.registry -}}
-{{- printf "%s/" .Values.global.image.registry -}}
-{{- else if .Values.image.registry -}}
+{{- if .Values.image.registry -}}
 {{- printf "%s/" .Values.image.registry -}}
 {{- end -}}
 {{- printf "%s:" .Values.image.repository -}}
-{{- if .Values.global.image.tag -}}
-{{- .Values.global.image.tag -}}
-{{- else -}}
 {{- tpl .Values.image.tag . -}}
-{{- end -}}
 {{- end -}}
 
 {{/*
 registry name
 */}}
 {{- define "ran-simulator.registryname" -}}
-{{- if .Values.global.image.registry -}}
-{{- printf "%s/" .Values.global.image.registry -}}
-{{- else if .Values.image.registry -}}
+{{- if .Values.image.registry -}}
 {{- printf "%s/" .Values.image.registry -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Create secret image pull credentials
+*/}}
+{{- define "ran-simulator.imagePullSecret" }}
+{{- with .Values.imageCredentials }}
+{{- printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":%s,\"email\":\"%s\",\"auth\":\"%s\"}}}" .registry .username ( .password | toJson ) .email (printf "%s:%s" .username .password | b64enc) | b64enc }}
+{{- end }}
+{{- end }}

@@ -6,23 +6,39 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+##  Global parameters
+## Please, note that this will override the parameters, including dependencies, configured to use the global value
+##
 global:
-  image:
-    registry: ""
-    tag: ""
+  imagePullSecrets:
+    # -- Global Docker registry secret names as an array
+    - name: ran-simulator-private-repo
+  # -- If it is enabled, create new image pull secret
+  createImagePullSecret: true
+  # -- The name of the image pull secret to be created
+  createdImagePullSecretName: ran-simulator-private-repo
+  # -- Use Openshift Certified images for tests
+  openshiftCertTests: false
 
+imageCredentials:
+  # -- Nfvri image registry
+  registry: "https://europe-docker.pkg.dev/nfv-ri/images"
+  # -- Username for nfvri image registry
+  username: "_json_key"
+  # -- Password for nfvri image registry
+  password: "Contact nfvri team to provide the password"
+  # -- Email for nfvri image registry
+  email: "user@example.com"
 replicaCount: 1
 
 image:
-  registry: ""
-  repository: onosproject/ran-simulator
-  tag: '{{ .Chart.AppVersion }}'
+  registry: "europe-docker.pkg.dev/nfv-ri/images"
+  repository: ran-simulator
+  tag: "test"
   pullPolicy: IfNotPresent
-  pullSecrets: []
 
 googleApiKey: "YOUR_API_KEY_HERE"
 
-imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: "ran-simulator"
 

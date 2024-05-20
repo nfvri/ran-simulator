@@ -13,3 +13,6 @@ api/e2/e2-interface.proto
 *coverage*.xml
 *-output.out
 build/build-tools
+
+# Overrides file
+overrides.yaml

@@ -77,6 +77,13 @@ func (m *Manager) Run() {
 	}
 }
 
+func (m *Manager) initmobilityDriver() {
+	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
+	// TODO: Make initial speeds configurable
+	m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
+	m.mobilityDriver.Start(context.Background())
+}
+
 // Start starts the manager
 func (m *Manager) Start() error {
 	// Load the model data
@@ -95,10 +102,7 @@ func (m *Manager) Start() error {
 		return err
 	}
 
-	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
-	// TODO: Make initial speeds configurable
-	m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
-	m.mobilityDriver.Start(context.Background())
+	m.initmobilityDriver()
 
 	// Start E2 agents
 	// err = m.startE2Agents()
@@ -229,8 +233,5 @@ func (m *Manager) Resume(ctx context.Context) {
 		_ = m.startNorthboundServer()
 	}()
 	// _ = m.startE2Agents()
-	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
-	// TODO: Make initial speeds configurable
-	m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
-	m.mobilityDriver.Start(context.Background())
+	m.initmobilityDriver()
 }

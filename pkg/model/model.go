@@ -103,15 +103,11 @@ type Guami struct {
 
 // Channel represents a sl sector operational frequency range
 type Channel struct {
-	SSBFrequency      uint32            `mapstructure:"ssbfrequency"`
-	ArfcnDL           uint32            `mapstructure:"arfcndl"`
-	ArfcnUL           uint32            `mapstructure:"arfcnul"`
-	ChannelPathloss
-}
-
-// TODO properties that has to do with pathloss 
-type ChannelPathloss struct {
-
+	SSBFrequency  uint32            `mapstructure:"ssbfrequency"`
+	ArfcnDL       uint32            `mapstructure:"arfcndl"`
+	ArfcnUL       uint32            `mapstructure:"arfcnul"`
+	Environment	  string			`mapstructure:"environment" validate:"oneof=urban rural"`
+	LOS 		  bool				`mapstructure:"LOS"`
 }
 
 // Cell represents a section of coverage

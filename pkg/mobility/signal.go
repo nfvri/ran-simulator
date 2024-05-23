@@ -8,7 +8,6 @@ import (
 	"github.com/onosproject/ran-simulator/pkg/model"
 	"github.com/onosproject/ran-simulator/pkg/utils"
 	"math"
-	"fmt"
 )
 
 // powerFactor relates power to distance in decimal degrees
@@ -57,37 +56,30 @@ func angleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 // getPathLoss calculates the path loss based on the environment and LOS/NLOS conditions
 func getPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 	var pathLoss float64
-	var message string
 
 	switch cell.Channel.Environment {
 	case "urban":
 		if cell.Channel.LOS {
 			pathLoss = getUrbanLOSPathLoss(coord, cell)
-			message = fmt.Sprintf("%s environment with LOS: %f", cell.Channel.Environment, pathLoss)
 		} else {
 			pathLoss = getUrbanNLOSPathLoss(coord, cell)
-			message = fmt.Sprintf("%s environment with NLOS: %f", cell.Channel.Environment, pathLoss)
 		}
 	case "rural":
 		if cell.Channel.LOS {
 			pathLoss = getRuralLOSPathLoss(coord, cell)
-			message = fmt.Sprintf("%s environment with LOS: %f", cell.Channel.Environment, pathLoss)
 		} else {
 			pathLoss = getRuralNLOSPathLoss(coord, cell)
-			message = fmt.Sprintf("%s environment with NLOS: %f", cell.Channel.Environment, pathLoss)
 		}
 	default:
 		pathLoss = getFreeSpacePathLoss(coord, cell)
-		message = fmt.Sprintf("Unknown environment type %s, using free space path loss: %f", cell.Channel.Environment, pathLoss)
 	}
 
-	log.Info(message)
 	return pathLoss
 }
 
 
 func getFreeSpacePathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	distanceKM := getEuclideanDistanceFromGPS(coord, cell)
+	distanceKM := getEuclideanDistanceFromGPS(coord, cell) / 1000
 	// Assuming we're using CBRS frequency 3.6 GHz
 	// 92.45 is the constant value of 20 * log10(4*pi / c) in Kilometer scale
 	pathLoss := 20*math.Log10(distanceKM) + 20*math.Log10(float64(cell.Channel.SSBFrequency) / 1000) + 92.45
@@ -102,7 +94,7 @@ func getEuclideanDistanceFromGPS(coord model.Coordinate, cell model.Cell) float6
 	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(coord.Lat*math.Pi/180)*math.Cos(cell.Sector.Center.Lat*math.Pi/180)*
 		math.Sin(dLng/2)*math.Sin(dLng/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	return earthRadius * c
+	return earthRadius * c * 1000// distance in meters
 }
 
 // 3D Euclidean distance function
@@ -123,9 +115,22 @@ func getBreakpointDistance(cell model.Cell) float64 {
 	c := 3.0*math.Pow(10,8)
 	hBS := float64(cell.Sector.Height) // base station height
 	hUT := float64(1.5) // average height of user terminal 1m <= hUT <= 10m 
-	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
+	fc := float64(cell.Channel.SSBFrequency) * 1000 // frequency in Hz
 
 	dBP := 2*math.Pi*hBS*hUT*fc/c
+
+	return dBP
+}
+
+// Breakpoint distance function
+func getBreakpointPrimeDistance(cell model.Cell) float64 {
+	c := 3.0*math.Pow(10,8)
+	hE := float64(1) // assuming enviroment height is 1m
+	hBS := float64(cell.Sector.Height) - hE // base station height  
+	hUT := float64(1.5) - hE // average height of user terminal 1m <= hUT <= 10m 
+	fc := float64(cell.Channel.SSBFrequency) * 1000 // frequency in Hz
+
+	dBP := 4*hBS*hUT*fc/c
 
 	return dBP
 }
@@ -136,7 +141,7 @@ func getRuralLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
 	dBP := getBreakpointDistance(cell)
 
-	if 0.001 <= d2D && d2D <= dBP {
+	if 10 <= d2D && d2D <= dBP {
 		return RmaLOSPL1(cell, d3D)
 	} else {
 		pl2 := RmaLOSPL1(cell, dBP) + 40*math.Log10(d3D/dBP)
@@ -177,12 +182,12 @@ func getRuralNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 func getUrbanLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 	d2D := getEuclideanDistanceFromGPS(coord, cell)
 	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
-	dBP := getBreakpointDistance(cell)
+	dBP := getBreakpointPrimeDistance(cell)
 	hBS := float64(cell.Sector.Height) // base station height
 	hUT := float64(5) // average height of user terminal 1m <= hUT <= 22.5m 
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
 
-	if 0.001 <= d2D && d2D <= dBP {
+	if 10 <= d2D && d2D <= dBP {
 		pl1 := 28.0 + 22*math.Log10(d3D) + 20*math.Log10(fc)
 		return pl1
 	} else {

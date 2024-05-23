@@ -87,7 +87,7 @@ func getPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 
 
 func getFreeSpacePathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	distanceKM := getEuclianDistanceFromGPS(coord, cell)
+	distanceKM := getEuclideanDistanceFromGPS(coord, cell)
 	// Assuming we're using CBRS frequency 3.6 GHz
 	// 92.45 is the constant value of 20 * log10(4*pi / c) in Kilometer scale
 	pathLoss := 20*math.Log10(distanceKM) + 20*math.Log10(float64(cell.Channel.SSBFrequency) / 1000) + 92.45
@@ -95,7 +95,7 @@ func getFreeSpacePathLoss(coord model.Coordinate, cell model.Cell) float64 {
 }
 
 // Euclidean distance function
-func getEuclianDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 {
+func getEuclideanDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 {
 	earthRadius := 6378.137
 	dLat := coord.Lat*math.Pi/180 - cell.Sector.Center.Lat*math.Pi/180
 	dLng := coord.Lng*math.Pi/180 - cell.Sector.Center.Lng*math.Pi/180
@@ -106,8 +106,8 @@ func getEuclianDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 
 }
 
 // 3D Euclidean distance function
-func get3dEuclianDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 {
-	d2D := getEuclianDistanceFromGPS(coord, cell)
+func get3dEuclideanDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 {
+	d2D := getEuclideanDistanceFromGPS(coord, cell)
 	
 	heightUE := float64(1.5)
 	heightDiff := math.Abs(float64(cell.Sector.Height) - heightUE)
@@ -132,8 +132,8 @@ func getBreakpointDistance(cell model.Cell) float64 {
 
 // getRuralLOSPathLoss calculates the RMa LOS path loss
 func getRuralLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d2D := getEuclianDistanceFromGPS(coord, cell)
-	d3D := get3dEuclianDistanceFromGPS(coord, cell)
+	d2D := getEuclideanDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
 	dBP := getBreakpointDistance(cell)
 
 	if 0.001 <= d2D && d2D <= dBP {
@@ -157,7 +157,7 @@ func RmaLOSPL1(cell model.Cell, d float64) float64 {
 
 // getRuralNLOSPathLoss calculates the RMa NLOS path loss
 func getRuralNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d3D := get3dEuclianDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
 	W := float64(20) // average street width 5m <= W <= 50m
 	h := float64(5) // average building height 5m <= h <= 50m 
 	hBS := float64(cell.Sector.Height) // base station height
@@ -175,8 +175,8 @@ func getRuralNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 
 // getUrbanLOSPathLoss calculates the UMa LOS path loss
 func getUrbanLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d2D := getEuclianDistanceFromGPS(coord, cell)
-	d3D := get3dEuclianDistanceFromGPS(coord, cell)
+	d2D := getEuclideanDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
 	dBP := getBreakpointDistance(cell)
 	hBS := float64(cell.Sector.Height) // base station height
 	hUT := float64(5) // average height of user terminal 1m <= hUT <= 22.5m 
@@ -193,7 +193,7 @@ func getUrbanLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 
 // getUrbanNLOSPathLoss calculates the UMa NLOS path loss
 func getUrbanNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d3D := get3dEuclianDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
 	hUT := float64(5) // average height of user terminal 1m <= W <= 22.5m 
 

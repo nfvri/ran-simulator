@@ -24,6 +24,7 @@ type Model struct {
 	InitialRrcState         string                  `mapstructure:"initialRrcState" yaml:"initialRrcState"`
 	UECount                 uint                    `mapstructure:"ueCount" yaml:"ueCount"`
 	UECountPerCell          uint                    `mapstructure:"ueCountPerCell" yaml:"ueCountPerCell"`
+	UEList					map[string]UE			`mapstructure:"ues" yaml:"ues"`
 	Plmn                    string                  `mapstructure:"plmnID" yaml:"plmnID"`
 	PlmnID                  types.PlmnID            `mapstructure:"plmnNumber" yaml:"plmnNumber"` // overridden and derived post-load from "Plmn" field
 	APIKey                  string                  `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
@@ -131,26 +132,24 @@ type UEType string
 
 // UECell represents UE-cell relationship
 type UECell struct {
-	ID       types.GnbID
-	NCGI     types.NCGI // Auxiliary form of association
-	Strength float64
+	ID       types.GnbID `mapstructure:"id"`
+	NCGI     types.NCGI  `mapstructure:"ncgi"`// Auxiliary form of association
+	Strength float64	 `mapstructure:"strength"`
 }
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI        types.IMSI
-	AmfUeNgapID types.AmfUENgapID
-	Type        UEType
-	RrcState    e2sm_mho.Rrcstatus
-	Location    Coordinate
-	Heading     uint32
-	FiveQi      int
-
-	Cell  *UECell
-	CRNTI types.CRNTI
-	Cells []*UECell
-
-	IsAdmitted bool
+	IMSI        types.IMSI			`mapstructure:"imsi"`
+	AmfUeNgapID types.AmfUENgapID	`mapstructure:"amfUeNgapID"`
+	Type        UEType				`mapstructure:"type"`
+	RrcState    e2sm_mho.Rrcstatus	`mapstructure:"rrcState"`
+	Location    Coordinate			`mapstructure:"location"`
+	Heading     uint32				`mapstructure:"heading"`
+	FiveQi      int					`mapstructure:"fiveQi"`
+	Cell  		*UECell				`mapstructure:"cell"`
+	CRNTI 		types.CRNTI			`mapstructure:"CRNTI"`
+	Cells 		[]*UECell			`mapstructure:"cells"`
+	IsAdmitted 	bool				`mapstructure:"isAdmitted"`
 }
 
 // ServiceModel service model information

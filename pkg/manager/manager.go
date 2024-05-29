@@ -80,8 +80,13 @@ func (m *Manager) Run() {
 func (m *Manager) initmobilityDriver() {
 	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
 	// TODO: Make initial speeds configurable
-	m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
-	m.mobilityDriver.Start(context.Background())
+	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
+	// m.mobilityDriver.Start(context.Background())
+	ueList:= m.ueStore.ListAllUEs(context.Background())
+	for _, ue := range ueList {
+		m.mobilityDriver.UpdateUESignalStrength(context.Background(),ue.IMSI)
+	}
+	
 }
 
 // Start starts the manager
@@ -129,10 +134,10 @@ func (m *Manager) initModelStores() {
 	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
 
 	// Create the UE registry primed with the specified number of UEs
-	m.ueStore = ues.NewUERegistry(m.model.UECount, m.cellStore, m.model.InitialRrcState)
+	m.ueStore = ues.NewUERegistry(*m.model , m.cellStore, m.model.InitialRrcState)
 
 	// Create an empty route registry
-	m.routeStore = routes.NewRouteRegistry()
+	// m.routeStore = routes.NewRouteRegistry()
 }
 
 func (m *Manager) initMetricStore() {

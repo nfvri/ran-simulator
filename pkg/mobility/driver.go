@@ -60,6 +60,8 @@ type Driver interface {
 
 	// AddRrcChan
 	AddRrcChan(ch chan model.UE)
+
+	UpdateUESignalStrength(ctx context.Context, imsi types.IMSI)
 }
 
 type driver struct {
@@ -209,7 +211,7 @@ func (d *driver) processRoute(ctx context.Context, route *model.Route) {
 		d.initializeUEPosition(ctx, route)
 	}
 	d.updateUEPosition(ctx, route)
-	d.updateUESignalStrength(ctx, route.IMSI)
+	d.UpdateUESignalStrength(ctx, route.IMSI)
 	if !d.rrcStateChangesDisabled {
 		d.updateRrc(ctx, route.IMSI)
 	}
@@ -339,7 +341,7 @@ func (d *driver) Handover(ctx context.Context, imsi types.IMSI, tCell *model.UEC
 	}
 
 	// after changing serving cell, calculate channel quality/signal strength again
-	d.updateUESignalStrength(ctx, imsi)
+	d.UpdateUESignalStrength(ctx, imsi)
 
 	// update the maximum number of UEs
 	d.ueStore.UpdateMaxUEsPerCell(ctx)
@@ -348,7 +350,7 @@ func (d *driver) Handover(ctx context.Context, imsi types.IMSI, tCell *model.UEC
 }
 
 // UpdateUESignalStrength updates UE signal strength
-func (d *driver) updateUESignalStrength(ctx context.Context, imsi types.IMSI) {
+func (d *driver) UpdateUESignalStrength(ctx context.Context, imsi types.IMSI) {
 	ue, err := d.ueStore.Get(ctx, imsi)
 	if err != nil {
 		log.Warn("Unable to find UE %d", imsi)

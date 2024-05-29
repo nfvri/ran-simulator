@@ -52,9 +52,12 @@ type Store interface {
 	// UpdateMaxUEsPerCell updates the maximum number of active UEs for all cells
 	UpdateMaxUEsPerCell(ctx context.Context)
 
-	// CreateUEs creates the specified number of UEs
-	CreateUEs(ctx context.Context, count uint)
+	// CreateUEs creates the UEs from the UEList of the model
+	CreateUEs(ctx context.Context, m model.Model)
 
+	// CreateRandomUEs creates the specified number of UEs
+	CreateRandomUEs(ctx context.Context, count uint)
+	
 	// Get retrieves the UE with the specified IMSI
 	Get(ctx context.Context, imsi types.IMSI) (*model.UE, error)
 
@@ -106,8 +109,7 @@ type store struct {
 
 // NewUERegistry creates a new user-equipment registry primed with the specified number of UEs to start.
 // UEs will be semi-randomly distributed between the specified cells
-func NewUERegistry(count uint, cellStore cells.Store, initialRrcState string) Store {
-	log.Infof("Creating registry from model with %d UEs", count)
+func NewUERegistry(m model.Model, cellStore cells.Store, initialRrcState string) Store {
 	watchers := watcher.NewWatchers()
 	store := &store{
 		mu:              sync.RWMutex{},
@@ -118,7 +120,10 @@ func NewUERegistry(count uint, cellStore cells.Store, initialRrcState string) St
 		initialRrcState: initialRrcState,
 	}
 	ctx := context.Background()
-	store.CreateUEs(ctx, count)
+	store.CreateUEs(ctx, m)
+	if m.UECount > 0 {
+		store.CreateRandomUEs(ctx, m.UECount)
+	}
 	log.Infof("Created registry primed with %d UEs", len(store.ues))
 
 	return store
@@ -127,7 +132,7 @@ func NewUERegistry(count uint, cellStore cells.Store, initialRrcState string) St
 func (s *store) SetUECount(ctx context.Context, count uint) {
 	delta := len(s.ues) - int(count)
 	if delta < 0 {
-		s.CreateUEs(ctx, uint(-delta))
+		s.CreateRandomUEs(ctx, uint(-delta))
 	} else if delta > 0 {
 		s.removeSomeUEs(ctx, delta)
 	}
@@ -207,7 +212,7 @@ func randomBoolean() bool {
 	return rand.Float32() < 0.5
 }
 
-func (s *store) CreateUEs(ctx context.Context, count uint) {
+func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 	s.mu.Lock()
 	for i := uint(0); i < count; i++ {
 		imsi := types.IMSI(rand.Int63n(maxIMSI-minIMSI) + minIMSI)
@@ -255,7 +260,31 @@ func (s *store) CreateUEs(ctx context.Context, count uint) {
 			IsAdmitted: false,
 			RrcState:   rrcState,
 		}
+		fmt.Printf("ue: %d\n",ue)
 		s.ues[ue.IMSI] = ue
+	}
+	s.mu.Unlock()
+	s.UpdateMaxUEsPerCell(ctx)
+}
+
+func (s *store) CreateUEs(ctx context.Context, m model.Model) {
+	s.mu.Lock()
+	for _, ue := range m.UEList {
+		new_ue := &model.UE{
+			IMSI:ue.IMSI,
+			AmfUeNgapID:ue.AmfUeNgapID,
+			Type:ue.Type,
+			RrcState:ue.RrcState,
+			Location:ue.Location,
+			Heading:ue.Heading,
+			FiveQi:ue.FiveQi,
+			Cell:ue.Cell,
+			CRNTI:ue.CRNTI,
+			Cells:ue.Cells,
+			IsAdmitted:ue.IsAdmitted,
+		}
+		fmt.Printf("ue: %d\n",new_ue)
+		s.ues[ue.IMSI] = new_ue
 	}
 	s.mu.Unlock()
 	s.UpdateMaxUEsPerCell(ctx)

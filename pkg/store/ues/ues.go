@@ -7,9 +7,10 @@ package ues
 import (
 	"context"
 	"fmt"
-	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
 	"math/rand"
 	"sync"
+
+	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
 
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
@@ -57,7 +58,7 @@ type Store interface {
 
 	// CreateRandomUEs creates the specified number of UEs
 	CreateRandomUEs(ctx context.Context, count uint)
-	
+
 	// Get retrieves the UE with the specified IMSI
 	Get(ctx context.Context, imsi types.IMSI) (*model.UE, error)
 
@@ -251,16 +252,16 @@ func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 			Location:    model.Coordinate{Lat: 0, Lng: 0},
 			Heading:     0,
 			Cell: &model.UECell{
-				ID:       types.GnbID(ncgi), // placeholder
-				NCGI:     ncgi,
-				Strength: rand.Float64() * 100,
+				ID:   types.GnbID(ncgi), // placeholder
+				NCGI: ncgi,
+				Rsrp: rand.Float64() * 100,
 			},
 			CRNTI:      types.CRNTI(90125 + i),
 			Cells:      nil,
 			IsAdmitted: false,
 			RrcState:   rrcState,
 		}
-		fmt.Printf("ue: %d\n",ue)
+		fmt.Printf("ue: %d\n", ue)
 		s.ues[ue.IMSI] = ue
 	}
 	s.mu.Unlock()
@@ -271,19 +272,19 @@ func (s *store) CreateUEs(ctx context.Context, m model.Model) {
 	s.mu.Lock()
 	for _, ue := range m.UEList {
 		new_ue := &model.UE{
-			IMSI:ue.IMSI,
-			AmfUeNgapID:ue.AmfUeNgapID,
-			Type:ue.Type,
-			RrcState:ue.RrcState,
-			Location:ue.Location,
-			Heading:ue.Heading,
-			FiveQi:ue.FiveQi,
-			Cell:ue.Cell,
-			CRNTI:ue.CRNTI,
-			Cells:ue.Cells,
-			IsAdmitted:ue.IsAdmitted,
+			IMSI:        ue.IMSI,
+			AmfUeNgapID: ue.AmfUeNgapID,
+			Type:        ue.Type,
+			RrcState:    ue.RrcState,
+			Location:    ue.Location,
+			Heading:     ue.Heading,
+			FiveQi:      ue.FiveQi,
+			Cell:        ue.Cell,
+			CRNTI:       ue.CRNTI,
+			Cells:       ue.Cells,
+			IsAdmitted:  ue.IsAdmitted,
 		}
-		fmt.Printf("ue: %d\n",new_ue)
+		fmt.Printf("ue: %d\n", new_ue)
 		s.ues[ue.IMSI] = new_ue
 	}
 	s.mu.Unlock()
@@ -347,7 +348,7 @@ func (s *store) MoveToCell(ctx context.Context, imsi types.IMSI, ncgi types.NCGI
 	defer s.mu.Unlock()
 	if ue, ok := s.ues[imsi]; ok {
 		ue.Cell.NCGI = ncgi
-		ue.Cell.Strength = strength
+		ue.Cell.Rsrp = strength
 		updateEvent := event.Event{
 			Key:   ue.IMSI,
 			Value: ue,

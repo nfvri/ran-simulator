@@ -6,6 +6,7 @@ package mho
 
 import (
 	"context"
+
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	e2sm_v2_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-v2-ies"
@@ -170,7 +171,7 @@ func (m *Mho) createIndicationMsgFormat1(ue *model.UE) ([]byte, error) {
 			},
 		},
 		Rsrp: &e2sm_mho.Rsrp{
-			Value: int32(ue.Cell.Strength),
+			Value: int32(ue.Cell.Rsrp),
 		},
 		FiveQi: &e2sm_v2_ies.FiveQi{
 			Value: int32(ue.FiveQi),
@@ -199,7 +200,7 @@ func (m *Mho) createIndicationMsgFormat1(ue *model.UE) ([]byte, error) {
 				},
 			},
 			Rsrp: &e2sm_mho.Rsrp{
-				Value: int32(cell.Strength),
+				Value: int32(cell.Rsrp),
 			},
 		})
 	}

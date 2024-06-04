@@ -391,9 +391,9 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 			continue
 		}
 		ueCell := &model.UECell{
-			ID:       types.GnbID(cell.NCGI),
-			NCGI:     cell.NCGI,
-			Strength: rsrp,
+			ID:   types.GnbID(cell.NCGI),
+			NCGI: cell.NCGI,
+			Rsrp: rsrp,
 		}
 		csCellList = d.sortUECells(append(csCellList, ueCell), 3) // hardcoded: to be parameterized for the future
 	}
@@ -422,9 +422,9 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 	}
 
 	newUECell := &model.UECell{
-		ID:       ue.Cell.ID,
-		NCGI:     ue.Cell.NCGI,
-		Strength: strength,
+		ID:   ue.Cell.ID,
+		NCGI: ue.Cell.NCGI,
+		Rsrp: strength,
 	}
 
 	err = d.ueStore.UpdateCell(ctx, ue.IMSI, newUECell)
@@ -439,7 +439,7 @@ func (d *driver) sortUECells(ueCells []*model.UECell, numAdjCells int) []*model.
 	// bubble sort
 	for i := 0; i < len(ueCells)-1; i++ {
 		for j := 0; j < len(ueCells)-i-1; j++ {
-			if ueCells[j].Strength < ueCells[j+1].Strength {
+			if ueCells[j].Rsrp < ueCells[j+1].Rsrp {
 				ueCells[j], ueCells[j+1] = ueCells[j+1], ueCells[j]
 			}
 		}

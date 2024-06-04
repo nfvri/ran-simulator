@@ -86,7 +86,7 @@ func TestMoveUEToCell(t *testing.T) {
 	ue1, _ := ues.Get(ctx, ue.IMSI)
 	assert.NoError(t, err)
 	assert.Equal(t, types.NCGI(321), ue1.Cell.NCGI)
-	assert.Equal(t, 11.0, ue1.Cell.Strength)
+	assert.Equal(t, 11.0, ue1.Cell.Rsrp)
 	list := ues.ListAllUEs(ctx)
 	assert.Len(t, list, 18)
 	for _, ue := range list {
@@ -121,12 +121,12 @@ func TestUpdateCells(t *testing.T) {
 	assert.NotNil(t, ues, "unable to create UE registry")
 
 	ue := ues.ListAllUEs(ctx)[0]
-	uecells := []*model.UECell{{NCGI: 123001, Strength: 42.0}, {NCGI: 123002, Strength: 6.28}}
+	uecells := []*model.UECell{{NCGI: 123001, Rsrp: 42.0}, {NCGI: 123002, Rsrp: 6.28}}
 	err := ues.UpdateCells(ctx, ue.IMSI, uecells)
 	assert.NoError(t, err)
 
 	ue1, _ := ues.Get(ctx, ue.IMSI)
 	assert.NoError(t, err)
-	assert.Equal(t, 42.0, ue1.Cells[0].Strength)
-	assert.Equal(t, 6.28, ue1.Cells[1].Strength)
+	assert.Equal(t, 42.0, ue1.Cells[0].Rsrp)
+	assert.Equal(t, 6.28, ue1.Cells[1].Rsrp)
 }

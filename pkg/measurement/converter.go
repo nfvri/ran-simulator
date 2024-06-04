@@ -108,7 +108,7 @@ func (c *measReportConverter) Convert(ctx context.Context, ue *model.UE) device.
 
 	var csCells []device.Cell
 	measurements := make(map[string]measurement.Measurement)
-	sCellMeas := measurement.NewMeasEventA3(id.NewECGI(uint64(sCellInStore.NCGI)), measurement.RSRP(ue.Cell.Strength))
+	sCellMeas := measurement.NewMeasEventA3(id.NewECGI(uint64(sCellInStore.NCGI)), measurement.RSRP(ue.Cell.Rsrp))
 	measurements[sCellMeas.GetCellID().String()] = sCellMeas
 
 	for _, ueCell := range ue.Cells {
@@ -131,7 +131,7 @@ func (c *measReportConverter) Convert(ctx context.Context, ue *model.UE) device.
 			c.convertQOffset(tmpCellInStore.MeasurementParams.FrequencyOffset),
 			c.convertTimeToTrigger(tmpCellInStore.MeasurementParams.TimeToTrigger)))
 
-		tmpCsCell := measurement.NewMeasEventA3(id.NewECGI(uint64(tmpCellInStore.NCGI)), measurement.RSRP(ueCell.Strength))
+		tmpCsCell := measurement.NewMeasEventA3(id.NewECGI(uint64(tmpCellInStore.NCGI)), measurement.RSRP(ueCell.Rsrp))
 		measurements[tmpCsCell.GetCellID().String()] = tmpCsCell
 	}
 

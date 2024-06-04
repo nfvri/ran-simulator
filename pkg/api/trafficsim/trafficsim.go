@@ -81,19 +81,19 @@ func ueToAPI(ue *model.UE) *simtypes.Ue {
 	}
 	if ue.Cell != nil {
 		r.ServingTower = simtypes.NCGI(ue.Cell.ID)
-		r.ServingTowerStrength = ue.Cell.Strength
+		r.ServingTowerStrength = ue.Cell.Rsrp
 	}
 	if len(ue.Cells) > 0 {
 		r.Tower1 = simtypes.NCGI(ue.Cells[0].ID)
-		r.Tower1Strength = ue.Cells[0].Strength
+		r.Tower1Strength = ue.Cells[0].Rsrp
 	}
 	if len(ue.Cells) > 1 {
 		r.Tower2 = simtypes.NCGI(ue.Cells[1].ID)
-		r.Tower2Strength = ue.Cells[1].Strength
+		r.Tower2Strength = ue.Cells[1].Rsrp
 	}
 	if len(ue.Cells) > 2 {
 		r.Tower3 = simtypes.NCGI(ue.Cells[2].ID)
-		r.Tower3Strength = ue.Cells[2].Strength
+		r.Tower3Strength = ue.Cells[2].Rsrp
 	}
 	return r
 }

@@ -24,7 +24,7 @@ type Model struct {
 	InitialRrcState         string                  `mapstructure:"initialRrcState" yaml:"initialRrcState"`
 	UECount                 uint                    `mapstructure:"ueCount" yaml:"ueCount"`
 	UECountPerCell          uint                    `mapstructure:"ueCountPerCell" yaml:"ueCountPerCell"`
-	UEList					map[string]UE			`mapstructure:"ues" yaml:"ues"`
+	UEList                  map[string]UE           `mapstructure:"ues" yaml:"ues"`
 	Plmn                    string                  `mapstructure:"plmnID" yaml:"plmnID"`
 	PlmnID                  types.PlmnID            `mapstructure:"plmnNumber" yaml:"plmnNumber"` // overridden and derived post-load from "Plmn" field
 	APIKey                  string                  `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
@@ -104,11 +104,11 @@ type Guami struct {
 
 // Channel represents a sl sector operational frequency range
 type Channel struct {
-	SSBFrequency  uint32            `mapstructure:"ssbfrequency"`
-	ArfcnDL       uint32            `mapstructure:"arfcndl"`
-	ArfcnUL       uint32            `mapstructure:"arfcnul"`
-	Environment	  string			`mapstructure:"environment" validate:"oneof=urban rural"`
-	LOS 		  bool				`mapstructure:"LOS"`
+	SSBFrequency uint32 `mapstructure:"ssbfrequency"`
+	ArfcnDL      uint32 `mapstructure:"arfcndl"`
+	ArfcnUL      uint32 `mapstructure:"arfcnul"`
+	Environment  string `mapstructure:"environment" validate:"oneof=urban rural"`
+	LOS          bool   `mapstructure:"LOS"`
 }
 
 // Cell represents a section of coverage
@@ -122,7 +122,7 @@ type Cell struct {
 	MeasurementParams MeasurementParams `mapstructure:"measurementParams"`
 	PCI               uint32            `mapstructure:"pci"`
 	CellType          types.CellType    `mapstructure:"cellType"`
-	Channel   		  Channel			`mapstructure:"channel"`
+	Channel           Channel           `mapstructure:"channel"`
 	RrcIdleCount      uint32
 	RrcConnectedCount uint32
 }
@@ -132,24 +132,26 @@ type UEType string
 
 // UECell represents UE-cell relationship
 type UECell struct {
-	ID       types.GnbID `mapstructure:"id"`
-	NCGI     types.NCGI  `mapstructure:"ncgi"`// Auxiliary form of association
-	Strength float64	 `mapstructure:"strength"`
+	ID   types.GnbID `mapstructure:"id"`
+	NCGI types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
+	Rsrp float64     `mapstructure:"rsrp"`
+	Rsrq float64     `mapstructure:"rsrq"`
+	Sinr float64     `mapstructure:"sinr"`
 }
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI        types.IMSI			`mapstructure:"imsi"`
-	AmfUeNgapID types.AmfUENgapID	`mapstructure:"amfUeNgapID"`
-	Type        UEType				`mapstructure:"type"`
-	RrcState    e2sm_mho.Rrcstatus	`mapstructure:"rrcState"`
-	Location    Coordinate			`mapstructure:"location"`
-	Heading     uint32				`mapstructure:"heading"`
-	FiveQi      int					`mapstructure:"fiveQi"`
-	Cell  		*UECell				`mapstructure:"cell"`
-	CRNTI 		types.CRNTI			`mapstructure:"CRNTI"`
-	Cells 		[]*UECell			`mapstructure:"cells"`
-	IsAdmitted 	bool				`mapstructure:"isAdmitted"`
+	IMSI        types.IMSI         `mapstructure:"imsi"`
+	AmfUeNgapID types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
+	Type        UEType             `mapstructure:"type"`
+	RrcState    e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
+	Location    Coordinate         `mapstructure:"location"`
+	Heading     uint32             `mapstructure:"heading"`
+	FiveQi      int                `mapstructure:"fiveQi"`
+	Cell        *UECell            `mapstructure:"cell"`
+	CRNTI       types.CRNTI        `mapstructure:"CRNTI"`
+	Cells       []*UECell          `mapstructure:"cells"`
+	IsAdmitted  bool               `mapstructure:"isAdmitted"`
 }
 
 // ServiceModel service model information

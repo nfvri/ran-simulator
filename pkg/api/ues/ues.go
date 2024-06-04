@@ -72,19 +72,19 @@ func ueToAPI(ue *model.UE) *types.Ue {
 	}
 	if ue.Cell != nil {
 		r.ServingTower = ue.Cell.NCGI
-		r.ServingTowerStrength = ue.Cell.Strength
+		r.ServingTowerStrength = ue.Cell.Rsrp
 	}
 	if len(ue.Cells) > 0 {
 		r.Tower1 = ue.Cells[0].NCGI
-		r.Tower1Strength = ue.Cells[0].Strength
+		r.Tower1Strength = ue.Cells[0].Rsrp
 	}
 	if len(ue.Cells) > 1 {
 		r.Tower2 = ue.Cells[1].NCGI
-		r.Tower2Strength = ue.Cells[1].Strength
+		r.Tower2Strength = ue.Cells[1].Rsrp
 	}
 	if len(ue.Cells) > 2 {
 		r.Tower3 = ue.Cells[2].NCGI
-		r.Tower3Strength = ue.Cells[2].Strength
+		r.Tower3Strength = ue.Cells[2].Rsrp
 	}
 	return r
 }

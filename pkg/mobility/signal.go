@@ -8,6 +8,8 @@ import (
 	"github.com/onosproject/ran-simulator/pkg/model"
 	"github.com/onosproject/ran-simulator/pkg/utils"
 	"math"
+	"sort"
+	"fmt"
 )
 
 // powerFactor relates power to distance in decimal degrees
@@ -18,7 +20,12 @@ func StrengthAtLocation(coord model.Coordinate, cell model.Cell) float64 {
 	distAtt := distanceAttenuation(coord, cell)
 	angleAtt := angleAttenuation(coord, cell)
 	pathLoss := getPathLoss(coord, cell)
-	return cell.TxPowerDB + distAtt + angleAtt - pathLoss
+
+	// Test the findGridCell function
+	latIdx, lngIdx := findGridCell(coord, cell.GridPoints)
+	fmt.Printf("The point (%.12f, %.12f) is located in the grid cell with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+
+	return cell.TxPowerDB + distAtt + angleAtt - pathLoss - cell.ShadowingMap[latIdx][lngIdx]
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist
@@ -207,4 +214,59 @@ func getUrbanNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 		0.6*(hUT-1.5)
 
 	return math.Max(plLOS, plNLOS)
+}
+
+// Function to find the unique Latitudes
+func uniqueLatitudes(points []model.Coordinate) []float64 {
+	unique := make(map[float64]struct{})
+	for _, point := range points {
+		unique[point.Lat] = struct{}{}
+	}
+
+	latitudes := make([]float64, 0, len(unique))
+	for k := range unique {
+		latitudes = append(latitudes, k)
+	}
+	sort.Float64s(latitudes)
+	return latitudes
+}
+
+// Function to find the unique Longitudes
+func uniqueLongitudes(points []model.Coordinate) []float64 {
+	unique := make(map[float64]struct{})
+	for _, point := range points {
+		unique[point.Lng] = struct{}{}
+	}
+
+	longitudes := make([]float64, 0, len(unique))
+	for k := range unique {
+		longitudes = append(longitudes, k)
+	}
+	sort.Float64s(longitudes)
+	return longitudes
+}
+
+// Function to find the closest index
+func closestIndex(arr []float64, value float64) int {
+	closest := 0
+	minDist := math.Abs(arr[0] - value)
+	for i := 1; i < len(arr); i++ {
+		dist := math.Abs(arr[i] - value)
+		if dist < minDist {
+			closest = i
+			minDist = dist
+		}
+	}
+	return closest
+}
+
+// Function to find the grid cell containing the given point
+func findGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int) {
+	latitudes := uniqueLatitudes(gridPoints)
+	longitudes := uniqueLongitudes(gridPoints)
+
+	latIdx := closestIndex(latitudes, point.Lat)
+	lngIdx := closestIndex(longitudes, point.Lng)
+
+	return latIdx, lngIdx
 }

@@ -46,6 +46,9 @@ func LoadConfig(model *Model, configname string) error {
 
 	// Convert the MCC-MNC format into numeric PLMNID
 	model.PlmnID = types.PlmnIDFromString(model.Plmn)
+	
+	shadowingMap := CalculateShadowMap(model.Shadowing.Sigma,model.Shadowing.DecorrelationDistance,model.Shadowing.GridSize,model)
+	gridPoints := ComputeGridPoints(model.Shadowing.GridSize,model)
 
 	// initialize neighbor's Ocn value - for mlb/handover
 	for k, v := range model.Cells {
@@ -53,6 +56,9 @@ func LoadConfig(model *Model, configname string) error {
 		for _, n := range v.Neighbors {
 			v.MeasurementParams.NCellIndividualOffsets[n] = 0
 		}
+		
+		v.ShadowingMap = shadowingMap
+		v.GridPoints = gridPoints
 		model.Cells[k] = v
 	}
 

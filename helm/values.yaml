@@ -40,9 +40,7 @@ image:
 googleApiKey: "YOUR_API_KEY_HERE"
 
 nameOverride: ""
-fullnameOverride: "ran-simulator"
-
-store: {}
+fullnameOverride: ""
 
 ingress:
   enabled: false
@@ -91,3 +89,9 @@ logging:
     stdout:
       type: stdout
       stdout: {}
+
+redis:
+  enabled: true
+  port: 6379
+  host: ""
+  

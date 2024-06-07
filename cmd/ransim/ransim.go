@@ -57,6 +57,7 @@ func main() {
 	modelName := flag.String("modelName", "model", "RANSim model file/resource name")
 	metricName := flag.String("metricName", "", "RANSim metric file/resource name")
 	hoLogic := flag.String("hoLogic", "local", "the location of handover logic {local, mho}")
+	redisEnabled := flag.Bool("redisEnabled", true, "is redis enabled for data storage")
 	flag.Parse()
 
 	if *hoLogic != "local" && *hoLogic != "mho" {
@@ -65,13 +66,14 @@ func main() {
 	}
 
 	cfg := &manager.Config{
-		CAPath:     *caPath,
-		KeyPath:    *keyPath,
-		CertPath:   *certPath,
-		GRPCPort:   *grpcPort,
-		ModelName:  *modelName,
-		MetricName: *metricName,
-		HOLogic:    *hoLogic,
+		CAPath:       *caPath,
+		KeyPath:      *keyPath,
+		CertPath:     *certPath,
+		GRPCPort:     *grpcPort,
+		ModelName:    *modelName,
+		MetricName:   *metricName,
+		HOLogic:      *hoLogic,
+		RedisEnabled: *redisEnabled,
 	}
 
 	mgr, err := manager.NewManager(cfg)

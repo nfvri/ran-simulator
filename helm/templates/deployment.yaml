@@ -13,18 +13,18 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      name: {{ template "ran-simulator.fullname" . }}
+      name: {{ include "ran-simulator.fullname" . }}
       app: onos
       type: sim
-      resource: {{ template "ran-simulator.fullname" . }}
+      resource: {{ include "ran-simulator.fullname" . }}
       {{- include "ran-simulator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        name: {{ template "ran-simulator.fullname" . }}
+        name: {{ include "ran-simulator.fullname" . }}
         app: onos
         type: sim
-        resource: {{ template "ran-simulator.fullname" . }}
+        resource: {{ include "ran-simulator.fullname" . }}
         {{- include "ran-simulator.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.global.imagePullSecrets }}
@@ -58,6 +58,16 @@ spec:
                   fieldPath: metadata.namespace
             - name: GODEBUG
               value: cgocheck=0
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ran-simulator.fullname" . }}-config
+                  key: REDIS_CONTAINER_NAME
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ran-simulator.fullname" . }}-config
+                  key: REDIS_CONTAINER_PORT
           args:
             - "-caPath=/etc/ran-simulator/certs/tls.cacrt"
             - "-keyPath=/etc/ran-simulator/certs/tls.key"
@@ -65,6 +75,7 @@ spec:
             - "-modelName={{ .Values.pci.modelName }}"
             - "-metricName={{ .Values.pci.metricName }}"
             - "-hoLogic={{ .Values.mobility.hoLogic }}"
+            - "-redisEnabled={{ .Values.redis.enabled }}"
             {{- range $key, $smplugin := .Values.servicemodels }}
             - {{ printf "-serviceModel=/usr/local/lib/shared/%s.so.%s" $smplugin.name $smplugin.version }}
               {{- end }}
@@ -112,10 +123,10 @@ spec:
       volumes:
         - name: secret
           secret:
-            secretName: {{ template "ran-simulator.fullname" . }}-secret
+            secretName: {{ include "ran-simulator.fullname" . }}-secret
         - name: config
           configMap:
-            name: {{ template "ran-simulator.fullname" . }}-config
+            name: {{ include "ran-simulator.fullname" . }}-config
         - name: shared-data
           emptyDir: {}
       {{- with .Values.nodeSelector }}

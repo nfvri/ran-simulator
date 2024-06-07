@@ -10,6 +10,7 @@ import (
 
 	"github.com/onosproject/ran-simulator/pkg/mobility"
 	"github.com/onosproject/ran-simulator/pkg/store/routes"
+	"github.com/onosproject/ran-simulator/pkg/utils"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
@@ -25,20 +26,23 @@ import (
 	"github.com/onosproject/ran-simulator/pkg/store/cells"
 	"github.com/onosproject/ran-simulator/pkg/store/metrics"
 	"github.com/onosproject/ran-simulator/pkg/store/nodes"
+	redisLib "github.com/onosproject/ran-simulator/pkg/store/redis"
 	"github.com/onosproject/ran-simulator/pkg/store/ues"
+	"github.com/redis/go-redis/v9"
 )
 
 var log = logging.GetLogger()
 
 // Config is a manager configuration
 type Config struct {
-	CAPath     string
-	KeyPath    string
-	CertPath   string
-	GRPCPort   int
-	ModelName  string
-	MetricName string
-	HOLogic    string
+	CAPath       string
+	KeyPath      string
+	CertPath     string
+	GRPCPort     int
+	ModelName    string
+	MetricName   string
+	HOLogic      string
+	RedisEnabled bool
 }
 
 // NewManager creates a new manager
@@ -67,6 +71,7 @@ type Manager struct {
 	routeStore     routes.Store
 	metricsStore   metrics.Store
 	mobilityDriver mobility.Driver
+	rdbClient      *redis.Client
 }
 
 // Run starts the manager and the associated services
@@ -82,15 +87,23 @@ func (m *Manager) initmobilityDriver() {
 	// TODO: Make initial speeds configurable
 	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
 	// m.mobilityDriver.Start(context.Background())
-	ueList:= m.ueStore.ListAllUEs(context.Background())
+	ueList := m.ueStore.ListAllUEs(context.Background())
 	for _, ue := range ueList {
-		m.mobilityDriver.UpdateUESignalStrength(context.Background(),ue.IMSI)
+		m.mobilityDriver.UpdateUESignalStrength(context.Background(), ue.IMSI)
 	}
-	
+
 }
 
 // Start starts the manager
 func (m *Manager) Start() error {
+
+	if m.config.RedisEnabled {
+		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
+		redisPort := utils.GetEnv("REDIS_PORT", "6379")
+		rdbClient := redisLib.InitClient(redisHost, redisPort)
+		m.rdbClient = rdbClient
+	}
+
 	// Load the model data
 	err := model.Load(m.model, m.config.ModelName)
 	if err != nil {
@@ -134,7 +147,7 @@ func (m *Manager) initModelStores() {
 	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
 
 	// Create the UE registry primed with the specified number of UEs
-	m.ueStore = ues.NewUERegistry(*m.model , m.cellStore, m.model.InitialRrcState)
+	m.ueStore = ues.NewUERegistry(*m.model, m.cellStore, m.model.InitialRrcState)
 
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()

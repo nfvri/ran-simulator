@@ -8,6 +8,7 @@ package utils
 import (
 	"math"
 	"math/rand"
+	"os"
 
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
@@ -166,4 +167,11 @@ func BitStringToUint64(bitString []byte, bitCount int) uint64 {
 		return result >> (8 - bitCount%8)
 	}
 	return result
+}
+
+func GetEnv(key string, defaultVal string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultVal
 }

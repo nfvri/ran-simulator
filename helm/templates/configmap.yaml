@@ -5,13 +5,22 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "ran-simulator.fullname" . }}-config
+  name: {{ include "ran-simulator.fullname" . }}-config
   labels:
-    app: {{ template "ran-simulator.fullname" . }}
+    app: {{ include "ran-simulator.fullname" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
 data:
+  {{- define "ran-simulator.redisHost" -}}
+  {{- if eq .Values.redis.host "" }}
+  {{- printf "%s-redis-master.%s" .Release.Name .Release.Namespace }}
+  {{- else }}
+  {{- .Values.redis.host | quote }}
+  {{- end }}
+  {{- end }}
+  REDIS_CONTAINER_NAME: {{ include "ran-simulator.redisHost" . }}
+  REDIS_CONTAINER_PORT: {{ .Values.redis.port | quote }}
   logging.yaml: |-
 {{ toYaml .Values.logging | indent 4 }}
   {{- $files := .Files }}

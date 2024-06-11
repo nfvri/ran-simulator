@@ -10,6 +10,9 @@ package mobility
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/onosproject/ran-simulator/pkg/model"
 	"github.com/onosproject/ran-simulator/pkg/store/cells"
 	"github.com/onosproject/ran-simulator/pkg/store/event"
@@ -17,8 +20,6 @@ import (
 	"github.com/onosproject/ran-simulator/pkg/store/routes"
 	"github.com/onosproject/ran-simulator/pkg/store/ues"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestDriver(t *testing.T) {
@@ -28,7 +29,7 @@ func TestDriver(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(1, cs, "random")
+	us := ues.NewUERegistry(*m, cs, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()
@@ -76,7 +77,7 @@ func TestRouteGeneration(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(1, cs, "random")
+	us := ues.NewUERegistry(*m, cs, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()

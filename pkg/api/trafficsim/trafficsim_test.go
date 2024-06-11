@@ -6,9 +6,10 @@ package trafficsim
 
 import (
 	"context"
-	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"testing"
+
+	"google.golang.org/grpc/credentials/insecure"
 
 	simapi "github.com/onosproject/onos-api/go/onos/ransim/trafficsim"
 	"github.com/onosproject/ran-simulator/pkg/model"
@@ -36,7 +37,7 @@ func newTestService() (northbound.Service, error) {
 	}
 	nodeStore := nodes.NewNodeRegistry(m.Nodes)
 	cellStore := cells.NewCellRegistry(m.Cells, nodeStore)
-	ueStore := ues.NewUERegistry(m.UECount, cellStore, "random")
+	ueStore := ues.NewUERegistry(*m, cellStore, "random")
 	return &Service{model: m, cellStore: cellStore, ueStore: ueStore}, nil
 }
 

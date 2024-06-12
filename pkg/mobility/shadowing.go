@@ -1,61 +1,96 @@
-package model
+package mobility
 
 import (
 	"fmt"
 	"math"
 	"math/rand"
 	"time"
-	"sort"
+
+	"github.com/onosproject/ran-simulator/pkg/model"
 )
 
-// Function to compute the gridPoints based on cell coordinates
-func ComputeGridPoints(gridSize int, m *Model) []Coordinate {
-	var minLat, minLng, maxLat, maxLng float64
-	// fmt.Print(m.Cells)
-	for _, cell := range m.Cells {
-		minLat = cell.Sector.Center.Lat
-		maxLat = cell.Sector.Center.Lat
-		minLng = cell.Sector.Center.Lng
-		maxLng = cell.Sector.Center.Lng
-		break
+// Convert meters to degrees latitude
+func MetersToLatDegrees(meters float64) float64 {
+	return meters / 111132.954
+}
+
+// Convert meters to degrees longitude at a specific latitude
+func MetersToLngDegrees(meters, latitude float64) float64 {
+	return meters / (111132.954 * math.Cos(latitude*math.Pi/180.0))
+}
+
+// Function to expand diagonally and check path loss until it reaches 90
+func getMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, float64) {
+	latStep := MetersToLatDegrees(d_c)
+	lngStep := MetersToLngDegrees(d_c, cell.Sector.Center.Lat)
+	fmt.Println("latStep:")
+	fmt.Println(latStep)
+	fmt.Println("lngStep:")
+	fmt.Println(lngStep)
+
+	maxLat := cell.Sector.Center.Lat
+	maxLng := cell.Sector.Center.Lng
+
+	// Expand in the positive direction
+	for {
+		coord := model.Coordinate{Lat: maxLat, Lng: maxLng}
+		pathLoss := GetPathLoss(coord, cell)
+		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f, Path Loss: %.2f\n", maxLat, maxLng, cell.TxPowerDB, pathLoss)
+		if pathLoss >= cell.TxPowerDB {
+			break
+		}
+		maxLat += latStep
+		maxLng += lngStep
 	}
 
-	for _, cell := range m.Cells {
-		if cell.Sector.Center.Lat < minLat{
-			minLat = cell.Sector.Center.Lat
+	minLat := cell.Sector.Center.Lat
+	minLng := cell.Sector.Center.Lng
+
+	// Expand in the negative direction
+	for {
+		coord := model.Coordinate{Lat: minLat, Lng: minLng}
+		pathLoss := GetPathLoss(coord, cell)
+		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f, Path Loss: %.2f\n", minLat, minLng, cell.TxPowerDB, pathLoss)
+		if pathLoss >= cell.TxPowerDB {
+			break
 		}
-		if cell.Sector.Center.Lng < minLng{
-			minLng = cell.Sector.Center.Lng
-		}
-		if cell.Sector.Center.Lat > maxLat{
-			maxLat = cell.Sector.Center.Lat
-		}
-		if cell.Sector.Center.Lng > maxLng{
-			maxLng = cell.Sector.Center.Lng
-		}
+		minLat -= latStep
+		minLng -= lngStep
 	}
+	return minLat, minLng, maxLat, maxLng
+}
+
+func ComputeGridPoints(cell model.Cell, d_c float64) []model.Coordinate {
+
+	minLat, minLng, maxLat, maxLng := getMinMaxPoints(cell, d_c)
 
 	latDiff := math.Abs(maxLat - minLat)
 	lngDiff := math.Abs(maxLng - minLng)
 
-	fmt.Printf("------------------\n minLat: %f\n maxLat: %f\n latDiff: %f\n minLng: %f\n maxLng: %f\n lngDiff: %f\n",minLat,maxLat,latDiff,minLng,maxLng,lngDiff)
+	// Convert d_c from meters to degrees
+	d_c_lat := MetersToLatDegrees(d_c)
+	avgLat := (minLat + maxLat) / 2.0
+	d_c_lng := MetersToLngDegrees(d_c, avgLat)
 
-	gridPoints := make([]Coordinate, 0, gridSize*gridSize)
-	for i := 0; i < gridSize; i++ {
-		for j := 0; j < gridSize; j++ {
-			lat := minLat + float64(i)*(float64(latDiff)/float64(gridSize-1))
-			lng := minLng + float64(j)*(float64(lngDiff)/float64(gridSize-1))
-			gridPoints = append(gridPoints, Coordinate{Lat: lat, Lng: lng})
+	// Calculate the number of grid points based on d_c
+	numLatPoints := int(math.Ceil(latDiff / d_c_lat))
+	numLngPoints := int(math.Ceil(lngDiff / d_c_lng))
+
+	fmt.Printf("------------------\n minLat: %f\n maxLat: %f\n latDiff: %f\n minLng: %f\n maxLng: %f\n lngDiff: %f\n", minLat, maxLat, latDiff, minLng, maxLng, lngDiff)
+
+	gridPoints := make([]model.Coordinate, 0, numLatPoints*numLngPoints)
+	for i := 0; i <= numLatPoints; i++ {
+		for j := 0; j <= numLngPoints; j++ {
+			lat := minLat + float64(i)*d_c_lat
+			lng := minLng + float64(j)*d_c_lng
+			gridPoints = append(gridPoints, model.Coordinate{Lat: lat, Lng: lng})
 		}
 	}
 	return gridPoints
 }
 
-func CalculateShadowMap(d_c float64, sigma float64, gridSize int, m *Model) [][]float64{
-	gridPoints := ComputeGridPoints(gridSize,m)
-	
-	fmt.Println("Grid Points:")
-	fmt.Println(gridPoints)
+func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float64) [][]float64 {
+	gridSize := int(math.Sqrt(float64(len(gridPoints))))
 
 	// Compute the correlation matrix
 	A := computeCorrelationMatrix(gridPoints, d_c)
@@ -91,18 +126,18 @@ func CalculateShadowMap(d_c float64, sigma float64, gridSize int, m *Model) [][]
 }
 
 // Function to compute the Euclidean distance from GPS coordinates
-func getEuclideanDistanceFromCoordinates(coord1 Coordinate, coord2 Coordinate) float64 {
+func getEuclideanDistanceFromCoordinates(coord1 model.Coordinate, coord2 model.Coordinate) float64 {
 	earthRadius := 6378.137
 	dLat := coord1.Lat*math.Pi/180 - coord2.Lat*math.Pi/180
 	dLng := coord1.Lng*math.Pi/180 - coord2.Lng*math.Pi/180
 	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(coord1.Lat*math.Pi/180)*math.Cos(coord2.Lat*math.Pi/180)*
 		math.Sin(dLng/2)*math.Sin(dLng/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	return earthRadius * c *1000 // distance in meters
+	return earthRadius * c * 1000 // distance in meters
 }
 
 // Function to compute the correlation matrix
-func computeCorrelationMatrix(gridPoints []Coordinate, d_c float64) [][]float64 {
+func computeCorrelationMatrix(gridPoints []model.Coordinate, d_c float64) [][]float64 {
 	numPoints := len(gridPoints)
 	A := make([][]float64, int(numPoints))
 	for i := range A {
@@ -168,10 +203,10 @@ func computeCorrelatedShadowFading(A [][]float64, sigma float64) []float64 {
 }
 
 // Function for mapping the correlated fading to the grid
-func makeCorrelatedFadingGrid(shadowing []float64) [][]float64{
+func makeCorrelatedFadingGrid(shadowing []float64) [][]float64 {
 	gridSize := int(math.Sqrt(float64(len(shadowing))))
 	mappedCorrelatedFadingGrid := make([][]float64, gridSize)
-	
+
 	for i := 0; i < gridSize; i++ {
 		mappedCorrelatedFadingGrid[i] = make([]float64, gridSize)
 		for j := 0; j < gridSize; j++ {
@@ -180,59 +215,3 @@ func makeCorrelatedFadingGrid(shadowing []float64) [][]float64{
 	}
 	return mappedCorrelatedFadingGrid
 }
-
-// Function to find the unique Latitudes
-func uniqueLatitudes(points []Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lat] = struct{}{}
-	}
-
-	latitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		latitudes = append(latitudes, k)
-	}
-	sort.Float64s(latitudes)
-	return latitudes
-}
-
-// Function to find the unique Longitudes
-func uniqueLongitudes(points []Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lng] = struct{}{}
-	}
-
-	longitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		longitudes = append(longitudes, k)
-	}
-	sort.Float64s(longitudes)
-	return longitudes
-}
-
-// Function to find the closest index
-func closestIndex(arr []float64, value float64) int {
-	closest := 0
-	minDist := math.Abs(arr[0] - value)
-	for i := 1; i < len(arr); i++ {
-		dist := math.Abs(arr[i] - value)
-		if dist < minDist {
-			closest = i
-			minDist = dist
-		}
-	}
-	return closest
-}
-
-// Function to find the grid cell containing the given point
-func findGridCell(point Coordinate, gridPoints []Coordinate) (int, int) {
-	latitudes := uniqueLatitudes(gridPoints)
-	longitudes := uniqueLongitudes(gridPoints)
-
-	latIdx := closestIndex(latitudes, point.Lat)
-	lngIdx := closestIndex(longitudes, point.Lng)
-
-	return latIdx, lngIdx
-}
-

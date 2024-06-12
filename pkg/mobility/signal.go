@@ -88,26 +88,6 @@ func azimuthAttenuation(azimuth int32) float64 {
 	return -math.Min(azAtt, MAX_ATTENUATION_DB)
 }
 
-// ETSI TR 138 901 V16.1.0
-// Vertical cut of the radiation power pattern (dB)
-// Table 7.3-1: Radiation power pattern of a single antenna element
-func zenithAttenuation(zenithAngle int32) float64 {
-	halfPowerAngle := 65.0
-	angleRatio := float64(zenithAngle-90) / halfPowerAngle
-	a := 12 * math.Pow(angleRatio, 2)
-	return -math.Min(a, VERTICAL_SIDELOBE_ATTENUATION_DB)
-}
-
-// ETSI TR 138 901 V16.1.0
-// Horizontal cut of the radiation power pattern (dB)
-// Table 7.3-1: Radiation power pattern of a single antenna element
-func azimuthAttenuation(azimuth int32) float64 {
-	halfPowerAngle := 65.0
-	angleRatio := float64(azimuth) / halfPowerAngle
-	azAtt := 12 * math.Pow(angleRatio, 2)
-	return -math.Min(azAtt, MAX_ATTENUATION_DB)
-}
-
 // GetPathLoss calculates the path loss based on the environment and LOS/NLOS conditions
 func GetPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 	var pathLoss float64

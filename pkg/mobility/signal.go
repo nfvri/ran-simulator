@@ -20,15 +20,18 @@ const VERTICAL_SIDELOBE_ATTENUATION_DB = 30.0
 
 // StrengthAtLocation returns the signal strength at location relative to the specified cell.
 func StrengthAtLocation(coord model.Coordinate, cell model.Cell) float64 {
-	distAtt := distanceAttenuation(coord, cell)
-	angleAtt := angleAttenuation(coord, cell)
-	pathLoss := getPathLoss(coord, cell)
+	distAtt := DistanceAttenuation(coord, cell)
+	angleAtt := AngleAttenuation(coord, cell)
+	pathLoss := GetPathLoss(coord, cell)
 
-	// Test the findGridCell function
-	latIdx, lngIdx := findGridCell(coord, cell.GridPoints)
-	fmt.Printf("The point (%.12f, %.12f) is located in the grid cell with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+	latIdx, lngIdx, inGrid := findGridCell(coord, cell.GridPoints)
+	if inGrid {
+		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+		return cell.TxPowerDB + distAtt + angleAtt - pathLoss - cell.ShadowingMap[latIdx][lngIdx]
+	}
+	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
+	return cell.TxPowerDB + distAtt + angleAtt - pathLoss
 
-	return cell.TxPowerDB + distAtt + angleAtt - pathLoss - cell.ShadowingMap[latIdx][lngIdx]
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist
@@ -37,7 +40,7 @@ func StrengthAtLocation(coord model.Coordinate, cell model.Cell) float64 {
 // A 60° wide beam will be half that and so will have double the gain
 // https://en.wikipedia.org/wiki/Sector_antenna
 // https://en.wikipedia.org/wiki/Steradian
-func distanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
+func DistanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	latDist := coord.Lat - cell.Sector.Center.Lat
 	realLngDist := (coord.Lng - cell.Sector.Center.Lng) / utils.AspectRatio(cell.Sector.Center.Lat)
 	r := math.Hypot(latDist, realLngDist)
@@ -52,7 +55,7 @@ func distanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 // https://en.wikipedia.org/wiki/Sector_antenna
 // https://www.etsi.org/deliver/etsi_tr/138900_138999/138901/14.03.00_60/tr_138901v140300p.pdf
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func angleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
+func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	azRads := utils.AzimuthToRads(float64(cell.Sector.Azimuth))
 	pointRads := math.Atan2(coord.Lat-cell.Sector.Center.Lat, coord.Lng-cell.Sector.Center.Lng)
 	angularOffset := math.Abs(azRads - pointRads)
@@ -85,8 +88,28 @@ func azimuthAttenuation(azimuth int32) float64 {
 	return -math.Min(azAtt, MAX_ATTENUATION_DB)
 }
 
-// getPathLoss calculates the path loss based on the environment and LOS/NLOS conditions
-func getPathLoss(coord model.Coordinate, cell model.Cell) float64 {
+// ETSI TR 138 901 V16.1.0
+// Vertical cut of the radiation power pattern (dB)
+// Table 7.3-1: Radiation power pattern of a single antenna element
+func zenithAttenuation(zenithAngle int32) float64 {
+	halfPowerAngle := 65.0
+	angleRatio := float64(zenithAngle-90) / halfPowerAngle
+	a := 12 * math.Pow(angleRatio, 2)
+	return -math.Min(a, VERTICAL_SIDELOBE_ATTENUATION_DB)
+}
+
+// ETSI TR 138 901 V16.1.0
+// Horizontal cut of the radiation power pattern (dB)
+// Table 7.3-1: Radiation power pattern of a single antenna element
+func azimuthAttenuation(azimuth int32) float64 {
+	halfPowerAngle := 65.0
+	angleRatio := float64(azimuth) / halfPowerAngle
+	azAtt := 12 * math.Pow(angleRatio, 2)
+	return -math.Min(azAtt, MAX_ATTENUATION_DB)
+}
+
+// GetPathLoss calculates the path loss based on the environment and LOS/NLOS conditions
+func GetPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 	var pathLoss float64
 
 	switch cell.Channel.Environment {
@@ -284,13 +307,35 @@ func closestIndex(arr []float64, value float64) int {
 	return closest
 }
 
+// Function to check if a point is inside the grid
+func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bool {
+	latitudes := uniqueLatitudes(gridPoints)
+	longitudes := uniqueLongitudes(gridPoints)
+
+	// Check if point's latitude is within the range of grid latitudes
+	if point.Lat < latitudes[0] || point.Lat > latitudes[len(latitudes)-1] {
+		return false
+	}
+
+	// Check if point's longitude is within the range of grid longitudes
+	if point.Lng < longitudes[0] || point.Lng > longitudes[len(longitudes)-1] {
+		return false
+	}
+
+	return true
+}
+
 // Function to find the grid cell containing the given point
-func findGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int) {
+func findGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int, bool) {
+	if !isPointInsideGrid(point, gridPoints) {
+		return -1, -1, false
+	}
+
 	latitudes := uniqueLatitudes(gridPoints)
 	longitudes := uniqueLongitudes(gridPoints)
 
 	latIdx := closestIndex(latitudes, point.Lat)
 	lngIdx := closestIndex(longitudes, point.Lng)
 
-	return latIdx, lngIdx
+	return latIdx, lngIdx, true
 }

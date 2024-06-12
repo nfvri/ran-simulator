@@ -22,9 +22,9 @@ func InitClient(redisHost string, redisPort string) *redis.Client {
 	})
 }
 
-func AddCellSignalParams(rdb *redis.Client, ncgi uint64, cellSignalParams *model.CellSignalParams) error {
+func AddCellSignalParams(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
 
-	if err := storeCellSignalParams(rdb, ncgi, cellSignalParams); err != nil {
+	if err := storeCellSignalParams(rdb, ncgi, ShadowMap); err != nil {
 		return fmt.Errorf("failed to add cell signal params for cell %d: %v", ncgi, err)
 	}
 	log.Info("Added CellSignalParams for cell: %s", ncgi)
@@ -32,24 +32,24 @@ func AddCellSignalParams(rdb *redis.Client, ncgi uint64, cellSignalParams *model
 	return nil
 }
 
-func GetCellSignalParamsByNCGI(rdb *redis.Client, ncgi uint64) (*model.CellSignalParams, error) {
+func GetCellSignalParamsByNCGI(rdb *redis.Client, ncgi uint64) (*model.ShadowMap, error) {
 
 	ncgiStr := strconv.FormatUint(ncgi, 10)
-	cellSignalParamsData, err := rdb.HGetAll(context.Background(), ncgiStr).Result()
+	ShadowMapData, err := rdb.HGetAll(context.Background(), ncgiStr).Result()
 	if err != nil {
 		return nil, fmt.Errorf("error fetching cell signal params data: %v", err)
 	}
 
-	if len(cellSignalParamsData) == 0 {
+	if len(ShadowMapData) == 0 {
 		return nil, fmt.Errorf("cell signal params with ncgi %s does not exist", ncgiStr)
 	}
 
-	shadowingMapBytes, exists := cellSignalParamsData["shadowingMap"]
+	shadowingMapBytes, exists := ShadowMapData["shadowingMap"]
 	if !exists {
 		return nil, fmt.Errorf("shadowingMap not found in cell signal params data")
 	}
 
-	gridPointsBytes, exists := cellSignalParamsData["gridPoints"]
+	gridPointsBytes, exists := ShadowMapData["gridPoints"]
 	if !exists {
 		return nil, fmt.Errorf("gridPoints not found in cell signal params data")
 	}
@@ -68,29 +68,29 @@ func GetCellSignalParamsByNCGI(rdb *redis.Client, ncgi uint64) (*model.CellSigna
 		return nil, fmt.Errorf("failed to unmarshal grid points: %v ", err)
 	}
 
-	cellSignalParams := &model.CellSignalParams{
+	ShadowMap := &model.ShadowMap{
 		ShadowingMap: shadowingMap,
 		GridPoints:   gridPoints,
 	}
 
-	return cellSignalParams, nil
+	return ShadowMap, nil
 }
 
-func UpdateCellSignalParams(rdb *redis.Client, ncgi uint64, cellSignalParams *model.CellSignalParams) error {
+func UpdateCellSignalParams(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
 
-	cellSignalParamsData, err := GetCellSignalParamsByNCGI(rdb, ncgi)
+	ShadowMapData, err := GetCellSignalParamsByNCGI(rdb, ncgi)
 	if err != nil {
 		return fmt.Errorf("error fetching cell signal params data: %v", err)
 	}
 
-	if len(cellSignalParams.ShadowingMap) == 0 {
-		cellSignalParams.ShadowingMap = cellSignalParamsData.ShadowingMap
+	if len(ShadowMap.ShadowingMap) == 0 {
+		ShadowMap.ShadowingMap = ShadowMapData.ShadowingMap
 	}
-	if len(cellSignalParams.GridPoints) == 0 {
-		cellSignalParams.GridPoints = cellSignalParamsData.GridPoints
+	if len(ShadowMap.GridPoints) == 0 {
+		ShadowMap.GridPoints = ShadowMapData.GridPoints
 	}
 
-	if err := storeCellSignalParams(rdb, ncgi, cellSignalParams); err != nil {
+	if err := storeCellSignalParams(rdb, ncgi, ShadowMap); err != nil {
 		return fmt.Errorf("failed to update cell signal params for cell %d: %v", ncgi, err)
 	}
 	log.Info("Updated CellSignalParams for cell: %s", ncgi)
@@ -109,23 +109,23 @@ func DeleteCellSignalParams(rdb *redis.Client, ncgi uint64) error {
 	return nil
 }
 
-func storeCellSignalParams(rdb *redis.Client, ncgi uint64, cellSignalParams *model.CellSignalParams) error {
+func storeCellSignalParams(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
 	ncgiStr := strconv.FormatUint(ncgi, 10)
 
-	shadowingMapBytes, err := json.Marshal(cellSignalParams.ShadowingMap)
+	shadowingMapBytes, err := json.Marshal(ShadowMap.ShadowingMap)
 	if err != nil {
 		return fmt.Errorf("failed to marshal simulator model: %v ", err)
 	}
 
-	gridPointsBytes, err := json.Marshal(cellSignalParams.GridPoints)
+	gridPointsBytes, err := json.Marshal(ShadowMap.GridPoints)
 	if err != nil {
 		return fmt.Errorf("failed to marshal cell measurements: %v ", err)
 	}
 
-	cellSignalParamsMap := map[string]interface{}{
+	ShadowMapMap := map[string]interface{}{
 		"shadowingMap": shadowingMapBytes,
 		"gridPoints":   gridPointsBytes,
 	}
 
-	return rdb.HSet(context.Background(), ncgiStr, cellSignalParamsMap).Err()
+	return rdb.HSet(context.Background(), ncgiStr, ShadowMapMap).Err()
 }

@@ -22,17 +22,17 @@ func InitClient(redisHost string, redisPort string) *redis.Client {
 	})
 }
 
-func AddCellSignalParams(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
+func AddShadowMap(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
 
-	if err := storeCellSignalParams(rdb, ncgi, ShadowMap); err != nil {
+	if err := storeShadowMap(rdb, ncgi, ShadowMap); err != nil {
 		return fmt.Errorf("failed to add cell signal params for cell %d: %v", ncgi, err)
 	}
-	log.Info("Added CellSignalParams for cell: %s", ncgi)
+	log.Infof("Added ShadowMap for cell: %s", ncgi)
 
 	return nil
 }
 
-func GetCellSignalParamsByNCGI(rdb *redis.Client, ncgi uint64) (*model.ShadowMap, error) {
+func GetShadowMapByNCGI(rdb *redis.Client, ncgi uint64) (*model.ShadowMap, error) {
 
 	ncgiStr := strconv.FormatUint(ncgi, 10)
 	ShadowMapData, err := rdb.HGetAll(context.Background(), ncgiStr).Result()
@@ -76,9 +76,9 @@ func GetCellSignalParamsByNCGI(rdb *redis.Client, ncgi uint64) (*model.ShadowMap
 	return ShadowMap, nil
 }
 
-func UpdateCellSignalParams(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
+func UpdateShadowMap(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
 
-	ShadowMapData, err := GetCellSignalParamsByNCGI(rdb, ncgi)
+	ShadowMapData, err := GetShadowMapByNCGI(rdb, ncgi)
 	if err != nil {
 		return fmt.Errorf("error fetching cell signal params data: %v", err)
 	}
@@ -90,26 +90,26 @@ func UpdateCellSignalParams(rdb *redis.Client, ncgi uint64, ShadowMap *model.Sha
 		ShadowMap.GridPoints = ShadowMapData.GridPoints
 	}
 
-	if err := storeCellSignalParams(rdb, ncgi, ShadowMap); err != nil {
+	if err := storeShadowMap(rdb, ncgi, ShadowMap); err != nil {
 		return fmt.Errorf("failed to update cell signal params for cell %d: %v", ncgi, err)
 	}
-	log.Info("Updated CellSignalParams for cell: %s", ncgi)
+	log.Infof("Updated ShadowMap for cell: %s", ncgi)
 
 	return nil
 }
 
-func DeleteCellSignalParams(rdb *redis.Client, ncgi uint64) error {
+func DeleteShadowMap(rdb *redis.Client, ncgi uint64) error {
 	ncgiStr := strconv.FormatUint(ncgi, 10)
 
 	err := rdb.Del(context.Background(), ncgiStr).Err()
 	if err != nil {
 		return fmt.Errorf("failed to delete cell signal params for cell %s: %v", ncgiStr, err)
 	}
-	log.Infof("Deleted CellSignalParams for cell: %s", ncgiStr)
+	log.Infof("Deleted ShadowMap for cell: %s", ncgiStr)
 	return nil
 }
 
-func storeCellSignalParams(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
+func storeShadowMap(rdb *redis.Client, ncgi uint64, ShadowMap *model.ShadowMap) error {
 	ncgiStr := strconv.FormatUint(ncgi, 10)
 
 	shadowingMapBytes, err := json.Marshal(ShadowMap.ShadowingMap)

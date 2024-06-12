@@ -88,13 +88,32 @@ func (m *Manager) initmobilityDriver() {
 	// m.mobilityDriver.Start(context.Background())
 	cellList, _ := m.cellStore.List(context.Background())
 	for _, cell := range cellList {
-		m.mobilityDriver.InitShadowMap(cell, m.model.DecorrelationDistance)
+		cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
+		if err != nil {
+			initializeCellShadowMap(cell, m)
+		} else {
+			cell.GridPoints = cellShadowMap.GridPoints
+			cell.ShadowingMap = cellShadowMap.ShadowingMap
+		}
 	}
 	ueList := m.ueStore.ListAllUEs(context.Background())
 	for _, ue := range ueList {
 		m.mobilityDriver.UpdateUESignalStrength(context.Background(), ue.IMSI)
 	}
 
+}
+
+func initializeCellShadowMap(cell *model.Cell, m *Manager) {
+	log.Warnf("failed to retrieve shadowmap for cell: %d", cell.NCGI)
+	m.mobilityDriver.InitShadowMap(cell, m.model.DecorrelationDistance)
+	err := redisLib.AddShadowMap(m.rdbClient, uint64(cell.NCGI),
+		&model.ShadowMap{
+			ShadowingMap: cell.ShadowingMap,
+			GridPoints:   cell.GridPoints,
+		})
+	if err != nil {
+		log.Errorf("failed to store shadowmap for cell: %d", cell.NCGI)
+	}
 }
 
 // Start starts the manager

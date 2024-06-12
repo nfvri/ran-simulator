@@ -6,6 +6,8 @@ package manager
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
@@ -96,11 +98,43 @@ func (m *Manager) initmobilityDriver() {
 			cell.ShadowingMap = cellShadowMap.ShadowingMap
 		}
 	}
+	for _, cell1 := range cellList {
+		for _, cell2 := range cellList {
+			overlappingpoints := findOverlappingPoints(cell1.GridPoints, cell2.GridPoints)
+			if reflect.DeepEqual(overlappingpoints, cell2.GridPoints) {
+				fmt.Println("overlappingpoints:")
+				fmt.Println("same cell")
+			} else {
+				fmt.Println("overlappin gpoints:")
+				fmt.Println(overlappingpoints)
+			}
+
+		}
+	}
 	ueList := m.ueStore.ListAllUEs(context.Background())
 	for _, ue := range ueList {
 		m.mobilityDriver.UpdateUESignalStrength(context.Background(), ue.IMSI)
 	}
 
+}
+
+func findOverlappingPoints(gridPoints1, gridPoints2 []model.Coordinate) []model.Coordinate {
+	overlappingPoints := make([]model.Coordinate, 0)
+
+	gridPointMap := make(map[model.Coordinate]struct{})
+	for _, point := range gridPoints1 {
+		gridPointMap[point] = struct{}{}
+	}
+
+	// iterate grid points from the second list
+	for _, point := range gridPoints2 {
+		if _, exists := gridPointMap[point]; exists {
+			// if exists in both lists add to overlappingPoints
+			overlappingPoints = append(overlappingPoints, point)
+		}
+	}
+
+	return overlappingPoints
 }
 
 func initializeCellShadowMap(cell *model.Cell, m *Manager) {

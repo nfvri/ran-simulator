@@ -84,9 +84,12 @@ func (m *Manager) Run() {
 
 func (m *Manager) initmobilityDriver() {
 	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
-	// TODO: Make initial speeds configurable
 	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
 	// m.mobilityDriver.Start(context.Background())
+	cellList, _ := m.cellStore.List(context.Background())
+	for _, cell := range cellList {
+		m.mobilityDriver.InitShadowMap(cell, m.model.DecorrelationDistance)
+	}
 	ueList := m.ueStore.ListAllUEs(context.Background())
 	for _, ue := range ueList {
 		m.mobilityDriver.UpdateUESignalStrength(context.Background(), ue.IMSI)

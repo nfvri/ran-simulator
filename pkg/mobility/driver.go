@@ -62,6 +62,8 @@ type Driver interface {
 	AddRrcChan(ch chan model.UE)
 
 	UpdateUESignalStrength(ctx context.Context, imsi types.IMSI)
+
+	InitShadowMap(cell *model.Cell, d_c float64)
 }
 
 type driver struct {
@@ -453,4 +455,22 @@ func (d *driver) sortUECells(ueCells []*model.UECell, numAdjCells int) []*model.
 // GetHoLogic returns the HO Logic ("local" or "mho")
 func (d *driver) GetHoLogic() string {
 	return d.hoLogic
+}
+
+func (d *driver) InitShadowMap(cell *model.Cell, d_c float64) {
+	log.Info("Initilizing ShadowMap")
+	sigma := 6.0
+	switch {
+	case cell.Channel.Environment == "urban" && cell.Channel.LOS:
+		sigma = 4.0
+	case cell.Channel.Environment == "urban" && !cell.Channel.LOS:
+		sigma = 6.0
+	case cell.Channel.Environment == "rural" && cell.Channel.LOS:
+		sigma = 4.0
+	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
+		sigma = 8.0
+	}
+
+	cell.GridPoints = ComputeGridPoints(*cell, d_c)
+	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
 }

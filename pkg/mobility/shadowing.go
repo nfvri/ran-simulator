@@ -23,6 +23,7 @@ func MetersToLngDegrees(meters, latitude float64) float64 {
 func getMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, float64) {
 	latStep := MetersToLatDegrees(d_c)
 	lngStep := MetersToLngDegrees(d_c, cell.Sector.Center.Lat)
+	maxShadowingEffect := 10.0
 	fmt.Println("latStep:")
 	fmt.Println(latStep)
 	fmt.Println("lngStep:")
@@ -34,9 +35,9 @@ func getMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, f
 	// Expand in the positive direction
 	for {
 		coord := model.Coordinate{Lat: maxLat, Lng: maxLng}
-		pathLoss := GetPathLoss(coord, cell)
-		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f, Path Loss: %.2f\n", maxLat, maxLng, cell.TxPowerDB, pathLoss)
-		if pathLoss >= cell.TxPowerDB {
+		strengthAfterPathloss := StrengthAfterPathloss(coord, cell)
+		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", maxLat, maxLng, strengthAfterPathloss)
+		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
 			break
 		}
 		maxLat += latStep
@@ -49,9 +50,9 @@ func getMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, f
 	// Expand in the negative direction
 	for {
 		coord := model.Coordinate{Lat: minLat, Lng: minLng}
-		pathLoss := GetPathLoss(coord, cell)
-		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f, Path Loss: %.2f\n", minLat, minLng, cell.TxPowerDB, pathLoss)
-		if pathLoss >= cell.TxPowerDB {
+		strengthAfterPathloss := StrengthAfterPathloss(coord, cell)
+		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", minLat, minLng, strengthAfterPathloss)
+		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
 			break
 		}
 		minLat -= latStep

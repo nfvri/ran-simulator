@@ -20,18 +20,24 @@ const VERTICAL_SIDELOBE_ATTENUATION_DB = 30.0
 
 // StrengthAtLocation returns the signal strength at location relative to the specified cell.
 func StrengthAtLocation(coord model.Coordinate, cell model.Cell) float64 {
-	distAtt := DistanceAttenuation(coord, cell)
-	angleAtt := AngleAttenuation(coord, cell)
-	pathLoss := GetPathLoss(coord, cell)
+	strengthAfterPathloss := StrengthAfterPathloss(coord, cell)
 
 	latIdx, lngIdx, inGrid := findGridCell(coord, cell.GridPoints)
 	if inGrid {
 		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
-		return cell.TxPowerDB + distAtt + angleAtt - pathLoss - cell.ShadowingMap[latIdx][lngIdx]
+		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}
 	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
-	return cell.TxPowerDB + distAtt + angleAtt - pathLoss
+	return strengthAfterPathloss
 
+}
+
+func StrengthAfterPathloss(coord model.Coordinate, cell model.Cell) float64 {
+	distAtt := DistanceAttenuation(coord, cell)
+	angleAtt := AngleAttenuation(coord, cell)
+	pathLoss := GetPathLoss(coord, cell)
+
+	return cell.TxPowerDB + distAtt + angleAtt - pathLoss
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist

@@ -29,14 +29,7 @@ type Model struct {
 	PlmnID                  types.PlmnID            `mapstructure:"plmnNumber" yaml:"plmnNumber"` // overridden and derived post-load from "Plmn" field
 	APIKey                  string                  `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
 	Guami                   Guami                   `mapstructure:"guami" yaml:"guami"`
-	Shadowing               Shadowing               `mapstructure:"shadowing"`
-}
-
-// Coordinate represents a geographical location
-type Shadowing struct {
-	GridSize              int     `mapstructure:"gridsize"`
-	Sigma                 float64 `mapstructure:"sigma"`
-	DecorrelationDistance float64 `mapstructure:"decorrelationdistance"`
+	DecorrelationDistance   float64                 `mapstructure:"decorrelationdistance"`
 }
 
 // Coordinate represents a geographical location
@@ -133,10 +126,10 @@ type Cell struct {
 	Channel           Channel           `mapstructure:"channel"`
 	RrcIdleCount      uint32
 	RrcConnectedCount uint32
-	CellSignalParams
+	ShadowMap
 }
 
-type CellSignalParams struct {
+type ShadowMap struct {
 	ShadowingMap [][]float64  `json:"shadowingMap"`
 	GridPoints   []Coordinate `json:"gridPoints"`
 }

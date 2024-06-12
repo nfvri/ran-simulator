@@ -8,46 +8,46 @@ import (
 	"context"
 	"time"
 
-	"github.com/onosproject/ran-simulator/pkg/utils"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/rc/ranfundesc"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/ranfundesc"
 
 	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
 
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/rc/controloutcome"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/controloutcome"
 
-	"github.com/onosproject/ran-simulator/pkg/store/metrics"
+	"github.com/nfvri/ran-simulator/pkg/store/metrics"
 
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
 
-	"github.com/onosproject/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 
 	e2smrcpresm "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/servicemodel"
 	e2smrcpreies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/v2/e2sm-rc-pre-v2-go"
 
-	"github.com/onosproject/ran-simulator/pkg/store/nodes"
-	"github.com/onosproject/ran-simulator/pkg/store/ues"
+	"github.com/nfvri/ran-simulator/pkg/store/nodes"
+	"github.com/nfvri/ran-simulator/pkg/store/ues"
 
-	controlutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/control"
+	controlutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/control"
 
-	subdeleteutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
+	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 
 	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
 	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
-	subutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscription"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/pdubuilder"
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"google.golang.org/protobuf/proto"
 
 	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/ran-simulator/pkg/servicemodel"
-	"github.com/onosproject/ran-simulator/pkg/servicemodel/registry"
-	"github.com/onosproject/ran-simulator/pkg/store/subscriptions"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
+	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 )
 
 var _ servicemodel.Client = &Client{}

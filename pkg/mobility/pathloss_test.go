@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/nfvri/ran-simulator/pkg/model"
+
 	"github.com/onosproject/ran-simulator/pkg/model"
 )
 

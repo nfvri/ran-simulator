@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/utils"
 	"github.com/pmcxs/hexgrid"
 )
 
@@ -106,7 +106,11 @@ func GenerateHoneycombTopology(mapCenter model.Coordinate, numTowers uint, secto
 				MaxUEs:    99999,
 				Neighbors: make([]types.NCGI, 0, sectorsPerTower),
 				TxPowerDB: 11,
-				Earfcn:    earfcn,
+				// Changes for new channel, ARFCN == EARFCN
+				Channel: model.Channel{
+					ArfcnDL: earfcn,
+					ArfcnUL: earfcn,
+				},
 			}
 			earfcn++
 

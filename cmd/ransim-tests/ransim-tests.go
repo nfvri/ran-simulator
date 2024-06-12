@@ -7,8 +7,8 @@ package main
 import (
 	"github.com/onosproject/helmit/pkg/registry"
 	"github.com/onosproject/helmit/pkg/test"
-	"github.com/onosproject/ran-simulator/tests/e2t"
-	"github.com/onosproject/ran-simulator/tests/ransim"
+	"github.com/nfvri/ran-simulator/tests/e2t"
+	"github.com/nfvri/ran-simulator/tests/ransim"
 )
 
 func main() {

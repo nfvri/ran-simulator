@@ -11,21 +11,21 @@ import (
 
 	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
 
-	"github.com/onosproject/ran-simulator/pkg/store/metrics"
+	"github.com/nfvri/ran-simulator/pkg/store/metrics"
 
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
 
-	"github.com/onosproject/ran-simulator/pkg/store/nodes"
-	"github.com/onosproject/ran-simulator/pkg/store/ues"
+	"github.com/nfvri/ran-simulator/pkg/store/nodes"
+	"github.com/nfvri/ran-simulator/pkg/store/ues"
 
-	"github.com/onosproject/ran-simulator/pkg/store/subscriptions"
+	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 
 	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/ran-simulator/pkg/servicemodel"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel"
 )
 
 var log = logging.GetLogger("registry")

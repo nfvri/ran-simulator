@@ -7,7 +7,7 @@ package header
 import (
 	"testing"
 
-	"github.com/onosproject/ran-simulator/pkg/utils"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 

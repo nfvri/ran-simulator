@@ -7,8 +7,8 @@ package handover
 import (
 	"context"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
-	"github.com/onosproject/ran-simulator/pkg/store/ues"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/onosproject/rrm-son-lib/pkg/handover"
 	"github.com/onosproject/rrm-son-lib/pkg/model/device"
 )

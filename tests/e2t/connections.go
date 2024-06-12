@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/onosproject/ran-simulator/tests/utils"
+	"github.com/nfvri/ran-simulator/tests/utils"
 )
 
 // TestConnections test connectivity between e2 agents and e2t

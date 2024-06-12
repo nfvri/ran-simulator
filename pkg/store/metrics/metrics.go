@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/ran-simulator/pkg/store/event"
-	"github.com/onosproject/ran-simulator/pkg/store/watcher"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/watcher"
 )
 
 var log = liblog.GetLogger()

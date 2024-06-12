@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/onosproject/ran-simulator/pkg/servicemodel"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel"
 	"github.com/stretchr/testify/assert"
 
 	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"

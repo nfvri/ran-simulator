@@ -13,13 +13,13 @@ import (
 
 	meastype "github.com/onosproject/rrm-son-lib/pkg/model/measurement/type"
 
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 
-	indicationutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/indication"
-	subutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscription"
-	rcindicationhdr "github.com/onosproject/ran-simulator/pkg/utils/e2sm/rc/indication/header"
-	rcindicationmsg "github.com/onosproject/ran-simulator/pkg/utils/e2sm/rc/indication/message"
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/rc/nrt"
+	indicationutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
+	rcindicationhdr "github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/indication/header"
+	rcindicationmsg "github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/indication/message"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/nrt"
 
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 

@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
-	"github.com/onosproject/ran-simulator/pkg/store/nodes"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 	"gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/assert"

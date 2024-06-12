@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/onosproject/ran-simulator/tests/utils"
+	"github.com/nfvri/ran-simulator/tests/utils"
 )
 
 // TestCountNodes tests if there is the correct number of nodes

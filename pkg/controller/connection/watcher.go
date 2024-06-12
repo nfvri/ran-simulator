@@ -9,8 +9,8 @@ import (
 	"sync"
 
 	"github.com/onosproject/onos-lib-go/pkg/controller"
-	"github.com/onosproject/ran-simulator/pkg/store/connections"
-	"github.com/onosproject/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/connections"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 )
 
 // Watcher is a connection watcher

@@ -12,6 +12,7 @@ ONOS_PROTOC_VERSION := v0.6.9
 
 OUTPUT_DIR=./build/_output
 
+
 build: # @HELP build the Go binaries and run all validations (default)
 build:
 	go build ${BUILD_FLAGS} -o ${OUTPUT_DIR}/ransim ./cmd/ransim
@@ -25,11 +26,11 @@ debug: build # @HELP build the Go binaries with debug symbols
 
 test: # @HELP run the unit tests and source code validation producing a golang style report
 test: build deps linters license
-	go test -race github.com/onosproject/ran-simulator/...
+	go test -race github.com/nfvri/ran-simulator/...
 
 jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
 jenkins-test: build deps license linters
-	TEST_PACKAGES=github.com/onosproject/ran-simulator/pkg/... ./build/build-tools/build/jenkins/make-unit
+	TEST_PACKAGES=github.com/nfvri/ran-simulator/pkg/... ./build/build-tools/build/jenkins/make-unit
 
 integration-tests: # @HELP run helmit integration tests
 	@kubectl delete ns test; kubectl create ns test
@@ -43,7 +44,7 @@ model-files: # @HELP generate various model and model-topo YAML files in sdran-h
 ran-simulator-docker: # @HELP build ran-simulator Docker image
 	@go mod vendor
 	docker build . -f build/ran-simulator/Dockerfile \
-		-t onosproject/ran-simulator:${RAN_SIMULATOR_VERSION}
+		-t nfvri/ran-simulator:${RAN_SIMULATOR_VERSION}
 
 images: # @HELP build all Docker images
 images: ran-simulator-docker
@@ -51,12 +52,16 @@ images: ran-simulator-docker
 kind: # @HELP build Docker images and add them to the currently configured kind cluster
 kind: images
 	@if [ "`kind get clusters`" = '' ]; then echo "no kind cluster found" && exit 1; fi
-	kind load docker-image onosproject/ran-simulator:${RAN_SIMULATOR_VERSION}
+	kind load docker-image nfvri/ran-simulator:${RAN_SIMULATOR_VERSION}
 
-all: build images
+all: clean gomodextras build images
+
+gomodextras: # @HELP extras for go mod
+	GOPROXY=https://proxy.golang.org go mod tidy
+
 
 publish: # @HELP publish version on github and dockerhub
-	./build/build-tools/publish-version ${VERSION} onosproject/ran-simulator
+	./build/build-tools/publish-version ${VERSION} nfvri/ran-simulator
 
 jenkins-publish: # @HELP Jenkins calls this to publish artifacts
 	./build/bin/push-images
@@ -64,5 +69,5 @@ jenkins-publish: # @HELP Jenkins calls this to publish artifacts
 
 clean:: # @HELP remove all the build artifacts
 	rm -rf ${OUTPUT_DIR} ./cmd/trafficsim/trafficsim ./cmd/ransim/ransim
-	go clean -testcache github.com/onosproject/ran-simulator/...
+	go clean -testcache github.com/nfvri/ran-simulator/...
 

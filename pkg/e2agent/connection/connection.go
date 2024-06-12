@@ -12,10 +12,10 @@ import (
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	asn1libgo "github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
-	"github.com/onosproject/ran-simulator/pkg/utils"
-	"github.com/onosproject/ran-simulator/pkg/utils/f1ap"
-	"github.com/onosproject/ran-simulator/pkg/utils/xnap"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/nfvri/ran-simulator/pkg/utils/f1ap"
+	"github.com/nfvri/ran-simulator/pkg/utils/xnap"
 	"net"
 	"sync/atomic"
 	"time"
@@ -23,41 +23,41 @@ import (
 	v2 "github.com/onosproject/onos-e2t/api/e2ap/v2"
 	e2apcommondatatypes "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-commondatatypes"
 
-	"github.com/onosproject/ran-simulator/pkg/servicemodel/kpm2"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/kpm2"
 
 	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
 
-	connectionsetupfaileditem "github.com/onosproject/ran-simulator/pkg/utils/e2ap/connectionupdate/connectionSetupFailedItemie"
+	connectionsetupfaileditem "github.com/nfvri/ran-simulator/pkg/utils/e2ap/connectionupdate/connectionSetupFailedItemie"
 
-	"github.com/onosproject/ran-simulator/pkg/e2agent/addressing"
+	"github.com/nfvri/ran-simulator/pkg/e2agent/addressing"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 
-	"github.com/onosproject/ran-simulator/pkg/store/connections"
+	"github.com/nfvri/ran-simulator/pkg/store/connections"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2ap/connectionupdate/connectionUpdateitemie"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/connectionupdate/connectionUpdateitemie"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2ap/connectionupdate"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/connectionupdate"
 
 	"github.com/cenkalti/backoff"
 
-	"github.com/onosproject/ran-simulator/pkg/servicemodel/mho"
-	"github.com/onosproject/ran-simulator/pkg/servicemodel/rc"
-	rcv1 "github.com/onosproject/ran-simulator/pkg/servicemodel/rc/v1"
-	controlutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/control"
-	subutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscription"
-	subdeleteutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/mho"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/rc"
+	rcv1 "github.com/nfvri/ran-simulator/pkg/servicemodel/rc/v1"
+	controlutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/control"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
+	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 
 	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/onosproject/ran-simulator/pkg/utils/e2ap/setup"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/setup"
 
-	"github.com/onosproject/ran-simulator/pkg/store/subscriptions"
+	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 
 	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
 	e2 "github.com/onosproject/onos-e2t/pkg/protocols/e2ap"
-	"github.com/onosproject/ran-simulator/pkg/servicemodel/registry"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
 )
 
 var log = logging.GetLogger()

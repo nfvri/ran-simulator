@@ -5,7 +5,7 @@
 package connection
 
 import (
-	"github.com/onosproject/ran-simulator/pkg/e2agent/addressing"
+	"github.com/nfvri/ran-simulator/pkg/e2agent/addressing"
 
 	"time"
 

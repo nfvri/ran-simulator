@@ -6,7 +6,7 @@ package mho
 
 import (
 	"context"
-	subutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscription"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 )
 
 func (m *Mho) processRrcUpdate(ctx context.Context, subscription *subutils.Subscription) {

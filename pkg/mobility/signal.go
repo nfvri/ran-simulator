@@ -9,8 +9,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/utils"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 )
 
 // powerFactor relates power to distance in decimal degrees

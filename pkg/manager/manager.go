@@ -10,7 +10,7 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
-	"github.com/onosproject/ran-simulator/pkg/utils"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 
 	cellapi "github.com/nfvri/ran-simulator/pkg/api/cells"
 	metricsapi "github.com/nfvri/ran-simulator/pkg/api/metrics"
@@ -24,10 +24,10 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/metrics"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
+	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	redisLib "github.com/onosproject/ran-simulator/pkg/store/redis"
 	"github.com/redis/go-redis/v9"
 )
 

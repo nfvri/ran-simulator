@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 )
 
 // Convert meters to degrees latitude

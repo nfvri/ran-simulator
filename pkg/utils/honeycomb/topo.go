@@ -8,10 +8,11 @@ package honeycomb
 import (
 	"bufio"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/nfvri/ran-simulator/pkg/model"
 	"os"
+
+	"github.com/google/uuid"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 // WriteControllerYaml outputs YAML file that can be consumed by the onos topo operator.
@@ -69,7 +70,9 @@ func printCell(w *bufio.Writer, cell model.Cell) {
 	_, _ = w.WriteString(fmt.Sprintf("      lat: %f\n", cell.Sector.Center.Lat))
 	_, _ = w.WriteString(fmt.Sprintf("      lng: %f\n", cell.Sector.Center.Lng))
 	_, _ = w.WriteString("    onos.topo.E2Cell:\n")
-	_, _ = w.WriteString(fmt.Sprintf("      earfcn: %d\n", cell.Earfcn))
+	_, _ = w.WriteString(fmt.Sprintf("      tx_power_db: %f\n", cell.TxPowerDB))
+	_, _ = w.WriteString(fmt.Sprintf("      arfcnDL: %d\n", cell.Channel.ArfcnDL))
+	_, _ = w.WriteString(fmt.Sprintf("      arfcnUL: %d\n", cell.Channel.ArfcnUL))
 	_, _ = w.WriteString(fmt.Sprintf("      cell_type: %s\n", cell.CellType.String()))
 	_, _ = w.WriteString("    onos.topo.Coverage:\n")
 	_, _ = w.WriteString(fmt.Sprintf("      arc_width: %d\n", cell.Sector.Arc))

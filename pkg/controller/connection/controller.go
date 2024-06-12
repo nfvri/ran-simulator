@@ -6,7 +6,7 @@ package connection
 
 import (
 	"context"
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"sync/atomic"
 
 	"github.com/onosproject/onos-lib-go/pkg/errors"
@@ -14,20 +14,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onosproject/ran-simulator/pkg/servicemodel/registry"
-	"github.com/onosproject/ran-simulator/pkg/store/subscriptions"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
+	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/ran-simulator/pkg/utils/e2ap/configupdate"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/configupdate"
 
 	e2 "github.com/onosproject/onos-e2t/pkg/protocols/e2ap"
-	e2connection "github.com/onosproject/ran-simulator/pkg/e2agent/connection"
+	e2connection "github.com/nfvri/ran-simulator/pkg/e2agent/connection"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 
-	"github.com/onosproject/ran-simulator/pkg/store/connections"
+	"github.com/nfvri/ran-simulator/pkg/store/connections"
 
 	"github.com/onosproject/onos-lib-go/pkg/controller"
 )

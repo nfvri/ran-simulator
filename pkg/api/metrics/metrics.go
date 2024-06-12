@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/onosproject/ran-simulator/pkg/store/event"
-	"github.com/onosproject/ran-simulator/pkg/store/metrics"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/metrics"
 
 	metricsapi "github.com/onosproject/onos-api/go/onos/ransim/metrics"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"

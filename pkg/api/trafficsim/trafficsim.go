@@ -8,16 +8,16 @@ package trafficsim
 import (
 	"context"
 
-	"github.com/onosproject/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 
 	simapi "github.com/onosproject/onos-api/go/onos/ransim/trafficsim"
 
 	simtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
-	"github.com/onosproject/ran-simulator/pkg/store/ues"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"google.golang.org/grpc"
 )
 

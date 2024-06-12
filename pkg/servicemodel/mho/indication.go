@@ -11,14 +11,14 @@ import (
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	e2sm_v2_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-v2-ies"
 	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/store/subscriptions"
-	"github.com/onosproject/ran-simulator/pkg/utils"
-	e2apIndicationUtils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/indication"
-	subutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscription"
-	indHdr "github.com/onosproject/ran-simulator/pkg/utils/e2sm/mho/indication/header"
-	indMsgFmt1 "github.com/onosproject/ran-simulator/pkg/utils/e2sm/mho/indication/message_format1"
-	indMsgFmt2 "github.com/onosproject/ran-simulator/pkg/utils/e2sm/mho/indication/message_format2"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
+	"github.com/nfvri/ran-simulator/pkg/utils"
+	e2apIndicationUtils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
+	indHdr "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/header"
+	indMsgFmt1 "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/message_format1"
+	indMsgFmt2 "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/message_format2"
 )
 
 func (m *Mho) sendRicIndication(ctx context.Context, subscription *subutils.Subscription) error {

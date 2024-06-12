@@ -7,7 +7,7 @@ package ransim
 import (
 	"github.com/onosproject/helmit/pkg/input"
 	"github.com/onosproject/helmit/pkg/test"
-	"github.com/onosproject/ran-simulator/tests/utils"
+	"github.com/nfvri/ran-simulator/tests/utils"
 )
 
 // TestSuite is the primary ran-simulator test suite

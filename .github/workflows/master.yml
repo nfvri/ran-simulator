@@ -41,7 +41,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Unit tests
-        run: go test -race github.com/onosproject/ran-simulator/...
+        run: go test -race github.com/nfvri/ran-simulator/...
 
   docker-build:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
         run: |
           git clone https://github.com/onosproject/build-tools.git build/build-tools
           go mod vendor
-          docker build . -f build/ran-simulator/Dockerfile -t onosproject/ran-simulator:latest
+          docker build . -f build/ran-simulator/Dockerfile -t nfvri/ran-simulator:latest
           rm -rf vendor
 
   license-check:

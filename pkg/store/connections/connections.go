@@ -10,13 +10,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/onosproject/ran-simulator/pkg/store/watcher"
+	"github.com/nfvri/ran-simulator/pkg/store/watcher"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 
-	"github.com/onosproject/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 )
 
 var log = logging.GetLogger()

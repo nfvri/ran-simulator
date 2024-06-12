@@ -15,15 +15,15 @@ import (
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
 	"github.com/google/uuid"
-	"github.com/onosproject/ran-simulator/pkg/store/watcher"
+	"github.com/nfvri/ran-simulator/pkg/store/watcher"
 
-	"github.com/onosproject/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
 )
 
 const (

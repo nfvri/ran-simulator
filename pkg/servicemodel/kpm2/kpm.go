@@ -16,23 +16,23 @@ import (
 
 	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 
-	"github.com/onosproject/ran-simulator/pkg/utils"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/id/cellglobalid"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/id/cellglobalid"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/measobjectitem"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/measobjectitem"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/reportstyle"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/reportstyle"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/ranfuncdescription"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/ranfuncdescription"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/nodeitem"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/nodeitem"
 
-	"github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/measurments"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/measurments"
 
-	kpm2gNBID "github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/id/gnbid"
-	kpm2IndicationHeader "github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/indication"
-	kpm2MessageFormat1 "github.com/onosproject/ran-simulator/pkg/utils/e2sm/kpm2/indication/messageformat1"
+	kpm2gNBID "github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/id/gnbid"
+	kpm2IndicationHeader "github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/indication"
+	kpm2MessageFormat1 "github.com/nfvri/ran-simulator/pkg/utils/e2sm/kpm2/indication/messageformat1"
 
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go/pdubuilder"
@@ -43,15 +43,15 @@ import (
 	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/servicemodel"
-	"github.com/onosproject/ran-simulator/pkg/servicemodel/registry"
-	"github.com/onosproject/ran-simulator/pkg/store/nodes"
-	"github.com/onosproject/ran-simulator/pkg/store/subscriptions"
-	"github.com/onosproject/ran-simulator/pkg/store/ues"
-	e2apIndicationUtils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/indication"
-	subutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscription"
-	subdeleteutils "github.com/onosproject/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel"
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
+	"github.com/nfvri/ran-simulator/pkg/store/nodes"
+	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
+	"github.com/nfvri/ran-simulator/pkg/store/ues"
+	e2apIndicationUtils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
+	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 	"google.golang.org/protobuf/proto"
 )
 

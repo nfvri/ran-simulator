@@ -1,7 +1,7 @@
 package mobility
 
 import (
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"math"
 	"testing"
 	"fmt"

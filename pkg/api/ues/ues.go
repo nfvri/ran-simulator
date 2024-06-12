@@ -9,9 +9,9 @@ import (
 	"context"
 
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/ran-simulator/pkg/model"
-	"github.com/onosproject/ran-simulator/pkg/store/event"
-	"github.com/onosproject/ran-simulator/pkg/store/ues"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/ues"
 
 	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"

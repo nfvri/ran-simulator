@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"os"
 )
 

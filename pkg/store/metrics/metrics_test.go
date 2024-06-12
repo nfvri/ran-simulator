@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/onosproject/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 
 	"github.com/stretchr/testify/assert"
 )

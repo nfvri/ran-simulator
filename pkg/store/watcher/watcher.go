@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/onosproject/ran-simulator/pkg/store/event"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 )
 
 // EventChannel is a channel which can accept an Event

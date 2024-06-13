@@ -30,8 +30,9 @@ func cellStore(t *testing.T) cells.Store {
 }
 
 func TestUERegistry(t *testing.T) {
+	m := model.Model{}
 	ctx := context.Background()
-	ues := NewUERegistry(16, cellStore(t), "random")
+	ues := NewUERegistry(m, cellStore(t), "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	assert.Equal(t, 16, ues.Len(ctx))
 
@@ -43,9 +44,10 @@ func TestUERegistry(t *testing.T) {
 }
 
 func TestMoveUEsToCell(t *testing.T) {
+	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(18, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	// Get a cell NCGI
 	cell1, err := cellStore.GetRandomCell()
@@ -76,9 +78,10 @@ func TestMoveUEsToCell(t *testing.T) {
 }
 
 func TestMoveUEToCell(t *testing.T) {
+	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(18, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	ue := ues.ListAllUEs(ctx)[0]
 	err := ues.MoveToCell(ctx, ue.IMSI, types.NCGI(321), 11.0)
@@ -98,9 +101,10 @@ func TestMoveUEToCell(t *testing.T) {
 }
 
 func TestMoveUEToCoord(t *testing.T) {
+	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(18, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 
 	ue := ues.ListAllUEs(ctx)[0]
@@ -115,9 +119,10 @@ func TestMoveUEToCoord(t *testing.T) {
 }
 
 func TestUpdateCells(t *testing.T) {
+	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(18, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 
 	ue := ues.ListAllUEs(ctx)[0]

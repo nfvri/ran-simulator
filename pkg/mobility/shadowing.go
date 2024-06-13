@@ -139,9 +139,9 @@ func getEuclideanDistanceFromCoordinates(coord1 model.Coordinate, coord2 model.C
 // Function to compute the correlation matrix
 func computeCorrelationMatrix(gridPoints []model.Coordinate, d_c float64) [][]float64 {
 	numPoints := len(gridPoints)
-	A := make([][]float64, int(numPoints))
+	A := make([][]float64, numPoints)
 	for i := range A {
-		A[i] = make([]float64, int(numPoints))
+		A[i] = make([]float64, numPoints)
 		for j := range A[i] {
 			A[i][j] = math.Exp(-getEuclideanDistanceFromCoordinates(gridPoints[i], gridPoints[j]) / d_c)
 		}

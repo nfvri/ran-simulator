@@ -46,7 +46,6 @@ func LoadConfig(model *Model, configname string) error {
 
 	// Convert the MCC-MNC format into numeric PLMNID
 	model.PlmnID = types.PlmnIDFromString(model.Plmn)
-	
 
 	// initialize neighbor's Ocn value - for mlb/handover
 	for k, v := range model.Cells {

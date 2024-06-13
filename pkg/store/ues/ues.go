@@ -261,7 +261,7 @@ func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 			IsAdmitted: false,
 			RrcState:   rrcState,
 		}
-		fmt.Printf("ue: %d\n", ue)
+		fmt.Printf("ue: %v\n", ue)
 		s.ues[ue.IMSI] = ue
 	}
 	s.mu.Unlock()
@@ -284,7 +284,7 @@ func (s *store) CreateUEs(ctx context.Context, m model.Model) {
 			Cells:       ue.Cells,
 			IsAdmitted:  ue.IsAdmitted,
 		}
-		fmt.Printf("ue: %d\n", new_ue)
+		fmt.Printf("ue: %v\n", new_ue)
 		s.ues[ue.IMSI] = new_ue
 	}
 	s.mu.Unlock()

@@ -122,6 +122,7 @@ type Cell struct {
 	TxPowerDB         float64           `mapstructure:"txpowerdb"`
 	MeasurementParams MeasurementParams `mapstructure:"measurementParams"`
 	PCI               uint32            `mapstructure:"pci"`
+	Earfcn            uint32            `mapstructure:"earfcn"`
 	CellType          types.CellType    `mapstructure:"cellType"`
 	Channel           Channel           `mapstructure:"channel"`
 	RrcIdleCount      uint32

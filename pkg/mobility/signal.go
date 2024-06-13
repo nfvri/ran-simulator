@@ -74,12 +74,32 @@ func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	return -math.Min(12*math.Pow((angularOffset/(math.Pi*2/3)/angleScaling), 2), 30)
 }
 
+func angularAttenuation(coord model.Coordinate, cell model.Cell) float64 {
+	fmt.Print("\n======================================\n")
+	azRads := float64(cell.Sector.Azimuth) * (math.Pi / 180)
+	pointRads := math.Atan2(coord.Lat-cell.Sector.Center.Lat, coord.Lng-cell.Sector.Center.Lng)
+	azimuthOffsetRads := math.Abs(azRads - pointRads)
+	azimuthOffset := azimuthOffsetRads * (180 / math.Pi)
+	horizontalCut := azimuthAttenuation(int32(azimuthOffset), 65)
+	hAttformat := "\nhorizontalCut: %v \nazimuthOffset: %v \ncell.Sector.Azimuth: %v \nazRads: %v \npointRads: %v"
+	log.Infof(hAttformat, horizontalCut, azimuthOffset, cell.Sector.Azimuth, azRads, pointRads)
+
+	fmt.Print("\n======================================\n")
+	d2D := getEuclideanDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+
+	zenithAngleOffset := 90 + math.Acos(d2D/d3D)*(180/math.Pi) - float64(cell.Sector.Tilt)
+	verticalCut := zenithAttenuation(int32(zenithAngleOffset), 65)
+	log.Infof("\nverticalCut: %v \nzenithAngleOffset: %v", verticalCut, zenithAngleOffset)
+	fmt.Print("\n======================================\n")
+	return -math.Min(-(verticalCut + horizontalCut), MAX_ATTENUATION_DB)
+}
+
 // ETSI TR 138 901 V16.1.0
 // Vertical cut of the radiation power pattern (dB)
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func zenithAttenuation(zenithAngle int32) float64 {
-	halfPowerAngle := 65.0
-	angleRatio := float64(zenithAngle-90) / halfPowerAngle
+func zenithAttenuation(zenithAngle int32, theta3dB float64) float64 {
+	angleRatio := float64(zenithAngle-90) / theta3dB
 	a := 12 * math.Pow(angleRatio, 2)
 	return -math.Min(a, VERTICAL_SIDELOBE_ATTENUATION_DB)
 }
@@ -87,9 +107,8 @@ func zenithAttenuation(zenithAngle int32) float64 {
 // ETSI TR 138 901 V16.1.0
 // Horizontal cut of the radiation power pattern (dB)
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func azimuthAttenuation(azimuth int32) float64 {
-	halfPowerAngle := 65.0
-	angleRatio := float64(azimuth) / halfPowerAngle
+func azimuthAttenuation(azimuth int32, phi3dB float64) float64 {
+	angleRatio := float64(azimuth) / phi3dB
 	azAtt := 12 * math.Pow(angleRatio, 2)
 	return -math.Min(azAtt, MAX_ATTENUATION_DB)
 }

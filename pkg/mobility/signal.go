@@ -34,7 +34,7 @@ func StrengthAtLocation(coord model.Coordinate, cell model.Cell) float64 {
 
 func StrengthAfterPathloss(coord model.Coordinate, cell model.Cell) float64 {
 	distAtt := DistanceAttenuation(coord, cell)
-	angleAtt := AngleAttenuation(coord, cell)
+	angleAtt := angularAttenuation(coord, cell)
 	pathLoss := GetPathLoss(coord, cell)
 
 	return cell.TxPowerDB + distAtt + angleAtt - pathLoss

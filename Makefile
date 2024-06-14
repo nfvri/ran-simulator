@@ -54,7 +54,7 @@ kind: images
 	@if [ "`kind get clusters`" = '' ]; then echo "no kind cluster found" && exit 1; fi
 	kind load docker-image nfvri/ran-simulator:${RAN_SIMULATOR_VERSION}
 
-all: clean gomodextras build images
+all: clean gomodextras build
 
 gomodextras: # @HELP extras for go mod
 	GOPROXY=https://proxy.golang.org go mod tidy

@@ -88,9 +88,14 @@ func angularAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	d2D := getEuclideanDistanceFromGPS(coord, cell)
 	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
 
-	zenithAngleOffset := 90 + math.Acos(d2D/d3D)*(180/math.Pi) - float64(cell.Sector.Tilt)
-	verticalCut := zenithAttenuation(int32(zenithAngleOffset), 65)
-	log.Infof("\nverticalCut: %v \nzenithAngleOffset: %v", verticalCut, zenithAngleOffset)
+	vAngleRads := math.Acos(d2D / d3D)
+	tiltRads := float64(cell.Sector.Tilt) * (math.Pi / 180)
+	log.Infof("\nvAngle: %v \ntilt: %v", vAngleRads*(180/math.Pi), tiltRads*(180/math.Pi))
+	log.Infof("\nvAngleOffset: %v", vAngleRads*(180/math.Pi)-tiltRads*(180/math.Pi))
+	zenithAngle := math.Abs(vAngleRads - tiltRads)
+	zenithAngle = 90 + zenithAngle*(180/math.Pi)
+	verticalCut := zenithAttenuation(int32(zenithAngle), 65)
+	log.Infof("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
 	fmt.Print("\n======================================\n")
 	return -math.Min(-(verticalCut + horizontalCut), MAX_ATTENUATION_DB)
 }

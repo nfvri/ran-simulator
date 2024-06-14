@@ -73,6 +73,12 @@ cells:
       arfcnul: 3000    
       environment: "urban"
       LOS: true
+    beam:
+      h3dBAngle: 65
+      v3dBAngle: 65
+      maxGain: 8.0
+      maxAttenuationDB: 30.0
+      vSideLobeAttenuationDB: 30.0
     pci: 218
     celltype: 2
     rrcidlecount: 0
@@ -109,6 +115,12 @@ cells:
       arfcnul: 3000
       environment: "urban"
       LOS: false
+    beam:
+      h3dBAngle: 65
+      v3dBAngle: 65
+      maxGain: 8.0
+      maxAttenuationDB: 30.0
+      vSideLobeAttenuationDB: 30.0
     pci: 148
     celltype: 2
     rrcidlecount: 0
@@ -145,6 +157,12 @@ cells:
       arfcnul: 3000
       environment: "rural"
       LOS: true
+    beam:
+      h3dBAngle: 65
+      v3dBAngle: 65
+      maxGain: 8.0
+      maxAttenuationDB: 30.0
+      vSideLobeAttenuationDB: 30.0
     pci: 480
     celltype: 3
     rrcidlecount: 0

@@ -21,12 +21,12 @@ func Test_AzimuthAttenuation(t *testing.T) {
 	}
 
 	for point, azimuth := range azimuths {
-		assert.Equal(t, expectedAttenuationDb[point], int(azimuthAttenuation(azimuth, 65)))
+		assert.Equal(t, expectedAttenuationDb[point], int(azimuthAttenuation(azimuth, 65, 30)))
 	}
 }
 
 func Test_ZenithAttenuation(t *testing.T) {
-	zenithAngles := map[string]int32{
+	zenithAngles := map[string]uint32{
 		"boresight":  90,
 		"halfPower1": 57,  // 90 - 65/2
 		"halfPower2": 123, // 90 + 65/2
@@ -39,7 +39,7 @@ func Test_ZenithAttenuation(t *testing.T) {
 	}
 
 	for point, zenithAngle := range zenithAngles {
-		assert.Equal(t, expectedAttenuationDb[point], int(zenithAttenuation(zenithAngle, 65)))
+		assert.Equal(t, expectedAttenuationDb[point], int(zenithAttenuation(zenithAngle, 65, 30)))
 	}
 
 }
@@ -56,13 +56,22 @@ func Test_AngularAttenuation(t *testing.T) {
 			LOS:          true,
 			SSBFrequency: 3600,
 		},
+		Beam: model.Beam{
+			H3dBAngle:              65,
+			V3dBAngle:              65,
+			MaxGain:                8,
+			MaxAttenuationDB:       30,
+			VSideLobeAttenuationDB: 30,
+		},
 	}
 
 	ueLocation_azimuth_33 := model.Coordinate{Lat: 37.985168, Lng: 23.720989}
 	assert.Equal(t, -3, int(angularAttenuation(ueLocation_azimuth_33, cell)))
 
-	cell.Sector.Tilt = 4
+	cell.Sector.Tilt = 37
 	ueLocation_zenith_33 := model.Coordinate{Lat: 37.979207, Lng: 23.720989}
-	assert.Equal(t, -1, int(angularAttenuation(ueLocation_zenith_33, cell)))
+	expectedHAttenuation := -1
+	expectedVAttenuation := -3
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ueLocation_zenith_33, cell)))
 
 }

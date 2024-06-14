@@ -124,9 +124,18 @@ type Cell struct {
 	PCI               uint32            `mapstructure:"pci"`
 	CellType          types.CellType    `mapstructure:"cellType"`
 	Channel           Channel           `mapstructure:"channel"`
+	Beam              Beam              `mapstructure:"beam"`
 	RrcIdleCount      uint32
 	RrcConnectedCount uint32
 	ShadowMap
+}
+
+type Beam struct {
+	H3dBAngle              uint32  `mapstructure:"h3dBAngle"`
+	V3dBAngle              uint32  `mapstructure:"v3dBAngle"`
+	MaxGain                float64 `mapstructure:"maxGain"`
+	MaxAttenuationDB       float64 `mapstructure:"maxAttenuationDB"`
+	VSideLobeAttenuationDB float64 `mapstructure:"vSideLobeAttenuationDB"`
 }
 
 type ShadowMap struct {

@@ -45,8 +45,8 @@ cells:
     ncgi: 87893173159116801
     sector:
       center:
-        lat: 52.486405366824926
-        lng: 13.412233915182187
+        lat: 0.00
+        lng: 0.00
       azimuth: 0
       arc: 120
       tilt: 1
@@ -87,8 +87,8 @@ cells:
     ncgi: 87893173159116802
     sector:
       center:
-        lat: 52.487405366824926
-        lng: 13.413233915182187
+        lat: -0.00023830696000097095
+        lng: 0.005239128892583278
       azimuth: 120
       arc: 120
       tilt: -10
@@ -129,8 +129,8 @@ cells:
     ncgi: 87893173159116803
     sector:
       center:
-        lat: 52.488405366824926
-        lng: 13.412233915182187
+        lat: 0.0003741158206141896
+        lng: 0.009730229098056771
       azimuth: 240
       arc: 120
       tilt: -10
@@ -168,11 +168,11 @@ cells:
     rrcidlecount: 0
     rrcconnectedcount: 0
   cell4:
-    ncgi: 87893173159133185
+    ncgi: 87893173159116804
     sector:
       center:
-        lat: 52.50431527434924
-        lng: 13.459261970488306
+        lat: -0.004372160724989959
+        lng: 0.005851551647875114
       azimuth: 0
       arc: 120
       tilt: -15
@@ -232,8 +232,8 @@ ues:
     type: "phone"
     rrcState: 2
     location: 
-      lat: 52.498103366824926
-      lng: 13.431444970488306
+      lat: 0.00045026533893807985 
+      lng: 0.004689571124127287
     cell: 
       id: 20819
       ncgi: 87893173159133185
@@ -243,6 +243,21 @@ ues:
     isAdmitted: false
   ue2:
     imsi: 8789318
+    amfUeNgapID: 87893
+    type: "phone"
+    rrcState: 2
+    location: 
+      lat: 0.00045126533893807985 
+      lng: 0.004690571124127287
+    cell: 
+      id: 20819
+      ncgi: 87893173159133185
+      strength: 30.3
+    CRNTI: 90125
+    cells: []
+    isAdmitted: false
+  ue3:
+    imsi: 8789319
     amfUeNgapID: 87893
     type: "phone"
     rrcState: 2
@@ -261,7 +276,7 @@ ueCountPerCell: 2
 plmnID: "138426"
 plmnNumber: 1279014
 apiKey: ""
-decorrelationdistance: 50
+decorrelationdistance: 10
 guami:
   amfregionid: 221
   amfsetid: 819

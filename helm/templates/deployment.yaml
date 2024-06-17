@@ -27,7 +27,7 @@ spec:
         resource: {{ include "ran-simulator.fullname" . }}
         {{- include "ran-simulator.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.global.imagePullSecrets }}
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -49,7 +49,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: {{ include "ran-simulator.imagename" . | quote }}
+          image: {{ include "ran-simulator.container-image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: NAMESPACE

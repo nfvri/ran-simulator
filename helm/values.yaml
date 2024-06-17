@@ -12,11 +12,11 @@
 global:
   imagePullSecrets:
     # -- Global Docker registry secret names as an array
-    - name: ran-simulator-private-repo
+    - name: nfvri-private-repo
   # -- If it is enabled, create new image pull secret
   createImagePullSecret: true
   # -- The name of the image pull secret to be created
-  createdImagePullSecretName: ran-simulator-private-repo
+  createdImagePullSecretName: nfvri-private-repo
   # -- Use Openshift Certified images for tests
   openshiftCertTests: false
 
@@ -29,21 +29,27 @@ imageCredentials:
   password: "Contact nfvri team to provide the password"
   # -- Email for nfvri image registry
   email: "user@example.com"
+
+# -- Number of ran-simulator replicas to deploy
 replicaCount: 1
 
 image:
-  registry: "europe-docker.pkg.dev/nfv-ri/images"
-  repository: ran-simulator
-  tag: "test"
-  pullPolicy: IfNotPresent
+  # -- Nfvri ran-sumilator image registry
+  registry: europe-docker.pkg.dev/nfv-ri/images/ran-simulator
+  # -- Nfvri ran-sumilator image pull policy
+  pullPolicy: Always
+  # -- (string) Nfvri ran-sumilator image tag (immutable tags are recommened). Overrides the image tag whose default is "latest".
+  tag: ""
 
-googleApiKey: "YOUR_API_KEY_HERE"
+# -- Image registry secret names as an array. If specified, it will be used instead of global.imagePullSecrets
+imagePullSecrets:
+  - name: nfvri-private-repo
 
+# -- (string) String to partially override fullname template (will maintain the release name)
 nameOverride: ""
-fullnameOverride: ""
 
-ingress:
-  enabled: false
+# -- (string) String to fully override fullname template
+fullnameOverride: ""
 
 service:
   type: NodePort

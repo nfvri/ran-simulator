@@ -58,22 +58,22 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 ran-simulator image name
 */}}
-{{- define "ran-simulator.imagename" -}}
-{{- if .Values.image.registry -}}
-{{- printf "%s/" .Values.image.registry -}}
-{{- end -}}
-{{- printf "%s:" .Values.image.repository -}}
-{{- tpl .Values.image.tag . -}}
+{{- define "ran-simulator.container-image" -}}
+  {{- printf "%s:%s" .Values.image.registry (default "latest" .Values.image.tag ) -}}
 {{- end -}}
 
 {{/*
-registry name
+Extracts the base registry URL by truncating the string up to the last "/".
 */}}
 {{- define "ran-simulator.registryname" -}}
-{{- if .Values.image.registry -}}
-{{- printf "%s/" .Values.image.registry -}}
+  {{- $registry := .Values.image.registry -}}
+  {{- $parts := split "/" $registry -}}
+  {{- $length := sub (len $parts) 1 -}}
+  {{- $base := slice (splitList "/" $registry) 0 $length | join "/" | quote -}}
+  {{- printf "%s/" $base | trimPrefix "/" -}}
 {{- end -}}
-{{- end -}}
+
+
 
 {{/*
 Create secret image pull credentials

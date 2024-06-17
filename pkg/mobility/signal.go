@@ -7,7 +7,6 @@ package mobility
 import (
 	"fmt"
 	"math"
-	"sort"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -20,9 +19,9 @@ const powerFactor = 0.001
 func StrengthAtLocation(ue model.UE, cell model.Cell) float64 {
 	strengthAfterPathloss := StrengthAfterPathloss(ue, cell)
 
-	latIdx, lngIdx, inGrid := findGridCell(ue.Location, cell.GridPoints)
+	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
 	if inGrid {
-		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell with indices i: %d, j: %d and the value in faded grid is: %.5f\n", ue.Location.Lat, ue.Location.Lng, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}
 	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", ue.Location.Lat, ue.Location.Lng)
@@ -281,81 +280,4 @@ func getUrbanNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 		0.6*(hUT-1.5)
 
 	return math.Max(plLOS, plNLOS)
-}
-
-// Function to find the unique Latitudes
-func uniqueLatitudes(points []model.Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lat] = struct{}{}
-	}
-
-	latitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		latitudes = append(latitudes, k)
-	}
-	sort.Float64s(latitudes)
-	return latitudes
-}
-
-// Function to find the unique Longitudes
-func uniqueLongitudes(points []model.Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lng] = struct{}{}
-	}
-
-	longitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		longitudes = append(longitudes, k)
-	}
-	sort.Float64s(longitudes)
-	return longitudes
-}
-
-// Function to find the closest index
-func closestIndex(arr []float64, value float64) int {
-	closest := 0
-	minDist := math.Abs(arr[0] - value)
-	for i := 1; i < len(arr); i++ {
-		dist := math.Abs(arr[i] - value)
-		if dist < minDist {
-			closest = i
-			minDist = dist
-		}
-	}
-	return closest
-}
-
-// Function to check if a point is inside the grid
-func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bool {
-	latitudes := uniqueLatitudes(gridPoints)
-	longitudes := uniqueLongitudes(gridPoints)
-
-	// Check if point's latitude is within the range of grid latitudes
-	if point.Lat < latitudes[0] || point.Lat > latitudes[len(latitudes)-1] {
-		return false
-	}
-
-	// Check if point's longitude is within the range of grid longitudes
-	if point.Lng < longitudes[0] || point.Lng > longitudes[len(longitudes)-1] {
-		return false
-	}
-
-	return true
-}
-
-// Function to find the grid cell containing the given point
-func findGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int, bool) {
-	if !isPointInsideGrid(point, gridPoints) {
-		return -1, -1, false
-	}
-
-	latitudes := uniqueLatitudes(gridPoints)
-	longitudes := uniqueLongitudes(gridPoints)
-
-	latIdx := closestIndex(latitudes, point.Lat)
-	lngIdx := closestIndex(longitudes, point.Lng)
-
-	return latIdx, lngIdx, true
 }

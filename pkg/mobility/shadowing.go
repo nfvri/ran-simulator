@@ -32,10 +32,13 @@ func getMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, f
 	maxLat := cell.Sector.Center.Lat
 	maxLng := cell.Sector.Center.Lng
 
+	ue := model.UE{
+		Height: 1.5,
+	}
 	// Expand in the positive direction
 	for {
-		coord := model.Coordinate{Lat: maxLat, Lng: maxLng}
-		strengthAfterPathloss := StrengthAfterPathloss(coord, cell)
+		ue.Location = model.Coordinate{Lat: maxLat, Lng: maxLng}
+		strengthAfterPathloss := StrengthAfterPathloss(ue, cell)
 		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", maxLat, maxLng, strengthAfterPathloss)
 		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
 			break
@@ -49,8 +52,8 @@ func getMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, f
 
 	// Expand in the negative direction
 	for {
-		coord := model.Coordinate{Lat: minLat, Lng: minLng}
-		strengthAfterPathloss := StrengthAfterPathloss(coord, cell)
+		ue.Location = model.Coordinate{Lat: minLat, Lng: minLng}
+		strengthAfterPathloss := StrengthAfterPathloss(ue, cell)
 		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", minLat, minLng, strengthAfterPathloss)
 		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
 			break

@@ -167,6 +167,7 @@ type UE struct {
 	Cell        *UECell            `mapstructure:"cell"`
 	CRNTI       types.CRNTI        `mapstructure:"CRNTI"`
 	Cells       []*UECell          `mapstructure:"cells"`
+	Height      float64            `mapstructure:"height"`
 	IsAdmitted  bool               `mapstructure:"isAdmitted"`
 }
 

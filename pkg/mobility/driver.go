@@ -15,8 +15,6 @@ import (
 
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/measurement"
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -24,6 +22,8 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/rrm-son-lib/pkg/model/id"
 )
 
@@ -382,7 +382,7 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 	}
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
-		rsrp := StrengthAtLocation(ue.Location, *cell)
+		rsrp := StrengthAtLocation(*ue, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
 		}
@@ -414,7 +414,7 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}
 
-	strength := StrengthAtLocation(ue.Location, *sCell)
+	strength := StrengthAtLocation(*ue, *sCell)
 
 	if math.IsNaN(strength) {
 		strength = -999

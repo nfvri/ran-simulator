@@ -45,16 +45,16 @@ func Test_ZenithAttenuation(t *testing.T) {
 }
 
 func Test_AngularAttenuation(t *testing.T) {
+
+	ue := model.UE{
+		Height: 1.5,
+	}
+
 	cell := model.Cell{
 		Sector: model.Sector{
 			Azimuth: 21,
 			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
 			Height:  30,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          true,
-			SSBFrequency: 3600,
 		},
 		Beam: model.Beam{
 			H3dBAngle:              65,
@@ -65,13 +65,13 @@ func Test_AngularAttenuation(t *testing.T) {
 		},
 	}
 
-	ueLocation_azimuth_33 := model.Coordinate{Lat: 37.985168, Lng: 23.720989}
-	assert.Equal(t, -3, int(angularAttenuation(ueLocation_azimuth_33, cell)))
+	ue.Location = model.Coordinate{Lat: 37.985168, Lng: 23.720989}
+	assert.Equal(t, -3, int(angularAttenuation(ue, cell)))
 
 	cell.Sector.Tilt = 37
-	ueLocation_zenith_33 := model.Coordinate{Lat: 37.979207, Lng: 23.720989}
+	ue.Location = model.Coordinate{Lat: 37.979207, Lng: 23.720989}
 	expectedHAttenuation := -1
 	expectedVAttenuation := -3
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ueLocation_zenith_33, cell)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue, cell)))
 
 }

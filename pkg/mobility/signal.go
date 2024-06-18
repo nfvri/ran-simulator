@@ -76,14 +76,17 @@ func angularAttenuation(ue model.UE, cell model.Cell) float64 {
 	pointRads := math.Atan2(ue.Location.Lat-cell.Sector.Center.Lat, ue.Location.Lng-cell.Sector.Center.Lng)
 	azimuthOffsetRads := math.Abs(azRads - pointRads)
 	azimuthOffset := azimuthOffsetRads * (180 / math.Pi)
+	if azimuthOffset > 180 {
+		azimuthOffset = 360 - azimuthOffset
+	}
 	horizontalCut := azimuthAttenuation(int32(math.Round((azimuthOffset))), cell.Beam.H3dBAngle, cell.Beam.MaxAttenuationDB)
-	hAttformat := "\nhorizontalCut: %v \nazimuthOffset: %v \ncell.Sector.Azimuth: %v \nazRads: %v \npointRads: %v"
-	log.Infof(hAttformat, horizontalCut, azimuthOffset, cell.Sector.Azimuth, azRads, pointRads)
+	hAttformat := "\nhorizontalCut: %v \ncell.Sector.Azimuth: %v \nazpoint: %v \nazimuthOffset: %v \nazRads: %v \nazpointRads: %v"
+	fmt.Printf(hAttformat, horizontalCut, cell.Sector.Azimuth, pointRads*(180/math.Pi), azimuthOffset, azRads, pointRads)
 
 	fmt.Print("\n======================================\n")
 	zenithAngle := calcZenithAngle(ue, cell)
 	verticalCut := zenithAttenuation(uint32(math.Round(zenithAngle)), cell.Beam.V3dBAngle, cell.Beam.VSideLobeAttenuationDB)
-	log.Infof("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
+	fmt.Printf("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
 	fmt.Print("\n======================================\n")
 	return -math.Min(-(verticalCut + horizontalCut), cell.Beam.MaxAttenuationDB)
 }
@@ -95,17 +98,26 @@ func calcZenithAngle(ue model.UE, cell model.Cell) float64 {
 
 	hBS := cell.Sector.Height
 	hUE := ue.Height
-	vAngleSign := (float64(hBS) - hUE) / math.Abs(float64(hBS)-hUE)
+
+	var ueAngleSign float64
+	if hBS >= int32(hUE) {
+		ueAngleSign = 1
+	} else {
+		ueAngleSign = -1
+	}
 	ueAngleRads := math.Acos(d2D / d3D)
-	zUERads := 90*(math.Pi/180) + vAngleSign*ueAngleRads
+	zUERads := 90*(math.Pi/180) + ueAngleSign*ueAngleRads
 
 	zTilt := 90 + cell.Sector.Tilt
 	zTiltRads := float64(zTilt) * (math.Pi / 180)
 	zAngleOffset := math.Abs(zUERads - zTiltRads)
 
 	zenithAngle := 90 + zAngleOffset*(180/math.Pi)
-	log.Infof("\nueAngle:%v \nzUE: %v \nztilt: %v", ueAngleRads*(180/math.Pi), zUERads*(180/math.Pi), zTilt)
-	log.Infof("\nzAngleOffset: %v", zAngleOffset*(180/math.Pi))
+	if zenithAngle > 180 {
+		zenithAngle = 360 - zenithAngle
+	}
+	fmt.Printf("\nueAngle:%v \nzUE: %v \nztilt: %v", ueAngleRads*(180/math.Pi), zUERads*(180/math.Pi), zTilt)
+	fmt.Printf("\nzAngleOffset: %v", zAngleOffset*(180/math.Pi))
 	return zenithAngle
 }
 
@@ -113,7 +125,7 @@ func calcZenithAngle(ue model.UE, cell model.Cell) float64 {
 // Vertical cut of the radiation power pattern (dB)
 // Table 7.3-1: Radiation power pattern of a single antenna element
 func zenithAttenuation(zenithAngle, theta3dB uint32, slav float64) float64 {
-	angleRatio := float64(zenithAngle-90) / float64(theta3dB)
+	angleRatio := (float64(zenithAngle) - 90) / float64(theta3dB)
 	a := 12 * math.Pow(angleRatio, 2)
 	return -math.Min(a, slav)
 }

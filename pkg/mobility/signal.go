@@ -17,6 +17,10 @@ const powerFactor = 0.001
 
 // StrengthAtLocation returns the signal strength at location relative to the specified cell.
 func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
+		err := fmt.Errorf("WTF? lat:%v lng:%v", coord.Lat, coord.Lng)
+		panic(err)
+	}
 	strengthAfterPathloss := StrengthAfterPathloss(coord, height, cell)
 
 	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
@@ -25,13 +29,15 @@ func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell)
 		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}
 	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
+	fmt.Printf("strengthAfterPathloss: %v", strengthAfterPathloss)
 	return strengthAfterPathloss
 
 }
 
 func StrengthAfterPathloss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	angleAtt := angularAttenuation(coord, height, cell)
-	pathLoss := GetPathLoss(coord, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
+	fmt.Printf("cell.TxPowerDB: %v cell.Beam.MaxGain:%v angleAtt:%v pathLoss:%v", cell.TxPowerDB, cell.Beam.MaxGain, angleAtt, pathLoss)
 
 	return cell.TxPowerDB + cell.Beam.MaxGain + angleAtt - pathLoss
 }
@@ -94,7 +100,7 @@ func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell)
 func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) float64 {
 
 	d2D := getSphericalDistance(coord, cell) // assume small error for small distances
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 
 	hBS := cell.Sector.Height
 
@@ -139,24 +145,24 @@ func azimuthAttenuation(azimuth int32, phi3dB uint32, aMax float64) float64 {
 }
 
 // GetPathLoss calculates the path loss based on the environment and LOS/NLOS conditions
-func GetPathLoss(coord model.Coordinate, cell model.Cell) float64 {
+func GetPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	var pathLoss float64
 
 	switch cell.Channel.Environment {
 	case "urban":
 		if cell.Channel.LOS {
-			pathLoss = getUrbanLOSPathLoss(coord, cell)
+			pathLoss = getUrbanLOSPathLoss(coord, height, cell)
 		} else {
-			pathLoss = getUrbanNLOSPathLoss(coord, cell)
+			pathLoss = getUrbanNLOSPathLoss(coord, height, cell)
 		}
 	case "rural":
 		if cell.Channel.LOS {
-			pathLoss = getRuralLOSPathLoss(coord, cell)
+			pathLoss = getRuralLOSPathLoss(coord, height, cell)
 		} else {
-			pathLoss = getRuralNLOSPathLoss(coord, cell)
+			pathLoss = getRuralNLOSPathLoss(coord, height, cell)
 		}
 	default:
-		pathLoss = getFreeSpacePathLoss(coord, cell)
+		pathLoss = getRuralNLOSPathLoss(coord, height, cell)
 	}
 
 	return pathLoss
@@ -182,10 +188,10 @@ func getSphericalDistance(coord model.Coordinate, cell model.Cell) float64 {
 }
 
 // 3D Euclidean distance function
-func get3dEuclideanDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 {
+func get3dEuclideanDistanceFromGPS(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	d2D := getSphericalDistance(coord, cell)
 
-	heightUE := float64(1.5)
+	heightUE := height
 	heightDiff := math.Abs(float64(cell.Sector.Height) - heightUE)
 
 	// Pythagorean theorem
@@ -220,9 +226,9 @@ func getBreakpointPrimeDistance(cell model.Cell) float64 {
 }
 
 // getRuralLOSPathLoss calculates the RMa LOS path loss
-func getRuralLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
+func getRuralLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	d2D := getSphericalDistance(coord, cell)
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	dBP := getBreakpointDistance(cell)
 
 	if 10 <= d2D && d2D <= dBP {
@@ -245,14 +251,14 @@ func RmaLOSPL1(cell model.Cell, d float64) float64 {
 }
 
 // getRuralNLOSPathLoss calculates the RMa NLOS path loss
-func getRuralNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+func getRuralNLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	W := float64(20)                   // average street width 5m <= W <= 50m
 	h := float64(5)                    // average building height 5m <= h <= 50m
 	hBS := float64(cell.Sector.Height) // base station height
-	hUT := float64(1.5)                // average height of user terminal 1m <= hUT <= 10m
+	hUT := height                      // average height of user terminal 1m <= hUT <= 10m
 
-	plLOS := getRuralLOSPathLoss(coord, cell)
+	plLOS := getRuralLOSPathLoss(coord, height, cell)
 	plNLOS := 161.04 - 7.1*math.Log10(W) + 7.5*math.Log10(h) -
 		(24.37-3.7*math.Pow((h/hBS), 2))*math.Log10(hBS) +
 		(43.42-3.1*math.Log10(hBS))*(math.Log10(d3D)-3) +
@@ -263,12 +269,12 @@ func getRuralNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 }
 
 // getUrbanLOSPathLoss calculates the UMa LOS path loss
-func getUrbanLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
+func getUrbanLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	d2D := getSphericalDistance(coord, cell)
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	dBP := getBreakpointPrimeDistance(cell)
 	hBS := float64(cell.Sector.Height)              // base station height
-	hUT := float64(5)                               // average height of user terminal 1m <= hUT <= 22.5m
+	hUT := height                                   // average height of user terminal 1m <= hUT <= 22.5m
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
 
 	if 10 <= d2D && d2D <= dBP {
@@ -281,14 +287,13 @@ func getUrbanLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 }
 
 // getUrbanNLOSPathLoss calculates the UMa NLOS path loss
-func getUrbanNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+func getUrbanNLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
 	hUT := float64(5)                               // average height of user terminal 1m <= W <= 22.5m
 
-	plLOS := getUrbanLOSPathLoss(coord, cell)
-	plNLOS := 13.54 + 39.08*math.Log10(d3D) + 20*math.Log10(fc) -
-		0.6*(hUT-1.5)
+	plLOS := getUrbanLOSPathLoss(coord, height, cell)
+	plNLOS := 13.54 + 39.08*math.Log10(d3D) + 20*math.Log10(fc) - 0.6*(hUT-1.5)
 
 	return math.Max(plLOS, plNLOS)
 }

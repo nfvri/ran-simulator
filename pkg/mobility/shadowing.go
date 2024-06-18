@@ -278,6 +278,9 @@ func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bo
 	latitudes := uniqueLatitudes(gridPoints)
 	longitudes := uniqueLongitudes(gridPoints)
 
+	if len(latitudes) == 0 || len(longitudes) == 0 {
+		return false
+	}
 	// Check if point's latitude is within the range of grid latitudes
 	if point.Lat < latitudes[0] || point.Lat > latitudes[len(latitudes)-1] {
 		return false

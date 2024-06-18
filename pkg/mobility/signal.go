@@ -19,9 +19,9 @@ const powerFactor = 0.001
 func StrengthAtLocation(ue model.UE, cell model.Cell) float64 {
 	strengthAfterPathloss := StrengthAfterPathloss(ue, cell)
 
-	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
+	latIdx, lngIdx, inGrid := FindGridCell(ue.Location, cell.GridPoints)
 	if inGrid {
-		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", ue.Location.Lat, ue.Location.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}
 	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", ue.Location.Lat, ue.Location.Lng)

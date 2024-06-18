@@ -67,7 +67,7 @@ func Test_AngularAttenuation(t *testing.T) {
 
 	// Test horizontal -3dB Point
 	ue.Location = model.Coordinate{Lat: 37.985168, Lng: 23.720989}
-	assert.Equal(t, -3, int(angularAttenuation(ue, cell)))
+	assert.Equal(t, -3, int(angularAttenuation(ue.Location, ue.Height, cell)))
 
 	// Test symmetric vertical -3dB Points
 	expectedHAttenuation := -1
@@ -75,14 +75,14 @@ func Test_AngularAttenuation(t *testing.T) {
 
 	ue.Location = model.Coordinate{Lat: 37.979207, Lng: 23.720989} // 4 degree vertical angle from cell center
 	cell.Sector.Tilt = -29
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue, cell)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, cell)))
 
 	cell.Sector.Tilt = 37
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue, cell)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, cell)))
 
 	// Test horizon
 	cell.Sector.Tilt = 4 // target ue
 	expectedVAttenuation = 0
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue, cell)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, cell)))
 
 }

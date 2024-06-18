@@ -16,22 +16,22 @@ import (
 const powerFactor = 0.001
 
 // StrengthAtLocation returns the signal strength at location relative to the specified cell.
-func StrengthAtLocation(ue model.UE, cell model.Cell) float64 {
-	strengthAfterPathloss := StrengthAfterPathloss(ue, cell)
+func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	strengthAfterPathloss := StrengthAfterPathloss(coord, height, cell)
 
-	latIdx, lngIdx, inGrid := FindGridCell(ue.Location, cell.GridPoints)
+	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
 	if inGrid {
-		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", ue.Location.Lat, ue.Location.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}
-	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", ue.Location.Lat, ue.Location.Lng)
+	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
 	return strengthAfterPathloss
 
 }
 
-func StrengthAfterPathloss(ue model.UE, cell model.Cell) float64 {
-	angleAtt := angularAttenuation(ue, cell)
-	pathLoss := GetPathLoss(ue.Location, cell)
+func StrengthAfterPathloss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	angleAtt := angularAttenuation(coord, height, cell)
+	pathLoss := GetPathLoss(coord, cell)
 
 	return cell.TxPowerDB + cell.Beam.MaxGain + angleAtt - pathLoss
 }
@@ -70,10 +70,10 @@ func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 
 // https://www.etsi.org/deliver/etsi_tr/138900_138999/138901/17.00.00_60/tr_138901v170000p.pdf
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func angularAttenuation(ue model.UE, cell model.Cell) float64 {
+func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	fmt.Print("\n======================================\n")
 	azRads := float64(cell.Sector.Azimuth) * (math.Pi / 180)
-	pointRads := math.Atan2(ue.Location.Lat-cell.Sector.Center.Lat, ue.Location.Lng-cell.Sector.Center.Lng)
+	pointRads := math.Atan2(coord.Lat-cell.Sector.Center.Lat, coord.Lng-cell.Sector.Center.Lng)
 	azimuthOffsetRads := math.Abs(azRads - pointRads)
 	azimuthOffset := azimuthOffsetRads * (180 / math.Pi)
 	if azimuthOffset > 180 {
@@ -84,23 +84,22 @@ func angularAttenuation(ue model.UE, cell model.Cell) float64 {
 	fmt.Printf(hAttformat, horizontalCut, cell.Sector.Azimuth, pointRads*(180/math.Pi), azimuthOffset, azRads, pointRads)
 
 	fmt.Print("\n======================================\n")
-	zenithAngle := calcZenithAngle(ue, cell)
+	zenithAngle := calcZenithAngle(coord, height, cell)
 	verticalCut := zenithAttenuation(uint32(math.Round(zenithAngle)), cell.Beam.V3dBAngle, cell.Beam.VSideLobeAttenuationDB)
 	fmt.Printf("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
 	fmt.Print("\n======================================\n")
 	return -math.Min(-(verticalCut + horizontalCut), cell.Beam.MaxAttenuationDB)
 }
 
-func calcZenithAngle(ue model.UE, cell model.Cell) float64 {
+func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) float64 {
 
-	d2D := getSphericalDistance(ue.Location, cell) // assume small error for small distances
-	d3D := get3dEuclideanDistanceFromGPS(ue.Location, cell)
+	d2D := getSphericalDistance(coord, cell) // assume small error for small distances
+	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
 
 	hBS := cell.Sector.Height
-	hUE := ue.Height
 
 	var ueAngleSign float64
-	if hBS >= int32(hUE) {
+	if hBS >= int32(height) {
 		ueAngleSign = 1
 	} else {
 		ueAngleSign = -1

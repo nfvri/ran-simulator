@@ -3,6 +3,7 @@ package solver
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"testing"
 
 	"github.com/davidkleiven/gononlin/nonlin"
@@ -54,7 +55,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	cell := model.Cell{
 		TxPowerDB: 40,
 		Sector: model.Sector{
-			Azimuth: 21,
+			Azimuth: 270,
 			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
 			Height:  30,
 		},
@@ -74,6 +75,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	problem := nonlin.Problem{
 		F: func(out, x []float64) {
 			height := 1.5
+			// height2 := 3.0
 			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
 			out[0] = 87 + mobility.StrengthAtLocation(coord, height, cell)
 			out[1] = 87 + mobility.StrengthAtLocation(coord, height, cell)
@@ -82,44 +84,38 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 	solver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
-		Maxiter: 1000,
+		Maxiter: 50,
 
 		// Stepsize used to appriximate jacobian with finite differences
-		StepSize: 1e-3,
+		StepSize: 1e-4,
 
 		// Tolerance for the solution
 		Tol: 1e-7,
 
 		// Stencil for Jacobian
-		Stencil: 8,
+		// Stencil: 8,
 	}
 
+	guesses := make([][]float64, 0)
 	results := make([]nonlin.Result, 0)
-	for outerPoint := -0.1; outerPoint <= 0.1; outerPoint += 0.03 {
-		x0 := []float64{37.979207 - outerPoint, 23.716702 - outerPoint}
+	for i := 100; i < 200; i++ {
+		outerPoint := float64(i) * 0.001
+		sign1 := rand.Float64() - 0.5
+		sign2 := rand.Float64() - 0.5
+		x0 := []float64{37.979207 + (sign1 * outerPoint), 23.716702 + (sign2 * outerPoint)}
 		res := solver.Solve(problem, x0)
 		if res.Converged {
-			results = append(results, res)
-		}
-		x1 := []float64{37.979207 + outerPoint, 23.716702 - outerPoint}
-		res = solver.Solve(problem, x1)
-		if res.Converged {
-			results = append(results, res)
-		}
-		x2 := []float64{37.979207 - outerPoint, 23.716702 + outerPoint}
-		res = solver.Solve(problem, x2)
-		if res.Converged {
-			results = append(results, res)
-		}
-		x3 := []float64{37.979207 + outerPoint, 23.716702 + outerPoint}
-		res = solver.Solve(problem, x3)
-		if res.Converged {
+			guesses = append(guesses, x0)
 			results = append(results, res)
 		}
 	}
 	t.Logf("results length: %d", len(results))
+	for i, result := range results {
+		t.Logf("Roots: (x, y) = %v Function values: %v Guesses: %v \n", result.X, result.F, guesses[i])
+	}
+
 	for _, result := range results {
-		t.Logf("Roots: (x, y) = %v Function values: %v \n", result.X, result.F)
+		t.Logf("[%f, %f], \n", result.X[0], result.X[1])
 	}
 
 	// Output:

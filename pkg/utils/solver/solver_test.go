@@ -136,8 +136,8 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		return haversine.Distance(center, haversineCoords[i]).Kilometers() < haversine.Distance(center, haversineCoords[j]).Kilometers()
 	})
 
-	for _, sortedHaversinneCoord := range haversineCoords {
-		t.Logf("[%f, %f], \n", sortedHaversinneCoord.Latitude, sortedHaversinneCoord.Longitude)
+	for _, sortedHaversineCoord := range haversineCoords {
+		t.Logf("[%f, %f], \n", sortedHaversineCoord.Latitude, sortedHaversineCoord.Longitude)
 	}
 	// Output:
 	//

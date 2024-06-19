@@ -1,8 +1,9 @@
 module github.com/nfvri/ran-simulator
 
-go 1.19
+go 1.18
 
 require (
+	github.com/LucaTheHacker/go-haversine v0.0.0-20220213075817-0d811fb84a1a
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/davidkleiven/gononlin v0.2.5

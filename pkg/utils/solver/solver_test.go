@@ -58,9 +58,10 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	cell := model.Cell{
 		TxPowerDB: 40,
 		Sector: model.Sector{
-			Azimuth: 270,
+			Azimuth: 0,
 			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
 			Height:  30,
+			Arc:     120,
 		},
 		Channel: model.Channel{
 			Environment:  "urban",
@@ -68,8 +69,8 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 			SSBFrequency: 900,
 		},
 		Beam: model.Beam{
-			H3dBAngle:              65,
-			V3dBAngle:              65,
+			H3dBAngle:              120,
+			V3dBAngle:              7,
 			MaxGain:                8,
 			MaxAttenuationDB:       30,
 			VSideLobeAttenuationDB: 30,
@@ -127,12 +128,15 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		haversineCoords = append(haversineCoords, hCoords)
 	}
 
+	// Add center to printed coords
+	center := haversine.Coordinates{
+		Latitude:  cell.Sector.Center.Lat,
+		Longitude: cell.Sector.Center.Lng,
+	}
+	haversineCoords = append(haversineCoords, center)
+
 	// Sorting a slice of coords by haversine distance
 	sort.Slice(haversineCoords, func(i, j int) bool {
-		center := haversine.Coordinates{
-			Latitude:  cell.Sector.Center.Lat,
-			Longitude: cell.Sector.Center.Lng,
-		}
 		return haversine.Distance(center, haversineCoords[i]).Kilometers() < haversine.Distance(center, haversineCoords[j]).Kilometers()
 	})
 

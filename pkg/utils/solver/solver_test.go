@@ -28,7 +28,7 @@ func TestExampleNewtonKrylov(t *testing.T) {
 		Maxiter: 1000,
 
 		// Stepsize used to appriximate jacobian with finite differences
-		StepSize: 1e-2,
+		StepSize: 1e-4,
 
 		// Tolerance for the solution
 		Tol: 1e-7,
@@ -46,6 +46,7 @@ func TestExampleNewtonKrylov(t *testing.T) {
 }
 
 func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
+	// run with: go test -v -timeout 300s  ./pkg/utils/solver
 	// This example shows how one can use NewtonKrylov to solve the
 	// system of equations
 	// (x-1)^2*(x - y) = 0
@@ -60,7 +61,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		Channel: model.Channel{
 			Environment:  "urban",
 			LOS:          true,
-			SSBFrequency: 3600,
+			SSBFrequency: 900,
 		},
 		Beam: model.Beam{
 			H3dBAngle:              65,
@@ -84,16 +85,42 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		Maxiter: 1000,
 
 		// Stepsize used to appriximate jacobian with finite differences
-		StepSize: 1e-6,
+		StepSize: 1e-3,
 
 		// Tolerance for the solution
 		Tol: 1e-7,
+
+		// Stencil for Jacobian
+		Stencil: 8,
 	}
 
-	x0 := []float64{37.985183, 23.721262}
-	res := solver.Solve(problem, x0)
-	fmt.Printf("Root: (x, y) = (%f, %f)\n", res.X[0], res.X[1])
-	fmt.Printf("Function value: (%f, %f)\n", res.F[0], res.F[1])
+	results := make([]nonlin.Result, 0)
+	for outerPoint := -0.1; outerPoint <= 0.1; outerPoint += 0.03 {
+		x0 := []float64{37.979207 - outerPoint, 23.716702 - outerPoint}
+		res := solver.Solve(problem, x0)
+		if res.Converged {
+			results = append(results, res)
+		}
+		x1 := []float64{37.979207 + outerPoint, 23.716702 - outerPoint}
+		res = solver.Solve(problem, x1)
+		if res.Converged {
+			results = append(results, res)
+		}
+		x2 := []float64{37.979207 - outerPoint, 23.716702 + outerPoint}
+		res = solver.Solve(problem, x2)
+		if res.Converged {
+			results = append(results, res)
+		}
+		x3 := []float64{37.979207 + outerPoint, 23.716702 + outerPoint}
+		res = solver.Solve(problem, x3)
+		if res.Converged {
+			results = append(results, res)
+		}
+	}
+	t.Logf("results length: %d", len(results))
+	for _, result := range results {
+		t.Logf("Roots: (x, y) = %v Function values: %v \n", result.X, result.F)
+	}
 
 	// Output:
 	//

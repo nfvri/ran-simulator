@@ -74,8 +74,8 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		F: func(out, x []float64) {
 			height := 1.5
 			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-			out[0] = mobility.StrengthAtLocation(coord, height, cell)
-			out[1] = mobility.StrengthAtLocation(coord, height, cell)
+			out[0] = 87 + mobility.StrengthAtLocation(coord, height, cell)
+			out[1] = 87 + mobility.StrengthAtLocation(coord, height, cell)
 		},
 	}
 
@@ -90,7 +90,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		Tol: 1e-7,
 	}
 
-	x0 := []float64{37.979207, 23.716702}
+	x0 := []float64{37.985183, 23.721262}
 	res := solver.Solve(problem, x0)
 	fmt.Printf("Root: (x, y) = (%f, %f)\n", res.X[0], res.X[1])
 	fmt.Printf("Function value: (%f, %f)\n", res.F[0], res.F[1])

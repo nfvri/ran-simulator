@@ -37,7 +37,7 @@ func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell)
 func StrengthAfterPathloss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	angleAtt := angularAttenuation(coord, height, cell)
 	pathLoss := GetPathLoss(coord, height, cell)
-	fmt.Printf("cell.TxPowerDB: %v cell.Beam.MaxGain:%v angleAtt:%v pathLoss:%v", cell.TxPowerDB, cell.Beam.MaxGain, angleAtt, pathLoss)
+	fmt.Printf("\ncell.TxPowerDB: %v \ncell.Beam.MaxGain:%v \nangleAtt:%v \npathLoss:%v \n", cell.TxPowerDB, cell.Beam.MaxGain, angleAtt, pathLoss)
 
 	return cell.TxPowerDB + cell.Beam.MaxGain + angleAtt - pathLoss
 }
@@ -215,12 +215,14 @@ func getBreakpointDistance(cell model.Cell) float64 {
 // Breakpoint distance function
 func getBreakpointPrimeDistance(cell model.Cell) float64 {
 	c := 3.0 * math.Pow(10, 8)
-	hE := float64(1)                                // assuming environment height is 1m
-	hBS := float64(cell.Sector.Height) - hE         // base station height
-	hUT := float64(1.5) - hE                        // average height of user terminal 1m <= hUT <= 10m
-	fc := float64(cell.Channel.SSBFrequency) * 1000 // frequency in Hz
+	hE := float64(1)                                   // assuming environment height is 1m
+	hBS := float64(cell.Sector.Height) - hE            // base station height
+	hUT := float64(1.5) - hE                           // average height of user terminal 1m <= hUT <= 10m
+	fc := float64(cell.Channel.SSBFrequency) * 1000000 // frequency in Hz
 
-	dBP := 4 * hBS * hUT * fc / c
+	numer := (4 * hBS * hUT * fc)
+	fmt.Printf("\ncell.Channel.SSBFrequency:%v ssbMhz:%v \nfc: %v numer:%v", cell.Channel.SSBFrequency, float64(cell.Channel.SSBFrequency), fc, numer)
+	dBP := numer / c
 
 	return dBP
 }
@@ -277,23 +279,29 @@ func getUrbanLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell
 	hUT := height                                   // average height of user terminal 1m <= hUT <= 22.5m
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
 
+	fmt.Printf("\ndBP:%v \nd2D:%v", dBP, d2D)
 	if 10 <= d2D && d2D <= dBP {
 		pl1 := 28.0 + 22*math.Log10(d3D) + 20*math.Log10(fc)
+		fmt.Printf("\npl1:%v", pl1)
 		return pl1
 	} else {
 		pl2 := 28.0 + 40*math.Log10(d3D) + 20*math.Log10(fc) - 9*math.Log10(math.Pow(dBP, 2)+math.Pow(hBS-hUT, 2))
+		fmt.Printf("\npl2:%v", pl2)
 		return pl2
 	}
+
 }
 
 // getUrbanNLOSPathLoss calculates the UMa NLOS path loss
 func getUrbanNLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
-	hUT := float64(5)                               // average height of user terminal 1m <= W <= 22.5m
+	hUT := height                                   // average height of user terminal 1m <= W <= 22.5m
 
 	plLOS := getUrbanLOSPathLoss(coord, height, cell)
 	plNLOS := 13.54 + 39.08*math.Log10(d3D) + 20*math.Log10(fc) - 0.6*(hUT-1.5)
+
+	fmt.Printf("\nplLOS:%v \nplNLOS:%v", plLOS, plNLOS)
 
 	return math.Max(plLOS, plNLOS)
 }

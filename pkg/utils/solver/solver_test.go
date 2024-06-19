@@ -117,26 +117,26 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		t.Logf("Roots: (x, y) = %v Function values: %v Guesses: %v \n", result.X, result.F, guesses[i])
 	}
 
-	haversinneCoords := make([]haversine.Coordinates, 0)
+	haversineCoords := make([]haversine.Coordinates, 0)
 	for _, result := range results {
-		t.Logf("[%f, %f], \n", result.X[0], result.X[1])
+		// t.Logf("[%f, %f], \n", result.X[0], result.X[1])
 		hCoords := haversine.Coordinates{
 			Latitude:  result.X[0],
 			Longitude: result.X[1],
 		}
-		haversinneCoords = append(haversinneCoords, hCoords)
+		haversineCoords = append(haversineCoords, hCoords)
 	}
 
 	// Sorting a slice of coords by haversine distance
-	sort.Slice(haversinneCoords, func(i, j int) bool {
+	sort.Slice(haversineCoords, func(i, j int) bool {
 		center := haversine.Coordinates{
 			Latitude:  cell.Sector.Center.Lat,
 			Longitude: cell.Sector.Center.Lng,
 		}
-		return haversine.Distance(center, haversinneCoords[i]).Kilometers() < haversine.Distance(center, haversinneCoords[j]).Kilometers()
+		return haversine.Distance(center, haversineCoords[i]).Kilometers() < haversine.Distance(center, haversineCoords[j]).Kilometers()
 	})
 
-	for _, sortedHaversinneCoord := range haversinneCoords {
+	for _, sortedHaversinneCoord := range haversineCoords {
 		t.Logf("[%f, %f], \n", sortedHaversinneCoord.Latitude, sortedHaversinneCoord.Longitude)
 	}
 	// Output:

@@ -251,7 +251,7 @@ func (m *Manager) startNorthboundServer() error {
 	return <-doneCh
 }
 
-func (m *Manager) startE2Agents() error {
+func (m *Manager) StartE2Agents() error {
 	// Create the E2 agents for all simulated nodes and specified controllers
 	var err error
 	m.agents, err = agents.NewE2Agents(m.model, m.nodeStore, m.ueStore, m.cellStore, m.metricsStore, m.mobilityDriver.GetHoCtrl().GetOutputChan(), m.mobilityDriver)
@@ -268,7 +268,7 @@ func (m *Manager) startE2Agents() error {
 	return nil
 }
 
-func (m *Manager) stopE2Agents() {
+func (m *Manager) StopE2Agents() {
 	_ = m.agents.Stop()
 }
 

@@ -215,7 +215,7 @@ func getBreakpointDistance(cell model.Cell) float64 {
 // Breakpoint distance function
 func getBreakpointPrimeDistance(cell model.Cell) float64 {
 	c := 3.0 * math.Pow(10, 8)
-	hE := float64(1)                                // assuming enviroment height is 1m
+	hE := float64(1)                                // assuming environment height is 1m
 	hBS := float64(cell.Sector.Height) - hE         // base station height
 	hUT := float64(1.5) - hE                        // average height of user terminal 1m <= hUT <= 10m
 	fc := float64(cell.Channel.SSBFrequency) * 1000 // frequency in Hz
@@ -245,7 +245,7 @@ func RmaLOSPL1(cell model.Cell, d float64) float64 {
 	h := float64(5)                                 // average building height in m
 
 	pl1 := 20*math.Log10(40*math.Pi*d*fc/3) + math.Min(0.03*math.Pow(h, 1.72), 10)*math.Log10(d) -
-		math.Min(0.044*math.Pow(h, 1.72), 14.77) + 0.002*math.Log10(float64(h))*d
+		math.Min(0.044*math.Pow(h, 1.72), 14.77) + 0.002*math.Log10(h)*d
 
 	return pl1
 }

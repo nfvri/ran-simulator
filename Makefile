@@ -54,10 +54,11 @@ kind: images
 	@if [ "`kind get clusters`" = '' ]; then echo "no kind cluster found" && exit 1; fi
 	kind load docker-image nfvri/ran-simulator:${RAN_SIMULATOR_VERSION}
 
-all: clean gomodextras build images
+all: clean gomodextras build
 
 gomodextras: # @HELP extras for go mod
 	GOPROXY=https://proxy.golang.org go mod tidy
+	go mod vendor
 
 
 publish: # @HELP publish version on github and dockerhub
@@ -69,5 +70,5 @@ jenkins-publish: # @HELP Jenkins calls this to publish artifacts
 
 clean:: # @HELP remove all the build artifacts
 	rm -rf ${OUTPUT_DIR} ./cmd/trafficsim/trafficsim ./cmd/ransim/ransim
-	go clean -testcache github.com/nfvri/ran-simulator/...
+	# go clean -testcache github.com/nfvri/ran-simulator/...
 

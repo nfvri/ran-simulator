@@ -98,10 +98,10 @@ func GenerateHoneycombTopology(mapCenter model.Coordinate, numTowers uint, secto
 				NCGI: types.ToNCGI(plmnID, types.ToNCI(gnbID, cellID)),
 				Sector: model.Sector{
 					Center:  *points[t],
-					Azimuth: azimuth,
+					Azimuth: float64(azimuth),
 					Arc:     arc,
 					Height:  int32(rand.Intn(31) + 20),
-					Tilt:    int32(rand.Intn(31) - 15)},
+					Tilt:    float64(rand.Intn(31) - 15)},
 				Color:     "green",
 				MaxUEs:    99999,
 				Neighbors: make([]types.NCGI, 0, sectorsPerTower),
@@ -269,7 +269,7 @@ func isNeighbor(cell model.Cell, other model.Cell, maxDistance float64, onlyDist
 
 // Calculate the end-point of the center arc vector a distance from the sector center
 func reachPoint(sector model.Sector, distance float64) model.Coordinate {
-	return utils.TargetPoint(sector.Center, float64((sector.Azimuth+sector.Arc/2)%360), distance)
+	return utils.TargetPoint(sector.Center, float64((int32(sector.Azimuth)+sector.Arc/2)%360), distance)
 }
 
 func hexMesh(pitch float64, numTowers uint, center model.Coordinate, deformScale float64) []*model.Coordinate {

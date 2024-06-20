@@ -15,8 +15,6 @@ import (
 
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/measurement"
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -24,6 +22,8 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/rrm-son-lib/pkg/model/id"
 )
 
@@ -64,6 +64,8 @@ type Driver interface {
 	UpdateUESignalStrength(ctx context.Context, imsi types.IMSI)
 
 	InitShadowMap(cell *model.Cell, d_c float64)
+
+	ReplaceOverlappingShadowMap(cell1 *model.Cell, cell2 *model.Cell, d_c float64)
 }
 
 type driver struct {
@@ -360,11 +362,11 @@ func (d *driver) UpdateUESignalStrength(ctx context.Context, imsi types.IMSI) {
 	}
 
 	// update RSRP from serving cell
-	err = d.updateUESignalStrengthServCell(ctx, ue)
-	if err != nil {
-		log.Warnf("For UE %v: %v", *ue, err)
-		return
-	}
+	// err = d.updateUESignalStrengthServCell(ctx, ue)
+	// if err != nil {
+	// 	log.Warnf("For UE %v: %v", *ue, err)
+	// 	return
+	// }
 
 	// update RSRP from candidate serving cells
 	err = d.updateUESignalStrengthCandServCells(ctx, ue)
@@ -382,7 +384,7 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 	}
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
-		rsrp := StrengthAtLocation(ue.Location, *cell)
+		rsrp := StrengthAtLocation(ue.Location, ue.Height, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
 		}
@@ -414,7 +416,7 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}
 
-	strength := StrengthAtLocation(ue.Location, *sCell)
+	strength := StrengthAtLocation(ue.Location, ue.Height, *sCell)
 
 	if math.IsNaN(strength) {
 		strength = -999
@@ -473,4 +475,21 @@ func (d *driver) InitShadowMap(cell *model.Cell, d_c float64) {
 
 	cell.GridPoints = ComputeGridPoints(*cell, d_c)
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
+}
+
+func (d *driver) ReplaceOverlappingShadowMap(cell1 *model.Cell, cell2 *model.Cell, d_c float64) {
+	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
+	if overlapping {
+		if cell1.NCGI == cell2.NCGI {
+			fmt.Printf("%d and %d overlapping but is the same cell\n", cell1.NCGI, cell2.NCGI)
+		} else {
+			for i, _ := range cell1iList {
+				fmt.Printf("%d and %d overlapping: (%d,%d) and (%d,%d)\n", cell1.NCGI, cell2.NCGI, cell1iList[i], cell1jList[i], cell2iList[i], cell2jList[i])
+				cell2.ShadowingMap[cell2iList[i]][cell2jList[i]] = cell1.ShadowingMap[cell1iList[i]][cell1jList[i]]
+			}
+		}
+	} else {
+		fmt.Printf("%d and %d does not overlap\n", cell1.NCGI, cell2.NCGI)
+	}
+
 }

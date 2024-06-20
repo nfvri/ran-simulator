@@ -7,31 +7,40 @@ package mobility
 import (
 	"fmt"
 	"math"
-	"sort"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 // powerFactor relates power to distance in decimal degrees
 const powerFactor = 0.001
-const MAX_ATTENUATION_DB = 30.0
-const VERTICAL_SIDELOBE_ATTENUATION_DB = 30.0
 
 // StrengthAtLocation returns the signal strength at location relative to the specified cell.
-func StrengthAtLocation(coord model.Coordinate, cell model.Cell) float64 {
-	distAtt := DistanceAttenuation(coord, cell)
-	angleAtt := AngleAttenuation(coord, cell)
-	pathLoss := GetPathLoss(coord, cell)
+func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
+		err := fmt.Errorf("WTF? lat:%v lng:%v", coord.Lat, coord.Lng)
+		panic(err)
+	}
+	strengthAfterPathloss := StrengthAfterPathloss(coord, height, cell)
 
-	latIdx, lngIdx, inGrid := findGridCell(coord, cell.GridPoints)
+	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
 	if inGrid {
-		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
-		return cell.TxPowerDB + distAtt + angleAtt - pathLoss - cell.ShadowingMap[latIdx][lngIdx]
+		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}
 	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
-	return cell.TxPowerDB + distAtt + angleAtt - pathLoss
+	fmt.Printf("strengthAfterPathloss: %v", strengthAfterPathloss)
+	return strengthAfterPathloss
 
+}
+
+func StrengthAfterPathloss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	angleAtt := angularAttenuation(coord, height, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
+	fmt.Printf("\ncell.TxPowerDB: %v \ncell.Beam.MaxGain:%v \nangleAtt:%v \npathLoss:%v \n", cell.TxPowerDB, cell.Beam.MaxGain, angleAtt, pathLoss)
+
+	return cell.TxPowerDB + cell.Beam.MaxGain + angleAtt - pathLoss
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist
@@ -53,8 +62,6 @@ func DistanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 // It is an approximation of the directivity of the antenna
 // https://en.wikipedia.org/wiki/Radiation_pattern
 // https://en.wikipedia.org/wiki/Sector_antenna
-// https://www.etsi.org/deliver/etsi_tr/138900_138999/138901/14.03.00_60/tr_138901v140300p.pdf
-// Table 7.3-1: Radiation power pattern of a single antenna element
 func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	azRads := utils.AzimuthToRads(float64(cell.Sector.Azimuth))
 	pointRads := math.Atan2(coord.Lat-cell.Sector.Center.Lat, coord.Lng-cell.Sector.Center.Lng)
@@ -68,52 +75,112 @@ func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	return -math.Min(12*math.Pow((angularOffset/(math.Pi*2/3)/angleScaling), 2), 30)
 }
 
+// https://www.etsi.org/deliver/etsi_tr/138900_138999/138901/17.00.00_60/tr_138901v170000p.pdf
+// Table 7.3-1: Radiation power pattern of a single antenna element
+func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	fmt.Print("\n======================================\n")
+	azRads := utils.AzimuthToRads(cell.Sector.Azimuth)
+	ueAngle := utils.GetRotationDegrees(
+		&types.Point{
+			Lat: cell.Sector.Center.Lat,
+			Lng: cell.Sector.Center.Lng,
+		},
+		&types.Point{
+			Lat: coord.Lat,
+			Lng: coord.Lng,
+		})
+
+	ueAngleRads := utils.DegreesToRads(ueAngle)
+	azimuthOffsetRads := math.Abs(azRads - ueAngleRads)
+	azimuthOffset := azimuthOffsetRads * (180 / math.Pi)
+	if azimuthOffset > 180 {
+		azimuthOffset = 360 - azimuthOffset
+	}
+	horizontalCut := azimuthAttenuation(azimuthOffset, cell.Beam.H3dBAngle, cell.TxPowerDB)
+	hAttformat := "\nhorizontalCut: %v \ncell.Sector.Azimuth: %v \nazpoint: %v \nazimuthOffset: %v \nazRads: %v \nazpointRads: %v"
+	fmt.Printf(hAttformat, horizontalCut, cell.Sector.Azimuth, ueAngleRads*(180/math.Pi), azimuthOffset, azRads, ueAngleRads)
+
+	fmt.Print("\n======================================\n")
+	zenithAngle := calcZenithAngle(coord, height, cell)
+	verticalCut := zenithAttenuation(zenithAngle, cell.Beam.V3dBAngle, cell.Beam.VSideLobeAttenuationDB)
+	fmt.Printf("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
+	fmt.Print("\n======================================\n")
+	return -math.Min(-(verticalCut + horizontalCut), cell.TxPowerDB)
+}
+
+func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) float64 {
+
+	d2D := getSphericalDistance(coord, cell) // assume small error for small distances
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
+
+	hBS := cell.Sector.Height
+
+	var ueAngleSign float64
+	if hBS >= int32(height) {
+		ueAngleSign = 1
+	} else {
+		ueAngleSign = -1
+	}
+	ueAngleRads := math.Acos(d2D / d3D)
+	zUERads := 90*(math.Pi/180) + ueAngleSign*ueAngleRads
+
+	zTilt := 90 + cell.Sector.Tilt
+	zTiltRads := zTilt * (math.Pi / 180)
+	zAngleOffset := math.Abs(zUERads - zTiltRads)
+
+	zenithAngle := 90 + zAngleOffset*(180/math.Pi)
+	if zenithAngle > 180 {
+		zenithAngle = 360 - zenithAngle
+	}
+	fmt.Printf("\nueAngle:%v \nzUE: %v \nztilt: %v", ueAngleRads*(180/math.Pi), zUERads*(180/math.Pi), zTilt)
+	fmt.Printf("\nzAngleOffset: %v", zAngleOffset*(180/math.Pi))
+	return zenithAngle
+}
+
 // ETSI TR 138 901 V16.1.0
 // Vertical cut of the radiation power pattern (dB)
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func zenithAttenuation(zenithAngle int32) float64 {
-	halfPowerAngle := 65.0
-	angleRatio := float64(zenithAngle-90) / halfPowerAngle
+func zenithAttenuation(zenithAngle, theta3dB float64, slav float64) float64 {
+	angleRatio := (zenithAngle - 90) / theta3dB
 	a := 12 * math.Pow(angleRatio, 2)
-	return -math.Min(a, VERTICAL_SIDELOBE_ATTENUATION_DB)
+	return -math.Min(a, slav)
 }
 
 // ETSI TR 138 901 V16.1.0
 // Horizontal cut of the radiation power pattern (dB)
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func azimuthAttenuation(azimuth int32) float64 {
-	halfPowerAngle := 65.0
-	angleRatio := float64(azimuth) / halfPowerAngle
+func azimuthAttenuation(azimuthAngle, phi3dB float64, aMax float64) float64 {
+	angleRatio := azimuthAngle / phi3dB
 	azAtt := 12 * math.Pow(angleRatio, 2)
-	return -math.Min(azAtt, MAX_ATTENUATION_DB)
+	return -math.Min(azAtt, aMax)
 }
 
 // GetPathLoss calculates the path loss based on the environment and LOS/NLOS conditions
-func GetPathLoss(coord model.Coordinate, cell model.Cell) float64 {
+func GetPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	var pathLoss float64
 
 	switch cell.Channel.Environment {
 	case "urban":
 		if cell.Channel.LOS {
-			pathLoss = getUrbanLOSPathLoss(coord, cell)
+			pathLoss = getUrbanLOSPathLoss(coord, height, cell)
 		} else {
-			pathLoss = getUrbanNLOSPathLoss(coord, cell)
+			pathLoss = getUrbanNLOSPathLoss(coord, height, cell)
 		}
 	case "rural":
 		if cell.Channel.LOS {
-			pathLoss = getRuralLOSPathLoss(coord, cell)
+			pathLoss = getRuralLOSPathLoss(coord, height, cell)
 		} else {
-			pathLoss = getRuralNLOSPathLoss(coord, cell)
+			pathLoss = getRuralNLOSPathLoss(coord, height, cell)
 		}
 	default:
-		pathLoss = getFreeSpacePathLoss(coord, cell)
+		pathLoss = getRuralNLOSPathLoss(coord, height, cell)
 	}
 
 	return pathLoss
 }
 
 func getFreeSpacePathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	distanceKM := getEuclideanDistanceFromGPS(coord, cell) / 1000
+	distanceKM := getSphericalDistance(coord, cell) / 1000
 	// Assuming we're using CBRS frequency 3.6 GHz
 	// 92.45 is the constant value of 20 * log10(4*pi / c) in Kilometer scale
 	pathLoss := 20*math.Log10(distanceKM) + 20*math.Log10(float64(cell.Channel.SSBFrequency)/1000) + 92.45
@@ -121,7 +188,7 @@ func getFreeSpacePathLoss(coord model.Coordinate, cell model.Cell) float64 {
 }
 
 // Euclidean distance function
-func getEuclideanDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 {
+func getSphericalDistance(coord model.Coordinate, cell model.Cell) float64 {
 	earthRadius := 6378.137
 	dLat := coord.Lat*math.Pi/180 - cell.Sector.Center.Lat*math.Pi/180
 	dLng := coord.Lng*math.Pi/180 - cell.Sector.Center.Lng*math.Pi/180
@@ -132,10 +199,10 @@ func getEuclideanDistanceFromGPS(coord model.Coordinate, cell model.Cell) float6
 }
 
 // 3D Euclidean distance function
-func get3dEuclideanDistanceFromGPS(coord model.Coordinate, cell model.Cell) float64 {
-	d2D := getEuclideanDistanceFromGPS(coord, cell)
+func get3dEuclideanDistanceFromGPS(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	d2D := getSphericalDistance(coord, cell)
 
-	heightUE := float64(1.5)
+	heightUE := height
 	heightDiff := math.Abs(float64(cell.Sector.Height) - heightUE)
 
 	// Pythagorean theorem
@@ -159,20 +226,22 @@ func getBreakpointDistance(cell model.Cell) float64 {
 // Breakpoint distance function
 func getBreakpointPrimeDistance(cell model.Cell) float64 {
 	c := 3.0 * math.Pow(10, 8)
-	hE := float64(1)                                // assuming environment height is 1m
-	hBS := float64(cell.Sector.Height) - hE         // base station height
-	hUT := float64(1.5) - hE                        // average height of user terminal 1m <= hUT <= 10m
-	fc := float64(cell.Channel.SSBFrequency) * 1000 // frequency in Hz
+	hE := float64(1)                                   // assuming environment height is 1m
+	hBS := float64(cell.Sector.Height) - hE            // base station height
+	hUT := float64(1.5) - hE                           // average height of user terminal 1m <= hUT <= 10m
+	fc := float64(cell.Channel.SSBFrequency) * 1000000 // frequency in Hz
 
-	dBP := 4 * hBS * hUT * fc / c
+	numer := (4 * hBS * hUT * fc)
+	fmt.Printf("\ncell.Channel.SSBFrequency:%v ssbMhz:%v \nfc: %v numer:%v", cell.Channel.SSBFrequency, float64(cell.Channel.SSBFrequency), fc, numer)
+	dBP := numer / c
 
 	return dBP
 }
 
 // getRuralLOSPathLoss calculates the RMa LOS path loss
-func getRuralLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d2D := getEuclideanDistanceFromGPS(coord, cell)
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+func getRuralLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	d2D := getSphericalDistance(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	dBP := getBreakpointDistance(cell)
 
 	if 10 <= d2D && d2D <= dBP {
@@ -195,14 +264,14 @@ func RmaLOSPL1(cell model.Cell, d float64) float64 {
 }
 
 // getRuralNLOSPathLoss calculates the RMa NLOS path loss
-func getRuralNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+func getRuralNLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	W := float64(20)                   // average street width 5m <= W <= 50m
 	h := float64(5)                    // average building height 5m <= h <= 50m
 	hBS := float64(cell.Sector.Height) // base station height
-	hUT := float64(1.5)                // average height of user terminal 1m <= hUT <= 10m
+	hUT := height                      // average height of user terminal 1m <= hUT <= 10m
 
-	plLOS := getRuralLOSPathLoss(coord, cell)
+	plLOS := getRuralLOSPathLoss(coord, height, cell)
 	plNLOS := 161.04 - 7.1*math.Log10(W) + 7.5*math.Log10(h) -
 		(24.37-3.7*math.Pow((h/hBS), 2))*math.Log10(hBS) +
 		(43.42-3.1*math.Log10(hBS))*(math.Log10(d3D)-3) +
@@ -213,109 +282,37 @@ func getRuralNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
 }
 
 // getUrbanLOSPathLoss calculates the UMa LOS path loss
-func getUrbanLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d2D := getEuclideanDistanceFromGPS(coord, cell)
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+func getUrbanLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	d2D := getSphericalDistance(coord, cell)
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	dBP := getBreakpointPrimeDistance(cell)
 	hBS := float64(cell.Sector.Height)              // base station height
-	hUT := float64(5)                               // average height of user terminal 1m <= hUT <= 22.5m
+	hUT := height                                   // average height of user terminal 1m <= hUT <= 22.5m
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
 
+	fmt.Printf("\ndBP:%v \nd2D:%v", dBP, d2D)
 	if 10 <= d2D && d2D <= dBP {
 		pl1 := 28.0 + 22*math.Log10(d3D) + 20*math.Log10(fc)
+		fmt.Printf("\npl1:%v", pl1)
 		return pl1
 	} else {
 		pl2 := 28.0 + 40*math.Log10(d3D) + 20*math.Log10(fc) - 9*math.Log10(math.Pow(dBP, 2)+math.Pow(hBS-hUT, 2))
+		fmt.Printf("\npl2:%v", pl2)
 		return pl2
 	}
+
 }
 
 // getUrbanNLOSPathLoss calculates the UMa NLOS path loss
-func getUrbanNLOSPathLoss(coord model.Coordinate, cell model.Cell) float64 {
-	d3D := get3dEuclideanDistanceFromGPS(coord, cell)
+func getUrbanNLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
-	hUT := float64(5)                               // average height of user terminal 1m <= W <= 22.5m
+	hUT := height                                   // average height of user terminal 1m <= W <= 22.5m
 
-	plLOS := getUrbanLOSPathLoss(coord, cell)
-	plNLOS := 13.54 + 39.08*math.Log10(d3D) + 20*math.Log10(fc) -
-		0.6*(hUT-1.5)
+	plLOS := getUrbanLOSPathLoss(coord, height, cell)
+	plNLOS := 13.54 + 39.08*math.Log10(d3D) + 20*math.Log10(fc) - 0.6*(hUT-1.5)
+
+	fmt.Printf("\nplLOS:%v \nplNLOS:%v", plLOS, plNLOS)
 
 	return math.Max(plLOS, plNLOS)
-}
-
-// Function to find the unique Latitudes
-func uniqueLatitudes(points []model.Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lat] = struct{}{}
-	}
-
-	latitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		latitudes = append(latitudes, k)
-	}
-	sort.Float64s(latitudes)
-	return latitudes
-}
-
-// Function to find the unique Longitudes
-func uniqueLongitudes(points []model.Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lng] = struct{}{}
-	}
-
-	longitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		longitudes = append(longitudes, k)
-	}
-	sort.Float64s(longitudes)
-	return longitudes
-}
-
-// Function to find the closest index
-func closestIndex(arr []float64, value float64) int {
-	closest := 0
-	minDist := math.Abs(arr[0] - value)
-	for i := 1; i < len(arr); i++ {
-		dist := math.Abs(arr[i] - value)
-		if dist < minDist {
-			closest = i
-			minDist = dist
-		}
-	}
-	return closest
-}
-
-// Function to check if a point is inside the grid
-func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bool {
-	latitudes := uniqueLatitudes(gridPoints)
-	longitudes := uniqueLongitudes(gridPoints)
-
-	// Check if point's latitude is within the range of grid latitudes
-	if point.Lat < latitudes[0] || point.Lat > latitudes[len(latitudes)-1] {
-		return false
-	}
-
-	// Check if point's longitude is within the range of grid longitudes
-	if point.Lng < longitudes[0] || point.Lng > longitudes[len(longitudes)-1] {
-		return false
-	}
-
-	return true
-}
-
-// Function to find the grid cell containing the given point
-func findGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int, bool) {
-	if !isPointInsideGrid(point, gridPoints) {
-		return -1, -1, false
-	}
-
-	latitudes := uniqueLatitudes(gridPoints)
-	longitudes := uniqueLongitudes(gridPoints)
-
-	latIdx := closestIndex(latitudes, point.Lat)
-	lngIdx := closestIndex(longitudes, point.Lng)
-
-	return latIdx, lngIdx, true
 }

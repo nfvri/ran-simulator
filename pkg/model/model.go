@@ -41,9 +41,9 @@ type Coordinate struct {
 // Sector represents a 2D arc emanating from a location
 type Sector struct {
 	Center  Coordinate `mapstructure:"center"`
-	Azimuth int32      `mapstructure:"azimuth"`
+	Azimuth float64    `mapstructure:"azimuth"`
 	Arc     int32      `mapstructure:"arc"`
-	Tilt    int32      `mapstructure:"tilt"`
+	Tilt    float64    `mapstructure:"tilt"`
 	Height  int32      `mapstructure:"height"`
 }
 
@@ -125,9 +125,18 @@ type Cell struct {
 	Earfcn            uint32            `mapstructure:"earfcn"`
 	CellType          types.CellType    `mapstructure:"cellType"`
 	Channel           Channel           `mapstructure:"channel"`
+	Beam              Beam              `mapstructure:"beam"`
 	RrcIdleCount      uint32
 	RrcConnectedCount uint32
 	ShadowMap
+}
+
+type Beam struct {
+	H3dBAngle              float64 `mapstructure:"h3dBAngle"`
+	V3dBAngle              float64 `mapstructure:"v3dBAngle"`
+	MaxGain                float64 `mapstructure:"maxGain"`
+	MaxAttenuationDB       float64 `mapstructure:"maxAttenuationDB"`
+	VSideLobeAttenuationDB float64 `mapstructure:"vSideLobeAttenuationDB"`
 }
 
 type ShadowMap struct {
@@ -159,6 +168,7 @@ type UE struct {
 	Cell        *UECell            `mapstructure:"cell"`
 	CRNTI       types.CRNTI        `mapstructure:"CRNTI"`
 	Cells       []*UECell          `mapstructure:"cells"`
+	Height      float64            `mapstructure:"height"`
 	IsAdmitted  bool               `mapstructure:"isAdmitted"`
 }
 

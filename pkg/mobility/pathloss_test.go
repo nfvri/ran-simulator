@@ -24,9 +24,10 @@ func TestGetPathLossUrbanLOS(t *testing.T) {
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	expectedPathLoss := getUrbanLOSPathLoss(coord, cell)
+	height := 1.5
+	expectedPathLoss := getUrbanLOSPathLoss(coord, height, cell)
 
-	pathLoss := GetPathLoss(coord, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
 	fmt.Println("UrbanLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -49,9 +50,10 @@ func TestGetPathLossUrbanNLOS(t *testing.T) {
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	expectedPathLoss := getUrbanNLOSPathLoss(coord, cell)
+	height := 1.5
+	expectedPathLoss := getUrbanNLOSPathLoss(coord, height, cell)
 
-	pathLoss := GetPathLoss(coord, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
 	fmt.Println("UrbanNLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -74,9 +76,10 @@ func TestGetPathLossRuralLOS(t *testing.T) {
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	expectedPathLoss := getRuralLOSPathLoss(coord, cell)
+	height := 1.5
+	expectedPathLoss := getRuralLOSPathLoss(coord, height, cell)
 
-	pathLoss := GetPathLoss(coord, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
 	fmt.Println("RuralLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -99,9 +102,10 @@ func TestGetPathLossRuralNLOS(t *testing.T) {
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	expectedPathLoss := getRuralNLOSPathLoss(coord, cell)
+	height := 1.5
+	expectedPathLoss := getRuralNLOSPathLoss(coord, height, cell)
 
-	pathLoss := GetPathLoss(coord, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
 	fmt.Println("RuralNLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -124,9 +128,10 @@ func TestGetPathLossUnknownEnvironment(t *testing.T) {
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
+	height := 1.5
 	expectedPathLoss := getFreeSpacePathLoss(coord, cell)
 
-	pathLoss := GetPathLoss(coord, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
 	fmt.Println("Unknown")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -149,13 +154,15 @@ func TestGetChangingPositionPathLossUrbanLOS(t *testing.T) {
 	}
 
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	firstPathLoss := GetPathLoss(firstCoord, cell)
+	height := 1.5
+	firstPathLoss := GetPathLoss(firstCoord, height, cell)
 
 	fmt.Println("UrbanLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
-	secondPathLoss := GetPathLoss(secondCoord, cell)
+
+	secondPathLoss := GetPathLoss(secondCoord, height, cell)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -178,13 +185,14 @@ func TestGetChangingPositionPathLossUrbanNLOS(t *testing.T) {
 	}
 
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	firstPathLoss := GetPathLoss(firstCoord, cell)
+	height := 1.5
+	firstPathLoss := GetPathLoss(firstCoord, height, cell)
 
 	fmt.Println("UrbanNLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
-	secondPathLoss := GetPathLoss(secondCoord, cell)
+	secondPathLoss := GetPathLoss(secondCoord, height, cell)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -206,14 +214,15 @@ func TestGetChangingPositionPathLossRuralLOS(t *testing.T) {
 		},
 	}
 
+	height := 1.5
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	firstPathLoss := GetPathLoss(firstCoord, cell)
+	firstPathLoss := GetPathLoss(firstCoord, height, cell)
 
 	fmt.Println("RuralLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
-	secondPathLoss := GetPathLoss(secondCoord, cell)
+	secondPathLoss := GetPathLoss(secondCoord, height, cell)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -235,14 +244,15 @@ func TestGetChangingPositionPathLossRuralNLOS(t *testing.T) {
 		},
 	}
 
+	height := 1.5
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	firstPathLoss := GetPathLoss(firstCoord, cell)
+	firstPathLoss := GetPathLoss(firstCoord, height, cell)
 
 	fmt.Println("RuralNLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
-	secondPathLoss := GetPathLoss(secondCoord, cell)
+	secondPathLoss := GetPathLoss(secondCoord, height, cell)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -262,6 +272,7 @@ func TestPathloss(t *testing.T) {
 		},
 	}
 
+	height := 1.5
 	file, err := os.Create("pathloss.csv")
 	if err != nil {
 		t.Fatalf("failed to create file: %v", err)
@@ -281,11 +292,11 @@ func TestPathloss(t *testing.T) {
 		lng := 0 + (float64(i) * math.Pow(10, -3))
 
 		coord := model.Coordinate{Lat: 0.0001, Lng: lng}
-		dist3d := get3dEuclideanDistanceFromGPS(coord, cell)
-		urbanLOSPathLoss := getUrbanLOSPathLoss(coord, cell)
-		urbanNLOSPathLoss := getUrbanNLOSPathLoss(coord, cell)
-		ruralLOSPathLoss := getRuralLOSPathLoss(coord, cell)
-		ruralNLOSPathLoss := getRuralNLOSPathLoss(coord, cell)
+		dist3d := get3dEuclideanDistanceFromGPS(coord, height, cell)
+		urbanLOSPathLoss := getUrbanLOSPathLoss(coord, height, cell)
+		urbanNLOSPathLoss := getUrbanNLOSPathLoss(coord, height, cell)
+		ruralLOSPathLoss := getRuralLOSPathLoss(coord, height, cell)
+		ruralNLOSPathLoss := getRuralNLOSPathLoss(coord, height, cell)
 		fmt.Printf("%d \t| %.3v \t| %f \t| %f \t\t| %f \t\t| %f \t\t| %f \t|\n", i, coord, dist3d, urbanLOSPathLoss, urbanNLOSPathLoss, ruralLOSPathLoss, ruralNLOSPathLoss)
 
 		row := []string{

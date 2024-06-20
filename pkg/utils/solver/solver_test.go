@@ -10,6 +10,7 @@ import (
 	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	haversine "github.com/LucaTheHacker/go-haversine"
 )
@@ -57,11 +58,13 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	// (x-2)^3*cos(2*x/y) = 0
 	cell := model.Cell{
 		TxPowerDB: 40,
+		CellType:  types.CellType_MACRO,
 		Sector: model.Sector{
 			Azimuth: 0,
 			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
 			Height:  30,
 			Arc:     120,
+			Tilt:    0,
 		},
 		Channel: model.Channel{
 			Environment:  "urban",
@@ -69,8 +72,8 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 			SSBFrequency: 900,
 		},
 		Beam: model.Beam{
-			H3dBAngle:              120,
-			V3dBAngle:              7,
+			H3dBAngle:              65,
+			V3dBAngle:              65,
 			MaxGain:                8,
 			MaxAttenuationDB:       30,
 			VSideLobeAttenuationDB: 30,
@@ -88,7 +91,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 	solver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
-		Maxiter: 50,
+		Maxiter: 10,
 
 		// Stepsize used to appriximate jacobian with finite differences
 		StepSize: 1e-4,
@@ -102,8 +105,8 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 	guesses := make([][]float64, 0)
 	results := make([]nonlin.Result, 0)
-	for i := 100; i < 200; i++ {
-		outerPoint := float64(i) * 0.00005
+	for i := 0; i < 3600; i++ {
+		outerPoint := float64(i) * 0.0005 * rand.Float64()
 		sign1 := rand.Float64() - 0.5
 		sign2 := rand.Float64() - 0.5
 		x0 := []float64{cell.Sector.Center.Lat + (sign1 * outerPoint), cell.Sector.Center.Lng + (sign2 * outerPoint)}

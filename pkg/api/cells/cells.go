@@ -8,13 +8,13 @@ package cells
 import (
 	"context"
 
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
+	"github.com/nfvri/ran-simulator/pkg/store/event"
 	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
-	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/store/cells"
-	"github.com/nfvri/ran-simulator/pkg/store/event"
 	"google.golang.org/grpc"
 )
 
@@ -70,8 +70,8 @@ func cellToModel(cell *types.Cell) *model.Cell {
 		Sector: model.Sector{
 			Center:  model.Coordinate{Lat: cell.Sector.Centroid.Lat, Lng: cell.Sector.Centroid.Lng},
 			Arc:     cell.Sector.Arc,
-			Azimuth: cell.Sector.Azimuth,
-			Tilt:    cell.Sector.Tilt,
+			Azimuth: float64(cell.Sector.Azimuth),
+			Tilt:    float64(cell.Sector.Tilt),
 			Height:  cell.Sector.Height,
 		},
 		Color:     cell.Color,
@@ -95,10 +95,10 @@ func cellToModel(cell *types.Cell) *model.Cell {
 
 func sectorToAPI(sector model.Sector) *types.Sector {
 	return &types.Sector{
-		Azimuth:  sector.Azimuth,
+		Azimuth:  int32(sector.Azimuth),
 		Arc:      sector.Arc,
 		Centroid: &types.Point{Lat: sector.Center.Lat, Lng: sector.Center.Lng},
-		Tilt:     sector.Tilt,
+		Tilt:     int32(sector.Tilt),
 		Height:   sector.Height,
 	}
 }

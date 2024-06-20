@@ -3,16 +3,11 @@ package solver
 import (
 	"fmt"
 	"math"
-	"math/rand"
-	"sort"
 	"testing"
 
 	"github.com/davidkleiven/gononlin/nonlin"
-	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-
-	haversine "github.com/LucaTheHacker/go-haversine"
 )
 
 func TestExampleNewtonKrylov(t *testing.T) {
@@ -63,7 +58,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 			Azimuth: 0,
 			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
 			Height:  30,
-			Arc:     120,
+			Arc:     90,
 			Tilt:    0,
 		},
 		Channel: model.Channel{
@@ -79,72 +74,12 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 			VSideLobeAttenuationDB: 30,
 		},
 	}
-	problem := nonlin.Problem{
-		F: func(out, x []float64) {
-			height := 1.5
-			// height2 := 3.0
-			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-			out[0] = 87 + mobility.StrengthAtLocation(coord, height, cell)
-			out[1] = 87 + mobility.StrengthAtLocation(coord, height, cell)
-		},
-	}
 
-	solver := nonlin.NewtonKrylov{
-		// Maximum number of Newton iterations
-		Maxiter: 10,
+	ueHeight := 1.5
+	sortedCoords := GetSignalCoverageNewtonKrylov(cell, ueHeight)
 
-		// Stepsize used to appriximate jacobian with finite differences
-		StepSize: 1e-4,
-
-		// Tolerance for the solution
-		Tol: 1e-7,
-
-		// Stencil for Jacobian
-		// Stencil: 8,
-	}
-
-	guesses := make([][]float64, 0)
-	results := make([]nonlin.Result, 0)
-	for i := 0; i < 3600; i++ {
-		outerPoint := float64(i) * 0.0005 * rand.Float64()
-		sign1 := rand.Float64() - 0.5
-		sign2 := rand.Float64() - 0.5
-		x0 := []float64{cell.Sector.Center.Lat + (sign1 * outerPoint), cell.Sector.Center.Lng + (sign2 * outerPoint)}
-		res := solver.Solve(problem, x0)
-		if res.Converged {
-			guesses = append(guesses, x0)
-			results = append(results, res)
-		}
-	}
-	t.Logf("results length: %d", len(results))
-	for i, result := range results {
-		t.Logf("Roots: (x, y) = %v Function values: %v Guesses: %v \n", result.X, result.F, guesses[i])
-	}
-
-	haversineCoords := make([]haversine.Coordinates, 0)
-	for _, result := range results {
-		// t.Logf("[%f, %f], \n", result.X[0], result.X[1])
-		hCoords := haversine.Coordinates{
-			Latitude:  result.X[0],
-			Longitude: result.X[1],
-		}
-		haversineCoords = append(haversineCoords, hCoords)
-	}
-
-	// Add center to printed coords
-	center := haversine.Coordinates{
-		Latitude:  cell.Sector.Center.Lat,
-		Longitude: cell.Sector.Center.Lng,
-	}
-	haversineCoords = append(haversineCoords, center)
-
-	// Sorting a slice of coords by haversine distance
-	sort.Slice(haversineCoords, func(i, j int) bool {
-		return haversine.Distance(center, haversineCoords[i]).Kilometers() < haversine.Distance(center, haversineCoords[j]).Kilometers()
-	})
-
-	for _, sortedHaversineCoord := range haversineCoords {
-		t.Logf("[%f, %f], \n", sortedHaversineCoord.Latitude, sortedHaversineCoord.Longitude)
+	for _, sortedCoord := range sortedCoords {
+		t.Logf("[%f, %f], \n", sortedCoord.Lat, sortedCoord.Lng)
 	}
 	// Output:
 	//

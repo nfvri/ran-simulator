@@ -8,7 +8,7 @@ import (
 )
 
 func Test_AzimuthAttenuation(t *testing.T) {
-	azimuths := map[string]int32{
+	azimuths := map[string]float64{
 		"boresight":  0,
 		"halfPower1": 33,
 		"halfPower2": -33,
@@ -26,7 +26,7 @@ func Test_AzimuthAttenuation(t *testing.T) {
 }
 
 func Test_ZenithAttenuation(t *testing.T) {
-	zenithAngles := map[string]uint32{
+	zenithAngles := map[string]float64{
 		"boresight":  90,
 		"halfPower1": 57,  // 90 - 65/2
 		"halfPower2": 123, // 90 + 65/2

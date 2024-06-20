@@ -10,6 +10,7 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 // powerFactor relates power to distance in decimal degrees
@@ -78,23 +79,33 @@ func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 // Table 7.3-1: Radiation power pattern of a single antenna element
 func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	fmt.Print("\n======================================\n")
-	azRads := float64(cell.Sector.Azimuth) * (math.Pi / 180)
-	pointRads := math.Atan2(coord.Lat-cell.Sector.Center.Lat, coord.Lng-cell.Sector.Center.Lng)
-	azimuthOffsetRads := math.Abs(azRads - pointRads)
+	azRads := utils.AzimuthToRads(cell.Sector.Azimuth)
+	ueAngle := utils.GetRotationDegrees(
+		&types.Point{
+			Lat: cell.Sector.Center.Lat,
+			Lng: cell.Sector.Center.Lng,
+		},
+		&types.Point{
+			Lat: coord.Lat,
+			Lng: coord.Lng,
+		})
+
+	ueAngleRads := utils.DegreesToRads(ueAngle)
+	azimuthOffsetRads := math.Abs(azRads - ueAngleRads)
 	azimuthOffset := azimuthOffsetRads * (180 / math.Pi)
 	if azimuthOffset > 180 {
 		azimuthOffset = 360 - azimuthOffset
 	}
-	horizontalCut := azimuthAttenuation(int32(math.Round((azimuthOffset))), cell.Beam.H3dBAngle, cell.Beam.MaxAttenuationDB)
+	horizontalCut := azimuthAttenuation(azimuthOffset, cell.Beam.H3dBAngle, cell.TxPowerDB)
 	hAttformat := "\nhorizontalCut: %v \ncell.Sector.Azimuth: %v \nazpoint: %v \nazimuthOffset: %v \nazRads: %v \nazpointRads: %v"
-	fmt.Printf(hAttformat, horizontalCut, cell.Sector.Azimuth, pointRads*(180/math.Pi), azimuthOffset, azRads, pointRads)
+	fmt.Printf(hAttformat, horizontalCut, cell.Sector.Azimuth, ueAngleRads*(180/math.Pi), azimuthOffset, azRads, ueAngleRads)
 
 	fmt.Print("\n======================================\n")
 	zenithAngle := calcZenithAngle(coord, height, cell)
-	verticalCut := zenithAttenuation(uint32(math.Round(zenithAngle)), cell.Beam.V3dBAngle, cell.Beam.VSideLobeAttenuationDB)
+	verticalCut := zenithAttenuation(zenithAngle, cell.Beam.V3dBAngle, cell.Beam.VSideLobeAttenuationDB)
 	fmt.Printf("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
 	fmt.Print("\n======================================\n")
-	return -math.Min(-(verticalCut + horizontalCut), cell.Beam.MaxAttenuationDB)
+	return -math.Min(-(verticalCut + horizontalCut), cell.TxPowerDB)
 }
 
 func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) float64 {
@@ -114,7 +125,7 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	zUERads := 90*(math.Pi/180) + ueAngleSign*ueAngleRads
 
 	zTilt := 90 + cell.Sector.Tilt
-	zTiltRads := float64(zTilt) * (math.Pi / 180)
+	zTiltRads := zTilt * (math.Pi / 180)
 	zAngleOffset := math.Abs(zUERads - zTiltRads)
 
 	zenithAngle := 90 + zAngleOffset*(180/math.Pi)
@@ -129,8 +140,8 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 // ETSI TR 138 901 V16.1.0
 // Vertical cut of the radiation power pattern (dB)
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func zenithAttenuation(zenithAngle, theta3dB uint32, slav float64) float64 {
-	angleRatio := (float64(zenithAngle) - 90) / float64(theta3dB)
+func zenithAttenuation(zenithAngle, theta3dB float64, slav float64) float64 {
+	angleRatio := (zenithAngle - 90) / theta3dB
 	a := 12 * math.Pow(angleRatio, 2)
 	return -math.Min(a, slav)
 }
@@ -138,8 +149,8 @@ func zenithAttenuation(zenithAngle, theta3dB uint32, slav float64) float64 {
 // ETSI TR 138 901 V16.1.0
 // Horizontal cut of the radiation power pattern (dB)
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func azimuthAttenuation(azimuth int32, phi3dB uint32, aMax float64) float64 {
-	angleRatio := float64(azimuth) / float64(phi3dB)
+func azimuthAttenuation(azimuthAngle, phi3dB float64, aMax float64) float64 {
+	angleRatio := azimuthAngle / phi3dB
 	azAtt := 12 * math.Pow(angleRatio, 2)
 	return -math.Min(azAtt, aMax)
 }

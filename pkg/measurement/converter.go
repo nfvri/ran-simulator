@@ -8,11 +8,11 @@ import (
 	"context"
 	"math"
 
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	utils "github.com/nfvri/ran-simulator/pkg/utils/measurement"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/rrm-son-lib/pkg/model/device"
 	"github.com/onosproject/rrm-son-lib/pkg/model/id"
 	"github.com/onosproject/rrm-son-lib/pkg/model/measurement"
@@ -95,7 +95,7 @@ func NewMeasReportConverter(cellStore cells.Store, ueStore ues.Store) MeasReport
 
 func (c *measReportConverter) Convert(ctx context.Context, ue *model.UE) device.UE {
 	ueid := id.NewUEID(uint64(ue.IMSI), uint32(ue.CRNTI), uint64(ue.Cell.NCGI))
-	sCellInStore, err := c.cellStore.Get(ctx, ue.Cell.NCGI)
+	sCellInStore, _, err := c.cellStore.Get(ctx, ue.Cell.NCGI)
 	if err != nil {
 		logConverter.Errorf("Can't get serving cell from cell store: %v", err)
 	}
@@ -112,7 +112,7 @@ func (c *measReportConverter) Convert(ctx context.Context, ue *model.UE) device.
 	measurements[sCellMeas.GetCellID().String()] = sCellMeas
 
 	for _, ueCell := range ue.Cells {
-		tmpCellInStore, _ := c.cellStore.Get(ctx, ueCell.NCGI)
+		tmpCellInStore, _, _ := c.cellStore.Get(ctx, ueCell.NCGI)
 		if err != nil {
 			logConverter.Errorf("Can't get candidate serving cell from cell storeL: %v", err)
 		}

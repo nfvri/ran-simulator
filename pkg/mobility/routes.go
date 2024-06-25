@@ -9,13 +9,14 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/utils"
-	"googlemaps.github.io/maps"
 	"math"
 	"math/rand"
 	"net/http"
+
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"googlemaps.github.io/maps"
 )
 
 const googleAPIKeyMinLen = 38
@@ -42,7 +43,7 @@ func (d *driver) GenerateRoutes(ctx context.Context, minSpeed uint32, maxSpeed u
 
 // Determines the area for choosing random end-point locations
 func (d *driver) establishArea(ctx context.Context) {
-	cells, err := d.cellStore.List(ctx)
+	cells, _, err := d.cellStore.List(ctx)
 	if err != nil {
 		return
 	}

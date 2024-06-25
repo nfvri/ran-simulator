@@ -6,19 +6,8 @@ package v1
 
 import (
 	"context"
+
 	"github.com/gogo/protobuf/proto"
-	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/pdubuilder"
-	e2smrc "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/servicemodel"
-	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
-	e2smrcies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-rc-ies"
-	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
-	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
-	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
-	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
-	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/servicemodel"
@@ -32,6 +21,18 @@ import (
 	controlutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/control"
 	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
+	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
+	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/pdubuilder"
+	e2smrc "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/servicemodel"
+	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
+	e2smrcies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-rc-ies"
+	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
+	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
+	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
+	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/rrm-son-lib/pkg/handover"
 	"github.com/onosproject/rrm-son-lib/pkg/model/id"
 	meastype "github.com/onosproject/rrm-son-lib/pkg/model/measurement/type"
@@ -694,7 +695,7 @@ func (c *Client) processMLBLogic(ctx context.Context, adFormat2List []*e2smrcies
 			// id: serving cell ID
 			log.Debugf("MLB: sCell NCGI: %v / NCGI: %v / Ocn: %d", id, ncgi, ocnInt)
 
-			sCell, err := c.ServiceModel.CellStore.Get(ctx, id)
+			sCell, _, err := c.ServiceModel.CellStore.Get(ctx, id)
 			if err != nil {
 				log.Errorf("NCGI (%v) is not in cell store", id)
 				continue

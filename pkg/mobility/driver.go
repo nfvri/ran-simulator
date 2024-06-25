@@ -378,7 +378,7 @@ func (d *driver) UpdateUESignalStrength(ctx context.Context, imsi types.IMSI) {
 
 // UpdateUESignalStrengthCandServCells updates UE signal strength for serving and candidate cells
 func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *model.UE) error {
-	cellList, err := d.cellStore.List(ctx)
+	cellList, _, err := d.cellStore.List(ctx)
 	if err != nil {
 		return fmt.Errorf("Unable to get all cells")
 	}
@@ -411,7 +411,7 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 
 // UpdateUESignalStrengthServCell  updates UE signal strength for serving cell
 func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.UE) error {
-	sCell, err := d.cellStore.Get(ctx, ue.Cell.NCGI)
+	sCell, _, err := d.cellStore.Get(ctx, ue.Cell.NCGI)
 	if err != nil {
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}

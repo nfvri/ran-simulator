@@ -63,17 +63,18 @@ func NewManager(config *Config) (*Manager, error) {
 // Manager is a manager for the E2T service
 type Manager struct {
 	modelapi.ManagementDelegate
-	config         Config
-	agents         *agents.E2Agents
-	model          *model.Model
-	server         *northbound.Server
-	nodeStore      nodes.Store
-	cellStore      cells.Store
-	ueStore        ues.Store
-	routeStore     routes.Store
-	metricsStore   metrics.Store
-	mobilityDriver mobility.Driver
-	rdbClient      *redis.Client
+	config            Config
+	agents            *agents.E2Agents
+	model             *model.Model
+	server            *northbound.Server
+	nodeStore         nodes.Store
+	cellStore         cells.Store
+	cellCoverageStore cells.Store
+	ueStore           ues.Store
+	routeStore        routes.Store
+	metricsStore      metrics.Store
+	mobilityDriver    mobility.Driver
+	rdbClient         *redis.Client
 }
 
 // Run starts the manager and the associated services
@@ -88,7 +89,7 @@ func (m *Manager) initmobilityDriver() {
 	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
 	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
 	// m.mobilityDriver.Start(context.Background())
-	cellList, _ := m.cellStore.List(context.Background())
+	cellList, _, _ := m.cellStore.List(context.Background())
 	for _, cell := range cellList {
 		cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
 		if err != nil {

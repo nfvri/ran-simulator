@@ -6,10 +6,11 @@ package mobility
 
 import (
 	"context"
+	"math/rand"
+
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
-	"github.com/nfvri/ran-simulator/pkg/model"
-	"math/rand"
 )
 
 // RrcStateChangeProbability determines the rate of change of RRC states in ransim
@@ -45,7 +46,7 @@ func (d *driver) addRrcChan(ch chan model.UE) {
 }
 
 func (d *driver) totalUeCount(ctx context.Context, ncgi types.NCGI) uint {
-	cell, err := d.cellStore.Get(ctx, ncgi)
+	cell, _, err := d.cellStore.Get(ctx, ncgi)
 	if err != nil {
 		log.Error(err)
 		return 0
@@ -54,7 +55,7 @@ func (d *driver) totalUeCount(ctx context.Context, ncgi types.NCGI) uint {
 }
 
 func (d *driver) connectedUeCount(ctx context.Context, ncgi types.NCGI) uint {
-	cell, err := d.cellStore.Get(ctx, ncgi)
+	cell, _, err := d.cellStore.Get(ctx, ncgi)
 	if err != nil {
 		log.Error(err)
 		return 0

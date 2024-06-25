@@ -7,10 +7,6 @@ package mho
 import (
 	"context"
 
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
-	e2sm_v2_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-v2-ies"
-	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -19,6 +15,10 @@ import (
 	indHdr "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/header"
 	indMsgFmt1 "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/message_format1"
 	indMsgFmt2 "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/message_format2"
+	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
+	e2sm_v2_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-v2-ies"
+	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 )
 
 func (m *Mho) sendRicIndication(ctx context.Context, subscription *subutils.Subscription) error {
@@ -124,7 +124,7 @@ func (m *Mho) sendRicIndicationFormat2(ctx context.Context, ncgi ransimtypes.NCG
 
 func (m *Mho) createIndicationHeaderBytes(ctx context.Context, ncgi ransimtypes.NCGI) ([]byte, error) {
 
-	cell, _ := m.ServiceModel.CellStore.Get(ctx, ncgi)
+	cell, _, _ := m.ServiceModel.CellStore.Get(ctx, ncgi)
 	plmnID := ransimtypes.NewUint24(uint32(m.ServiceModel.Model.PlmnID))
 	ncgiTypeNCI := utils.NewNCellIDWithUint64(uint64(ransimtypes.GetNCI(cell.NCGI)))
 

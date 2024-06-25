@@ -118,7 +118,7 @@ func (sm *Client) toCellSizeEnum(cellSize string) e2smrcpreies.CellSize {
 }
 
 func (sm *Client) getCellPCI(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) {
-	cell, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
+	cell, _, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return 0, err
 	}
@@ -127,7 +127,7 @@ func (sm *Client) getCellPCI(ctx context.Context, ncgi ransimtypes.NCGI) (int32,
 }
 
 func (sm *Client) getSSBFrequency(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) {
-	cell, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
+	cell, _, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return 0, err
 	}
@@ -136,7 +136,7 @@ func (sm *Client) getSSBFrequency(ctx context.Context, ncgi ransimtypes.NCGI) (i
 }
 
 func (sm *Client) getCellSize(ctx context.Context, ncgi ransimtypes.NCGI) (string, error) {
-	cell, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
+	cell, _, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return "", err
 	}
@@ -178,7 +178,7 @@ func (sm *Client) createRicIndication(ctx context.Context, ncgi ransimtypes.NCGI
 	plmnID := sm.getPlmnID()
 	var neighbourList []*e2smrcpreies.Nrt
 	neighbourList = make([]*e2smrcpreies.Nrt, 0)
-	cell, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
+	cell, _, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +298,7 @@ func (sm *Client) setHandoverOcn(ctx context.Context, parameterName string, para
 			if ncgi == nCellNCGI {
 				continue
 			}
-			sCell, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
+			sCell, _, err := sm.ServiceModel.CellStore.Get(ctx, ncgi)
 			if err != nil {
 				log.Errorf("NCGI (%v) is not in cell store")
 			}

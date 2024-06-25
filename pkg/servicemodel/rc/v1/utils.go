@@ -9,6 +9,17 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math"
+	"strconv"
+
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
+	indicationutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format1"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format2"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format3"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format5"
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/pdubuilder"
 	e2smrc "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/servicemodel"
@@ -19,17 +30,7 @@ import (
 	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/utils"
-	indicationutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
-	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format1"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format2"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format3"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format5"
 	"google.golang.org/protobuf/proto"
-	"math"
-	"strconv"
 )
 
 func getActionDefinitionMap(actionList []*e2appducontents.RicactionToBeSetupItemIes, ricActionsAccepted []*e2aptypes.RicActionID) (map[*e2aptypes.RicActionID]*e2smrcies.E2SmRcActionDefinition, error) {
@@ -246,7 +247,7 @@ func createRANParametersReportStyle2List() ([]*e2smrcies.ReportRanparameterItem,
 }
 
 func (c *Client) getCellPCI(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) {
-	cell, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
+	cell, _, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return 0, err
 	}
@@ -255,7 +256,7 @@ func (c *Client) getCellPCI(ctx context.Context, ncgi ransimtypes.NCGI) (int32, 
 }
 
 func (c *Client) getSSBFrequency(ctx context.Context, ncgi ransimtypes.NCGI) (int32, error) {
-	cell, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
+	cell, _, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
 	if err != nil {
 		return 0, err
 	}
@@ -273,7 +274,7 @@ func (c *Client) createRICIndicationFormat3(ctx context.Context, cells []ransimt
 
 	cellInfoList := make([]*e2smrcies.E2SmRcIndicationMessageFormat3Item, 0)
 	for _, ncgi := range cells {
-		cell, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
+		cell, _, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
 		if err != nil {
 			return nil, err
 		}
@@ -645,12 +646,12 @@ func (c *Client) checkAndSetPCI(ctx context.Context, controlMessage *e2smrcies.E
 						return errors.NewInvalid("NCI ran parameter is not set")
 					}
 					ncgi = ransimtypes.ToNCGI(plmnID, nci)
-					cell, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
+					cell, _, err := c.ServiceModel.CellStore.Get(ctx, ncgi)
 					if err != nil {
 						return err
 					}
 					cell.PCI = uint32(pciValue)
-					err = c.ServiceModel.CellStore.Update(ctx, cell)
+					err = c.ServiceModel.CellStore.Update(ctx, cell, nil)
 					if err != nil {
 						return err
 					}

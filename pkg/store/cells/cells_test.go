@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 
@@ -32,7 +32,7 @@ func TestCells(t *testing.T) {
 	ch := make(chan event.Event)
 	err = cellStore.Watch(ctx, ch, WatchOptions{Replay: false, Monitor: false})
 	assert.NoError(t, err)
-	cell, err := cellStore.Get(ctx, 84325717505)
+	cell, _, err := cellStore.Get(ctx, 84325717505)
 	assert.NoError(t, err)
 	assert.Equal(t, types.NCGI(84325717505), cell.NCGI)
 
@@ -42,22 +42,23 @@ func TestCells(t *testing.T) {
 		Sector: model.Sector{Center: model.Coordinate{Lat: 46, Lng: 29}, Azimuth: 180, Arc: 180, Height: 30, Tilt: -10},
 		Color:  "blue"}
 
-	err = cellStore.Add(ctx, cell1)
+	//TODO: test also coverage
+	err = cellStore.Add(ctx, cell1, nil)
 	assert.NoError(t, err)
 
 	cellEvent := <-ch
 	assert.Equal(t, Created, cellEvent.Type)
 
-	cell1, err = cellStore.Get(ctx, ecgi1)
+	cell1, _, err = cellStore.Get(ctx, ecgi1)
 	assert.NoError(t, err)
 	assert.Equal(t, ecgi1, cell1.NCGI)
 
-	_, err = cellStore.Delete(ctx, ecgi1)
+	_, _, err = cellStore.Delete(ctx, ecgi1)
 	assert.NoError(t, err)
 	cellEvent = <-ch
 	assert.Equal(t, Deleted, cellEvent.Type)
 
 	cellStore.Clear(ctx)
-	ids, _ := cellStore.List(ctx)
+	ids, _, _ := cellStore.List(ctx)
 	assert.Equal(t, 0, len(ids), "should be empty")
 }

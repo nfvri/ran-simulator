@@ -16,11 +16,11 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/watcher"
 
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 )
 
 var log = liblog.GetLogger()
@@ -28,22 +28,22 @@ var log = liblog.GetLogger()
 // Store tracks inventory of simulated cells.
 type Store interface {
 	// Add adds the specified cell to the registry
-	Add(ctx context.Context, cell *model.Cell) error
+	Add(ctx context.Context, cell *model.Cell, coveragePerimeter []model.Coordinate) error
 
 	// Get retrieves the cell with the specified NCGI
-	Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, error)
+	Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, []model.Coordinate, error)
 
 	// Update updates the cell
-	Update(ctx context.Context, Cell *model.Cell) error
+	Update(ctx context.Context, Cell *model.Cell, coveragePerimeter []model.Coordinate) error
 
 	// Delete deletes the cell with the specified NCGI
-	Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, error)
+	Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, []model.Coordinate, error)
 
 	// Watch watches the cell inventory events using the supplied channel
 	Watch(ctx context.Context, ch chan<- event.Event, options ...WatchOptions) error
 
 	// List list all of the cells
-	List(ctx context.Context) ([]*model.Cell, error)
+	List(ctx context.Context) ([]*model.Cell, map[types.NCGI][]model.Coordinate, error)
 
 	// IncrementRrcIdleCount
 	IncrementRrcIdleCount(ctx context.Context, ncgi types.NCGI)
@@ -74,10 +74,11 @@ type WatchOptions struct {
 }
 
 type store struct {
-	mu        sync.RWMutex
-	cells     map[types.NCGI]*model.Cell
-	nodeStore nodes.Store
-	watchers  *watcher.Watchers
+	mu              sync.RWMutex
+	cells           map[types.NCGI]*model.Cell
+	nodeStore       nodes.Store
+	coveragePerCell map[types.NCGI][]model.Coordinate
+	watchers        *watcher.Watchers
 }
 
 // NewCellRegistry creates a new store abstraction from the specified fixed cell map.
@@ -85,10 +86,11 @@ func NewCellRegistry(cells map[string]model.Cell, nodeStore nodes.Store) Store {
 	log.Infof("Creating registry from model with %d cells", len(cells))
 	watchers := watcher.NewWatchers()
 	reg := &store{
-		mu:        sync.RWMutex{},
-		cells:     make(map[types.NCGI]*model.Cell),
-		nodeStore: nodeStore,
-		watchers:  watchers,
+		mu:              sync.RWMutex{},
+		cells:           make(map[types.NCGI]*model.Cell),
+		nodeStore:       nodeStore,
+		coveragePerCell: make(map[types.NCGI][]model.Coordinate),
+		watchers:        watchers,
 	}
 
 	reg.Load(context.Background(), cells)
@@ -118,7 +120,7 @@ func (s *store) Clear(ctx context.Context) {
 }
 
 // Add adds a cell
-func (s *store) Add(ctx context.Context, cell *model.Cell) error {
+func (s *store) Add(ctx context.Context, cell *model.Cell, coveragePerimeter []model.Coordinate) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.cells[cell.NCGI]; ok {
@@ -126,6 +128,7 @@ func (s *store) Add(ctx context.Context, cell *model.Cell) error {
 	}
 
 	s.cells[cell.NCGI] = cell
+	s.coveragePerCell[cell.NCGI] = coveragePerimeter
 	cellEvent := event.Event{
 		Key:   cell.NCGI,
 		Value: cell,
@@ -136,22 +139,26 @@ func (s *store) Add(ctx context.Context, cell *model.Cell) error {
 }
 
 // Get gets a cell
-func (s *store) Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, error) {
+func (s *store) Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, []model.Coordinate, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if cell, ok := s.cells[ncgi]; ok {
-		return cell, nil
+		if coverage, ok := s.coveragePerCell[ncgi]; ok {
+			return cell, coverage, nil
+		}
+		return cell, nil, nil
 	}
 
-	return nil, errors.New(errors.NotFound, "cell not found")
+	return nil, nil, errors.New(errors.NotFound, "cell not found")
 }
 
 // Update updates a cell
-func (s *store) Update(ctx context.Context, cell *model.Cell) error {
+func (s *store) Update(ctx context.Context, cell *model.Cell, coveragePerimeter []model.Coordinate) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if prevCell, ok := s.cells[cell.NCGI]; ok {
 		s.cells[cell.NCGI] = cell
+		s.coveragePerCell[cell.NCGI] = coveragePerimeter
 		prevNeighbors := prevCell.Neighbors
 		equalNeighborsResult := equalNeighbors(prevNeighbors, cell.Neighbors)
 		if !equalNeighborsResult {
@@ -176,7 +183,7 @@ func (s *store) Update(ctx context.Context, cell *model.Cell) error {
 }
 
 // Delete deletes a cell
-func (s *store) Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, error) {
+func (s *store) Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, []model.Coordinate, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if cell, ok := s.cells[ncgi]; ok {
@@ -187,13 +194,17 @@ func (s *store) Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, error
 			Type:  Deleted,
 		}
 		s.watchers.Send(deleteEvent)
+		coveragePerCell, ok := s.coveragePerCell[ncgi]
+		if ok {
+			delete(s.coveragePerCell, ncgi)
+		}
 		err := s.nodeStore.PruneCell(ctx, ncgi)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return cell, nil
+		return cell, coveragePerCell, nil
 	}
-	return nil, errors.New(errors.NotFound, "cell not found")
+	return nil, nil, errors.New(errors.NotFound, "cell not found")
 }
 
 // Watch watch cell events
@@ -229,14 +240,17 @@ func (s *store) Watch(ctx context.Context, ch chan<- event.Event, options ...Wat
 }
 
 // List returns list of cells
-func (s *store) List(ctx context.Context) ([]*model.Cell, error) {
+func (s *store) List(ctx context.Context) ([]*model.Cell, map[types.NCGI][]model.Coordinate, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	list := make([]*model.Cell, 0, len(s.cells))
+	coveragePerCell := make(map[types.NCGI][]model.Coordinate, 0)
 	for _, cell := range s.cells {
 		list = append(list, cell)
+		coveragePerCell[cell.NCGI] = make([]model.Coordinate, 0)
+		coveragePerCell[cell.NCGI] = append(coveragePerCell[cell.NCGI], s.coveragePerCell[cell.NCGI]...)
 	}
-	return list, nil
+	return list, coveragePerCell, nil
 }
 
 func (s *store) GetRandomCell() (*model.Cell, error) {

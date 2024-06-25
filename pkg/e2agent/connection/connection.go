@@ -8,17 +8,18 @@ package connection
 import (
 	"context"
 	"fmt"
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder"
-	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
-	asn1libgo "github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
+	"net"
+	"sync/atomic"
+	"time"
+
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/nfvri/ran-simulator/pkg/utils/f1ap"
 	"github.com/nfvri/ran-simulator/pkg/utils/xnap"
-	"net"
-	"sync/atomic"
-	"time"
+	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder"
+	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
+	asn1libgo "github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 
 	v2 "github.com/onosproject/onos-e2t/api/e2ap/v2"
 	e2apcommondatatypes "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-commondatatypes"
@@ -35,7 +36,7 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/connections"
 
-	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/connectionupdate/connectionUpdateitemie"
+	connectionupdateitem "github.com/nfvri/ran-simulator/pkg/utils/e2ap/connectionupdate/connectionUpdateitemie"
 
 	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/connectionupdate"
 
@@ -48,16 +49,16 @@ import (
 	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 
-	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/setup"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 
 	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 
+	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
 	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
 	e2 "github.com/onosproject/onos-e2t/pkg/protocols/e2ap"
-	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
 )
 
 var log = logging.GetLogger()
@@ -743,7 +744,7 @@ func (e *e2Connection) setup() error {
 	nCellItemMapXn := make(map[ransimtypes.NCGI][]xnap.XnItemCellInfo)
 	e2NodePlmn := plmnID.ToBytes()
 	for _, c := range e.node.Cells {
-		m, err := e.cellStore.Get(context.Background(), c)
+		m, _, err := e.cellStore.Get(context.Background(), c)
 		if err != nil {
 			log.Warnf("failed to fetch cell %+v: %+v", m, err)
 		}
@@ -774,7 +775,7 @@ func (e *e2Connection) setup() error {
 
 		nCellItemListXn := make([]xnap.XnItemCellInfo, 0)
 		for _, n := range m.Neighbors {
-			nCell, err := e.cellStore.Get(context.Background(), n)
+			nCell, _, err := e.cellStore.Get(context.Background(), n)
 			if err != nil {
 				log.Warnf("failed to fetch neighbor cell %+v, err: %+v", nCell, err)
 				continue

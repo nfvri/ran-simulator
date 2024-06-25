@@ -13,6 +13,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/nfvri/ran-simulator/pkg/utils/solver"
 
 	cellapi "github.com/nfvri/ran-simulator/pkg/api/cells"
 	metricsapi "github.com/nfvri/ran-simulator/pkg/api/metrics"
@@ -295,6 +296,10 @@ func (m *Manager) LoadModel(ctx context.Context, data []byte) error {
 	}
 	m.initModelStores()
 	return nil
+}
+
+func (m *Manager) ComputeCoverage(ctx context.Context, cell model.Cell, ueHeight float64) []model.Coordinate {
+	return solver.GetSignalCoverageNewtonKrylov(cell, ueHeight)
 }
 
 // LoadMetrics loads new metrics into the simulator

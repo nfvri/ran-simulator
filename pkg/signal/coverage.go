@@ -1,11 +1,11 @@
-package solver
+package signal
 
 import (
 	"math/rand"
 
 	"github.com/davidkleiven/gononlin/nonlin"
-	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,8 +38,8 @@ func GetSignalCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Co
 	problem := nonlin.Problem{
 		F: func(out, x []float64) {
 			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-			out[0] = 87 + mobility.StrengthAtLocation(coord, ueHeight, cell)
-			out[1] = 87 + mobility.StrengthAtLocation(coord, ueHeight, cell)
+			out[0] = 87 + StrengthAtLocation(coord, ueHeight, cell)
+			out[1] = 87 + StrengthAtLocation(coord, ueHeight, cell)
 		},
 	}
 
@@ -84,7 +84,7 @@ func GetSignalCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Co
 		coords = append(coords, hCoords)
 	}
 
-	sortedCoords := SortCoordinatesByBearing(cell.Sector.Center, coords)
+	sortedCoords := utils.SortCoordinatesByBearing(cell.Sector.Center, coords)
 
 	for _, sortedCoord := range sortedCoords {
 		log.Debugf("[%f, %f], \n", sortedCoord.Lat, sortedCoord.Lng)

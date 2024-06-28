@@ -114,20 +114,21 @@ type Channel struct {
 
 // Cell represents a section of coverage
 type Cell struct {
-	NCGI              types.NCGI        `mapstructure:"ncgi"`
-	Sector            Sector            `mapstructure:"sector"`
-	Color             string            `mapstructure:"color"`
-	MaxUEs            uint32            `mapstructure:"maxUEs"`
-	Neighbors         []types.NCGI      `mapstructure:"neighbors"`
-	TxPowerDB         float64           `mapstructure:"txpowerdb"`
-	MeasurementParams MeasurementParams `mapstructure:"measurementParams"`
-	PCI               uint32            `mapstructure:"pci"`
-	Earfcn            uint32            `mapstructure:"earfcn"`
-	CellType          types.CellType    `mapstructure:"cellType"`
-	Channel           Channel           `mapstructure:"channel"`
-	Beam              Beam              `mapstructure:"beam"`
-	RrcIdleCount      uint32
-	RrcConnectedCount uint32
+	NCGI               types.NCGI         `mapstructure:"ncgi"`
+	Sector             Sector             `mapstructure:"sector"`
+	Color              string             `mapstructure:"color"`
+	MaxUEs             uint32             `mapstructure:"maxUEs"`
+	Neighbors          []types.NCGI       `mapstructure:"neighbors"`
+	TxPowerDB          float64            `mapstructure:"txpowerdb"`
+	MeasurementParams  MeasurementParams  `mapstructure:"measurementParams"`
+	PCI                uint32             `mapstructure:"pci"`
+	Earfcn             uint32             `mapstructure:"earfcn"`
+	CellType           types.CellType     `mapstructure:"cellType"`
+	Channel            Channel            `mapstructure:"channel"`
+	Beam               Beam               `mapstructure:"beam"`
+	CoverageBoundaries []CoverageBoundary `mapstructure:"coverageBoundaries"`
+	RrcIdleCount       uint32
+	RrcConnectedCount  uint32
 	ShadowMap
 }
 
@@ -142,6 +143,11 @@ type Beam struct {
 type ShadowMap struct {
 	ShadowingMap [][]float64  `json:"shadowingMap"`
 	GridPoints   []Coordinate `json:"gridPoints"`
+}
+
+type CoverageBoundary struct {
+	RefSignalStrength int          `json:"refSignalStrength"`
+	BoundaryPoints    []Coordinate `json:"boundaryPoints"`
 }
 
 // UEType represents type of user-equipment

@@ -63,10 +63,6 @@ type Driver interface {
 	AddRrcChan(ch chan model.UE)
 
 	UpdateUESignalStrength(ctx context.Context, imsi types.IMSI)
-
-	InitShadowMap(cell *model.Cell, d_c float64)
-
-	ReplaceOverlappingShadowMap(cell1 *model.Cell, cell2 *model.Cell, d_c float64)
 }
 
 type driver struct {
@@ -458,39 +454,4 @@ func (d *driver) sortUECells(ueCells []*model.UECell, numAdjCells int) []*model.
 // GetHoLogic returns the HO Logic ("local" or "mho")
 func (d *driver) GetHoLogic() string {
 	return d.hoLogic
-}
-
-func (d *driver) InitShadowMap(cell *model.Cell, d_c float64) {
-	log.Info("Initilizing ShadowMap")
-	sigma := 6.0
-	switch {
-	case cell.Channel.Environment == "urban" && cell.Channel.LOS:
-		sigma = 4.0
-	case cell.Channel.Environment == "urban" && !cell.Channel.LOS:
-		sigma = 6.0
-	case cell.Channel.Environment == "rural" && cell.Channel.LOS:
-		sigma = 4.0
-	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
-		sigma = 8.0
-	}
-
-	cell.GridPoints = signal.ComputeGridPoints(*cell, d_c)
-	cell.ShadowingMap = signal.CalculateShadowMap(cell.GridPoints, d_c, sigma)
-}
-
-func (d *driver) ReplaceOverlappingShadowMap(cell1 *model.Cell, cell2 *model.Cell, d_c float64) {
-	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := signal.FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
-	if overlapping {
-		if cell1.NCGI == cell2.NCGI {
-			fmt.Printf("%d and %d overlapping but is the same cell\n", cell1.NCGI, cell2.NCGI)
-		} else {
-			for i, _ := range cell1iList {
-				fmt.Printf("%d and %d overlapping: (%d,%d) and (%d,%d)\n", cell1.NCGI, cell2.NCGI, cell1iList[i], cell1jList[i], cell2iList[i], cell2jList[i])
-				cell2.ShadowingMap[cell2iList[i]][cell2jList[i]] = cell1.ShadowingMap[cell1iList[i]][cell1jList[i]]
-			}
-		}
-	} else {
-		fmt.Printf("%d and %d does not overlap\n", cell1.NCGI, cell2.NCGI)
-	}
-
 }

@@ -10,23 +10,29 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/redis/go-redis/v9"
+	log "github.com/sirupsen/logrus"
 )
 
-type redisStore struct {
-	rdb *redis.Client
+type RedisStore struct {
+	Rdb *redis.Client
 }
 
-func InitClient(redisHost string, redisPort string) *redis.Client {
+func InitClient(redisHost, redisPort, db, username, password string) *redis.Client {
 
-	// FIXME: add password & db args
+	database, err := strconv.Atoi(db)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
 	return redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
-		Password: "",
-		DB:       1,
+		Username: username,
+		Password: password,
+		DB:       database,
 	})
 }
 
-func (s *redisStore) Add(ctx context.Context, cell *model.Cell) error {
+func (s *RedisStore) Add(ctx context.Context, cell *model.Cell) error {
 	ncgiStr := strconv.FormatUint(uint64(cell.NCGI), 10)
 
 	cellBytes, err := json.Marshal(cell)
@@ -34,12 +40,12 @@ func (s *redisStore) Add(ctx context.Context, cell *model.Cell) error {
 		return fmt.Errorf("failed to marshal simulator model: %v ", err)
 	}
 
-	return s.rdb.Set(context.Background(), ncgiStr, cellBytes, time.Duration(0)).Err()
+	return s.Rdb.Set(context.Background(), ncgiStr, cellBytes, time.Duration(0)).Err()
 }
 
-func (s *redisStore) Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, error) {
+func (s *RedisStore) Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, error) {
 	ncgiStr := strconv.FormatUint(uint64(ncgi), 10)
-	cellBytes, err := s.rdb.Get(context.Background(), ncgiStr).Result()
+	cellBytes, err := s.Rdb.Get(context.Background(), ncgiStr).Result()
 	if err != nil {
 		return nil, fmt.Errorf("error fetching cell signal params data: %v", err)
 	}
@@ -58,16 +64,16 @@ func (s *redisStore) Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, err
 	return &cell, nil
 }
 
-func (s *redisStore) Update(ctx context.Context, cell *model.Cell) error {
+func (s *RedisStore) Update(ctx context.Context, cell *model.Cell) error {
 	return s.Add(ctx, cell)
 }
 
-func (s *redisStore) Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, error) {
+func (s *RedisStore) Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, error) {
 	cell, err := s.Get(ctx, ncgi)
 	if err != nil {
 		return nil, err
 	}
 	ncgiStr := strconv.FormatUint(uint64(ncgi), 10)
-	err = s.rdb.Del(ctx, ncgiStr).Err()
+	err = s.Rdb.Del(ctx, ncgiStr).Err()
 	return cell, err
 }

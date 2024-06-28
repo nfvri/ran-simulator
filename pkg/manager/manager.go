@@ -6,9 +6,12 @@ package manager
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
+	"github.com/nfvri/ran-simulator/pkg/signal"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 
@@ -28,7 +31,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	"github.com/redis/go-redis/v9"
 )
 
 var log = logging.GetLogger()
@@ -67,11 +69,11 @@ type Manager struct {
 	server         *northbound.Server
 	nodeStore      nodes.Store
 	cellStore      cells.Store
+	redisStore     redisLib.RedisStore
 	ueStore        ues.Store
 	routeStore     routes.Store
 	metricsStore   metrics.Store
 	mobilityDriver mobility.Driver
-	rdbClient      *redis.Client
 }
 
 // Run starts the manager and the associated services
@@ -94,9 +96,19 @@ func (m *Manager) initmobilityDriver() {
 
 }
 
-func initializeCellShadowMap(cell *model.Cell, m *Manager) {
+func initializeCoverage(cell *model.Cell) {
+	cell.CoverageBoundaries = []model.CoverageBoundary{
+		{
+			RefSignalStrength: -87,
+			BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
+		},
+	}
+
+}
+
+func initializeCellShadowMap(cell *model.Cell, decorrelationDist float64) {
 	log.Warnf("failed to retrieve shadowmap for cell: %d", cell.NCGI)
-	m.mobilityDriver.InitShadowMap(cell, m.model.DecorrelationDistance)
+	signal.InitShadowMap(cell, decorrelationDist)
 	// err := redisLib.AddShadowMap(m.rdbClient, uint64(cell.NCGI),
 	// 	&model.ShadowMap{
 	// 		ShadowingMap: cell.ShadowingMap,
@@ -109,7 +121,7 @@ func initializeCellShadowMap(cell *model.Cell, m *Manager) {
 
 func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell, m *Manager) {
 
-	m.mobilityDriver.ReplaceOverlappingShadowMap(cell1, cell2, m.model.DecorrelationDistance)
+	signal.ReplaceOverlappingShadowMap(cell1, cell2, m.model.DecorrelationDistance)
 	// err := redisLib.AddShadowMap(m.rdbClient, uint64(cell2.NCGI),
 	// 	&model.ShadowMap{
 	// 		ShadowingMap: cell2.ShadowingMap,
@@ -126,8 +138,13 @@ func (m *Manager) Start() error {
 	if m.config.RedisEnabled {
 		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
 		redisPort := utils.GetEnv("REDIS_PORT", "6379")
-		rdbClient := redisLib.InitClient(redisHost, redisPort)
-		m.rdbClient = rdbClient
+		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
+		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
+		redisPass := utils.GetEnv("REDIS_PASSWORD", "")
+		rdbClient := redisLib.InitClient(redisHost, redisPort, redisCellCache, redisUsername, redisPass)
+		m.redisStore = redisLib.RedisStore{
+			Rdb: rdbClient,
+		}
 	}
 
 	// Load the model data
@@ -177,41 +194,66 @@ func (m *Manager) initModelStores() {
 
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
-	//TODO:
-	// cellList, _ := m.cellStore.List(context.Background())
-	// for _, cell := range cellList {
-	// 	cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
-	// 	if err != nil {
-	// 		initializeCellShadowMap(cell, m)
-	// 	} else {
-	// 		cell.GridPoints = cellShadowMap.GridPoints
-	// 		cell.ShadowingMap = cellShadowMap.ShadowingMap
-	// 	}
-	// }
-	// for i := 0; i < len(cellList); i++ {
-	// 	for j := i + 1; j < len(cellList); j++ {
-	// 		replaceOverlappingShadowMapValues(cellList[i], cellList[j], m)
-	// 	}
-	// }
-	// for _, cell := range cellList {
-	// 	fmt.Println("*******************")
-	// 	fmt.Println(cell.NCGI)
-	// 	fmt.Println("*******************")
-	// 	gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
-	// 	fmt.Printf("%5v,", "i\\j")
-	// 	for i := 0; i < gridSize; i++ {
-	// 		fmt.Printf("%8d,", i)
-	// 	}
-	// 	fmt.Println()
-	// 	for i := 0; i < gridSize; i++ {
-	// 		fmt.Printf("%5d,", i)
-	// 		for j := 0; j < gridSize; j++ {
+	ctx := context.Background()
+	cellList, _ := m.cellStore.List(ctx)
+	for _, cell := range cellList {
+		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
+		if err != nil {
+			initializeCoverage(cell)
+			initializeCellShadowMap(cell, m.model.DecorrelationDistance)
+			m.redisStore.Add(ctx, cell)
+		} else {
+			if ConfigEquivalent(cell, cachedCell) {
+				cell.CoverageBoundaries = cachedCell.CoverageBoundaries
+				cell.GridPoints = cachedCell.GridPoints
+				cell.ShadowingMap = cachedCell.ShadowingMap
+			} else {
+				initializeCoverage(cell)
+				initializeCellShadowMap(cell, m.model.DecorrelationDistance)
+				m.redisStore.Update(ctx, cell)
+			}
+		}
+	}
+	for i := 0; i < len(cellList); i++ {
+		for j := i + 1; j < len(cellList); j++ {
+			replaceOverlappingShadowMapValues(cellList[i], cellList[j], m)
+		}
+	}
+	for _, cell := range cellList {
+		log.Debug("*******************")
+		log.Debug(cell.NCGI)
+		log.Debug("*******************")
+		gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
+		fmt.Printf("%5v,", "i\\j")
+		for i := 0; i < gridSize; i++ {
+			fmt.Printf("%8d,", i)
+		}
+		log.Debug()
+		for i := 0; i < gridSize; i++ {
+			fmt.Printf("%5d,", i)
+			for j := 0; j < gridSize; j++ {
 
-	// 			fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
-	// 		}
-	// 		fmt.Println()
-	// 	}
-	// }
+				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
+			}
+			log.Debug()
+		}
+	}
+}
+
+func ConfigEquivalent(cell, otherCell *model.Cell) bool {
+	return cell.TxPowerDB == otherCell.TxPowerDB &&
+		cell.Channel.SSBFrequency == otherCell.Channel.SSBFrequency &&
+		cell.Channel.Environment == otherCell.Channel.Environment &&
+		cell.Channel.LOS == otherCell.Channel.LOS &&
+		cell.Beam.H3dBAngle == otherCell.Beam.H3dBAngle &&
+		cell.Beam.V3dBAngle == otherCell.Beam.V3dBAngle &&
+		cell.Beam.MaxGain == otherCell.Beam.MaxGain &&
+		cell.Beam.MaxAttenuationDB == otherCell.Beam.MaxAttenuationDB &&
+		cell.Sector.Azimuth == otherCell.Sector.Azimuth &&
+		cell.Sector.Arc == otherCell.Sector.Arc &&
+		cell.Sector.Tilt == otherCell.Sector.Tilt &&
+		cell.Sector.Center.Lat == otherCell.Sector.Center.Lat &&
+		cell.Sector.Center.Lng == otherCell.Sector.Center.Lng
 }
 
 func (m *Manager) initMetricStore() {

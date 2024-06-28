@@ -17,3 +17,5 @@ build/build-tools
 
 # Overrides file
 overrides.yaml
+
+coverage*

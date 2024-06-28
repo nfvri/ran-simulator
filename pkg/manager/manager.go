@@ -96,19 +96,9 @@ func (m *Manager) initmobilityDriver() {
 
 }
 
-func initializeCoverage(cell *model.Cell) {
-	cell.CoverageBoundaries = []model.CoverageBoundary{
-		{
-			RefSignalStrength: -87,
-			BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
-		},
-	}
-
-}
-
 func initializeCellShadowMap(cell *model.Cell, decorrelationDist float64) {
 	log.Warnf("failed to retrieve shadowmap for cell: %d", cell.NCGI)
-	signal.InitShadowMap(cell, decorrelationDist)
+
 	// err := redisLib.AddShadowMap(m.rdbClient, uint64(cell.NCGI),
 	// 	&model.ShadowMap{
 	// 		ShadowingMap: cell.ShadowingMap,
@@ -199,8 +189,13 @@ func (m *Manager) initModelStores() {
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
-			initializeCoverage(cell)
-			initializeCellShadowMap(cell, m.model.DecorrelationDistance)
+			cell.CoverageBoundaries = []model.CoverageBoundary{
+				{
+					RefSignalStrength: -87,
+					BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
+				},
+			}
+			signal.InitShadowMap(cell, m.model.DecorrelationDistance)
 			m.redisStore.Add(ctx, cell)
 		} else {
 			if cell.ConfigEquivalent(cachedCell) {
@@ -208,8 +203,13 @@ func (m *Manager) initModelStores() {
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
 			} else {
-				initializeCoverage(cell)
-				initializeCellShadowMap(cell, m.model.DecorrelationDistance)
+				cell.CoverageBoundaries = []model.CoverageBoundary{
+					{
+						RefSignalStrength: -87,
+						BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
+					},
+				}
+				signal.InitShadowMap(cell, m.model.DecorrelationDistance)
 				m.redisStore.Update(ctx, cell)
 			}
 		}

@@ -203,7 +203,7 @@ func (m *Manager) initModelStores() {
 			initializeCellShadowMap(cell, m.model.DecorrelationDistance)
 			m.redisStore.Add(ctx, cell)
 		} else {
-			if ConfigEquivalent(cell, cachedCell) {
+			if cell.ConfigEquivalent(cachedCell) {
 				cell.CoverageBoundaries = cachedCell.CoverageBoundaries
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
@@ -238,22 +238,6 @@ func (m *Manager) initModelStores() {
 			log.Debug()
 		}
 	}
-}
-
-func ConfigEquivalent(cell, otherCell *model.Cell) bool {
-	return cell.TxPowerDB == otherCell.TxPowerDB &&
-		cell.Channel.SSBFrequency == otherCell.Channel.SSBFrequency &&
-		cell.Channel.Environment == otherCell.Channel.Environment &&
-		cell.Channel.LOS == otherCell.Channel.LOS &&
-		cell.Beam.H3dBAngle == otherCell.Beam.H3dBAngle &&
-		cell.Beam.V3dBAngle == otherCell.Beam.V3dBAngle &&
-		cell.Beam.MaxGain == otherCell.Beam.MaxGain &&
-		cell.Beam.MaxAttenuationDB == otherCell.Beam.MaxAttenuationDB &&
-		cell.Sector.Azimuth == otherCell.Sector.Azimuth &&
-		cell.Sector.Arc == otherCell.Sector.Arc &&
-		cell.Sector.Tilt == otherCell.Sector.Tilt &&
-		cell.Sector.Center.Lat == otherCell.Sector.Center.Lat &&
-		cell.Sector.Center.Lng == otherCell.Sector.Center.Lng
 }
 
 func (m *Manager) initMetricStore() {

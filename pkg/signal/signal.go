@@ -11,6 +11,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	log "github.com/sirupsen/logrus"
 )
 
 // powerFactor relates power to distance in decimal degrees
@@ -26,11 +27,11 @@ func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell)
 
 	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
 	if inGrid {
-		fmt.Printf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}
-	fmt.Printf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
-	fmt.Printf("strengthAfterPathloss: %v", strengthAfterPathloss)
+	log.Debugf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
+	log.Debugf("strengthAfterPathloss: %v", strengthAfterPathloss)
 	return strengthAfterPathloss
 
 }
@@ -38,7 +39,7 @@ func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell)
 func StrengthAfterPathloss(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	angleAtt := angularAttenuation(coord, height, cell)
 	pathLoss := GetPathLoss(coord, height, cell)
-	fmt.Printf("\ncell.TxPowerDB: %v \ncell.Beam.MaxGain:%v \nangleAtt:%v \npathLoss:%v \n", cell.TxPowerDB, cell.Beam.MaxGain, angleAtt, pathLoss)
+	log.Debugf("\ncell.TxPowerDB: %v \ncell.Beam.MaxGain:%v \nangleAtt:%v \npathLoss:%v \n", cell.TxPowerDB, cell.Beam.MaxGain, angleAtt, pathLoss)
 
 	return cell.TxPowerDB + cell.Beam.MaxGain + angleAtt - pathLoss
 }
@@ -78,7 +79,7 @@ func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 // https://www.etsi.org/deliver/etsi_tr/138900_138999/138901/17.00.00_60/tr_138901v170000p.pdf
 // Table 7.3-1: Radiation power pattern of a single antenna element
 func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell) float64 {
-	fmt.Print("\n======================================\n")
+	log.Debug("\n======================================\n")
 	azRads := utils.AzimuthToRads(cell.Sector.Azimuth)
 	ueAngle := utils.GetRotationDegrees(
 		&types.Point{
@@ -98,13 +99,13 @@ func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell)
 	}
 	horizontalCut := azimuthAttenuation(azimuthOffset, cell.Beam.H3dBAngle, cell.TxPowerDB)
 	hAttformat := "\nhorizontalCut: %v \ncell.Sector.Azimuth: %v \nazpoint: %v \nazimuthOffset: %v \nazRads: %v \nazpointRads: %v"
-	fmt.Printf(hAttformat, horizontalCut, cell.Sector.Azimuth, ueAngleRads*(180/math.Pi), azimuthOffset, azRads, ueAngleRads)
+	log.Debugf(hAttformat, horizontalCut, cell.Sector.Azimuth, ueAngleRads*(180/math.Pi), azimuthOffset, azRads, ueAngleRads)
 
-	fmt.Print("\n======================================\n")
+	log.Debug("\n======================================\n")
 	zenithAngle := calcZenithAngle(coord, height, cell)
 	verticalCut := zenithAttenuation(zenithAngle, cell.Beam.V3dBAngle, cell.Beam.VSideLobeAttenuationDB)
-	fmt.Printf("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
-	fmt.Print("\n======================================\n")
+	log.Debugf("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
+	log.Debug("\n======================================\n")
 	return -math.Min(-(verticalCut + horizontalCut), cell.TxPowerDB)
 }
 
@@ -132,8 +133,8 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	if zenithAngle > 180 {
 		zenithAngle = 360 - zenithAngle
 	}
-	fmt.Printf("\nueAngle:%v \nzUE: %v \nztilt: %v", ueAngleRads*(180/math.Pi), zUERads*(180/math.Pi), zTilt)
-	fmt.Printf("\nzAngleOffset: %v", zAngleOffset*(180/math.Pi))
+	log.Debugf("\nueAngle:%v \nzUE: %v \nztilt: %v", ueAngleRads*(180/math.Pi), zUERads*(180/math.Pi), zTilt)
+	log.Debugf("\nzAngleOffset: %v", zAngleOffset*(180/math.Pi))
 	return zenithAngle
 }
 
@@ -232,7 +233,7 @@ func getBreakpointPrimeDistance(cell model.Cell) float64 {
 	fc := float64(cell.Channel.SSBFrequency) * 1000000 // frequency in Hz
 
 	numer := (4 * hBS * hUT * fc)
-	fmt.Printf("\ncell.Channel.SSBFrequency:%v ssbMhz:%v \nfc: %v numer:%v", cell.Channel.SSBFrequency, float64(cell.Channel.SSBFrequency), fc, numer)
+	log.Debugf("\ncell.Channel.SSBFrequency:%v ssbMhz:%v \nfc: %v numer:%v", cell.Channel.SSBFrequency, float64(cell.Channel.SSBFrequency), fc, numer)
 	dBP := numer / c
 
 	return dBP
@@ -290,14 +291,14 @@ func getUrbanLOSPathLoss(coord model.Coordinate, height float64, cell model.Cell
 	hUT := height                                   // average height of user terminal 1m <= hUT <= 22.5m
 	fc := float64(cell.Channel.SSBFrequency) / 1000 // frequency in GHz
 
-	fmt.Printf("\ndBP:%v \nd2D:%v", dBP, d2D)
+	log.Debugf("\ndBP:%v \nd2D:%v", dBP, d2D)
 	if 10 <= d2D && d2D <= dBP {
 		pl1 := 28.0 + 22*math.Log10(d3D) + 20*math.Log10(fc)
-		fmt.Printf("\npl1:%v", pl1)
+		log.Debugf("\npl1:%v", pl1)
 		return pl1
 	} else {
 		pl2 := 28.0 + 40*math.Log10(d3D) + 20*math.Log10(fc) - 9*math.Log10(math.Pow(dBP, 2)+math.Pow(hBS-hUT, 2))
-		fmt.Printf("\npl2:%v", pl2)
+		log.Debugf("\npl2:%v", pl2)
 		return pl2
 	}
 
@@ -312,7 +313,7 @@ func getUrbanNLOSPathLoss(coord model.Coordinate, height float64, cell model.Cel
 	plLOS := getUrbanLOSPathLoss(coord, height, cell)
 	plNLOS := 13.54 + 39.08*math.Log10(d3D) + 20*math.Log10(fc) - 0.6*(hUT-1.5)
 
-	fmt.Printf("\nplLOS:%v \nplNLOS:%v", plLOS, plNLOS)
+	log.Debugf("\nplLOS:%v \nplNLOS:%v", plLOS, plNLOS)
 
 	return math.Max(plLOS, plNLOS)
 }

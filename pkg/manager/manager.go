@@ -6,8 +6,6 @@ package manager
 
 import (
 	"context"
-	"fmt"
-	"math"
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
@@ -88,40 +86,7 @@ func (m *Manager) initmobilityDriver() {
 	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
 	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
 	// m.mobilityDriver.Start(context.Background())
-	cellList, _ := m.cellStore.List(context.Background())
-	for _, cell := range cellList {
-		cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
-		if err != nil {
-			initializeCellShadowMap(cell, m)
-		} else {
-			cell.GridPoints = cellShadowMap.GridPoints
-			cell.ShadowingMap = cellShadowMap.ShadowingMap
-		}
-	}
-	for i := 0; i < len(cellList); i++ {
-		for j := i + 1; j < len(cellList); j++ {
-			replaceOverlappingShadowMapValues(cellList[i], cellList[j], m)
-		}
-	}
-	for _, cell := range cellList {
-		fmt.Println("*******************")
-		fmt.Println(cell.NCGI)
-		fmt.Println("*******************")
-		gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
-		fmt.Printf("%5v,", "i\\j")
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%8d,", i)
-		}
-		fmt.Println()
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%5d,", i)
-			for j := 0; j < gridSize; j++ {
 
-				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
-			}
-			fmt.Println()
-		}
-	}
 	ueList := m.ueStore.ListAllUEs(context.Background())
 	for _, ue := range ueList {
 		m.mobilityDriver.UpdateUESignalStrength(context.Background(), ue.IMSI)
@@ -212,6 +177,41 @@ func (m *Manager) initModelStores() {
 
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
+	//TODO:
+	// cellList, _ := m.cellStore.List(context.Background())
+	// for _, cell := range cellList {
+	// 	cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
+	// 	if err != nil {
+	// 		initializeCellShadowMap(cell, m)
+	// 	} else {
+	// 		cell.GridPoints = cellShadowMap.GridPoints
+	// 		cell.ShadowingMap = cellShadowMap.ShadowingMap
+	// 	}
+	// }
+	// for i := 0; i < len(cellList); i++ {
+	// 	for j := i + 1; j < len(cellList); j++ {
+	// 		replaceOverlappingShadowMapValues(cellList[i], cellList[j], m)
+	// 	}
+	// }
+	// for _, cell := range cellList {
+	// 	fmt.Println("*******************")
+	// 	fmt.Println(cell.NCGI)
+	// 	fmt.Println("*******************")
+	// 	gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
+	// 	fmt.Printf("%5v,", "i\\j")
+	// 	for i := 0; i < gridSize; i++ {
+	// 		fmt.Printf("%8d,", i)
+	// 	}
+	// 	fmt.Println()
+	// 	for i := 0; i < gridSize; i++ {
+	// 		fmt.Printf("%5d,", i)
+	// 		for j := 0; j < gridSize; j++ {
+
+	// 			fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
+	// 		}
+	// 		fmt.Println()
+	// 	}
+	// }
 }
 
 func (m *Manager) initMetricStore() {

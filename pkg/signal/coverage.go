@@ -10,31 +10,8 @@ import (
 )
 
 // Runs Newton Krylov solver to compute the signal coverage points
-func GetSignalCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Coordinate {
+func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Coordinate {
 
-	// cell = model.Cell{
-	// 	TxPowerDB: 40,
-	// 	CellType:  types.CellType_MACRO,
-	// 	Sector: model.Sector{
-	// 		Azimuth: 0,
-	// 		Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
-	// 		Height:  30,
-	// 		Arc:     90,
-	// 		Tilt:    0,
-	// 	},
-	// 	Channel: model.Channel{
-	// 		Environment:  "urban",
-	// 		LOS:          true,
-	// 		SSBFrequency: 900,
-	// 	},
-	// 	Beam: model.Beam{
-	// 		H3dBAngle:              65,
-	// 		V3dBAngle:              65,
-	// 		MaxGain:                8,
-	// 		MaxAttenuationDB:       30,
-	// 		VSideLobeAttenuationDB: 30,
-	// 	},
-	// }
 	problem := nonlin.Problem{
 		F: func(out, x []float64) {
 			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
@@ -59,6 +36,7 @@ func GetSignalCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Co
 
 	guesses := make([][]float64, 0)
 	results := make([]nonlin.Result, 0)
+	boundaryPoints := make([]model.Coordinate, 0)
 	for i := 360; i < 900; i++ {
 		outerPoint := float64(i) * 0.0005 * rand.Float64()
 		sign1 := rand.Float64() - 0.5
@@ -68,6 +46,10 @@ func GetSignalCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Co
 		if res.Converged {
 			guesses = append(guesses, x0)
 			results = append(results, res)
+			boundaryPoints = append(boundaryPoints, model.Coordinate{
+				Lat: res.X[0],
+				Lng: res.X[1],
+			})
 		}
 	}
 	log.Debugf("results length: %d", len(results))
@@ -75,20 +57,5 @@ func GetSignalCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Co
 		log.Debugf("Roots: (x, y) = %v Function values: %v Guesses: %v \n", result.X, result.F, guesses[i])
 	}
 
-	coords := make([]model.Coordinate, 0)
-	for _, result := range results {
-		hCoords := model.Coordinate{
-			Lat: result.X[0],
-			Lng: result.X[1],
-		}
-		coords = append(coords, hCoords)
-	}
-
-	sortedCoords := utils.SortCoordinatesByBearing(cell.Sector.Center, coords)
-
-	for _, sortedCoord := range sortedCoords {
-		log.Debugf("[%f, %f], \n", sortedCoord.Lat, sortedCoord.Lng)
-	}
-
-	return sortedCoords
+	return utils.SortCoordinatesByBearing(cell.Sector.Center, boundaryPoints)
 }

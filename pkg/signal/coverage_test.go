@@ -38,7 +38,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	}
 
 	ueHeight := 1.5
-	sortedCoords := GetSignalCoverageNewtonKrylov(cell, ueHeight)
+	sortedCoords := ComputeCoverageNewtonKrylov(cell, ueHeight)
 
 	for _, sortedCoord := range sortedCoords {
 		t.Logf("[%f, %f], \n", sortedCoord.Lat, sortedCoord.Lng)

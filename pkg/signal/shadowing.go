@@ -10,79 +10,38 @@ import (
 )
 
 // Convert meters to degrees latitude
-func MetersToLatDegrees(meters float64) float64 {
+func metersToLatDegrees(meters float64) float64 {
 	return meters / 111132.954
 }
 
 // Convert meters to degrees longitude at a specific latitude
-func MetersToLngDegrees(meters, latitude float64) float64 {
+func metersToLngDegrees(meters, latitude float64) float64 {
 	return meters / (111132.954 * math.Cos(latitude*math.Pi/180.0))
 }
 
-// Function to expand diagonally and check path loss until it reaches 90
-func getMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, float64) {
-	latStep := MetersToLatDegrees(d_c)
-	lngStep := MetersToLngDegrees(d_c, cell.Sector.Center.Lat)
-	maxShadowingEffect := 10.0
-	fmt.Println("latStep:")
-	fmt.Println(latStep)
-	fmt.Println("lngStep:")
-	fmt.Println(lngStep)
+func ComputeGridPoints(coverageCoordinates []model.Coordinate, d_c float64) []model.Coordinate {
 
-	maxLat := cell.Sector.Center.Lat
-	maxLng := cell.Sector.Center.Lng
-
-	ue := model.UE{
-		Height: 1.5,
-	}
-	// Expand in the positive direction
-	for {
-		ue.Location = model.Coordinate{Lat: maxLat, Lng: maxLng}
-		strengthAfterPathloss := StrengthAfterPathloss(ue.Location, ue.Height, cell)
-		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", maxLat, maxLng, strengthAfterPathloss)
-		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
-			break
-		}
-		maxLat += latStep
-		maxLng += lngStep
-	}
-
-	minLat := cell.Sector.Center.Lat
-	minLng := cell.Sector.Center.Lng
-
-	// Expand in the negative direction
-	for {
-		ue.Location = model.Coordinate{Lat: minLat, Lng: minLng}
-		strengthAfterPathloss := StrengthAfterPathloss(ue.Location, ue.Height, cell)
-		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", minLat, minLng, strengthAfterPathloss)
-		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
-			break
-		}
-		minLat -= latStep
-		minLng -= lngStep
-	}
-	return minLat, minLng, maxLat, maxLng
-}
-
-func ComputeGridPoints(cell model.Cell, d_c float64) []model.Coordinate {
-
-	minLat, minLng, maxLat, maxLng := getMinMaxPoints(cell, d_c)
+	minLat, minLng, maxLat, maxLng := findMinMaxCoords(coverageCoordinates)
+	// fmt.Println(coverageCoordinates)
+	fmt.Printf("square min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
 
 	latDiff := math.Abs(maxLat - minLat)
 	lngDiff := math.Abs(maxLng - minLng)
 
 	// Convert d_c from meters to degrees
-	d_c_lat := MetersToLatDegrees(d_c)
+	d_c_lat := metersToLatDegrees(d_c)
+	fmt.Println(d_c_lat)
 	avgLat := (minLat + maxLat) / 2.0
-	d_c_lng := MetersToLngDegrees(d_c, avgLat)
+	d_c_lng := metersToLngDegrees(d_c, avgLat)
+	fmt.Println(d_c_lat)
 
 	// Calculate the number of grid points based on d_c
 	numLatPoints := int(math.Ceil(latDiff / d_c_lat))
 	numLngPoints := int(math.Ceil(lngDiff / d_c_lng))
-	fmt.Println("*******************")
-	fmt.Println(cell.NCGI)
-	fmt.Println("*******************")
-	fmt.Printf("------------------\n minLat: %f\n maxLat: %f\n latDiff: %f\n minLng: %f\n maxLng: %f\n lngDiff: %f\n", minLat, maxLat, latDiff, minLng, maxLng, lngDiff)
+	// fmt.Println("*******************")
+	// fmt.Println(cell.NCGI)
+	// fmt.Println("*******************")
+	// fmt.Printf("------------------\n minLat: %f\n maxLat: %f\n latDiff: %f\n minLng: %f\n maxLng: %f\n lngDiff: %f\n", minLat, maxLat, latDiff, minLng, maxLng, lngDiff)
 
 	gridPoints := make([]model.Coordinate, 0, numLatPoints*numLngPoints)
 	for i := 0; i <= numLatPoints; i++ {
@@ -101,15 +60,6 @@ func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float6
 	fmt.Println(gridSize)
 	// Compute the correlation matrix
 	A := computeCorrelationMatrix(gridPoints, d_c)
-
-	// Print the correlation matrix
-	// fmt.Println("Correlation matrix (A):")
-	// for _, row := range A {
-	// 	for _, val := range row {
-	// 		fmt.Printf("%.4f ", val)
-	// 	}
-	// 	fmt.Println()
-	// }
 
 	// Compute the correlated shadow fading
 	shadowing := computeCorrelatedShadowFading(A, sigma)
@@ -141,6 +91,51 @@ func getEuclideanDistanceFromCoordinates(coord1 model.Coordinate, coord2 model.C
 		math.Sin(dLng/2)*math.Sin(dLng/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 	return earthRadius * c * 1000 // distance in meters
+}
+
+// findMinMaxCoords finds the minimum and maximum latitude and longitude from a list of coordinates.
+func findMinMaxCoords(coords []model.Coordinate) (float64, float64, float64, float64) {
+	// Initialize min and max with extreme values
+	minLat := math.MaxFloat64
+	minLng := math.MaxFloat64
+	maxLat := -math.MaxFloat64
+	maxLng := -math.MaxFloat64
+
+	for _, coord := range coords {
+		if coord.Lat < minLat {
+			minLat = coord.Lat
+		}
+		if coord.Lng < minLng {
+			minLng = coord.Lng
+		}
+		if coord.Lat > maxLat {
+			maxLat = coord.Lat
+		}
+		if coord.Lng > maxLng {
+			maxLng = coord.Lng
+		}
+	}
+	fmt.Printf("min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
+	minCoord := model.Coordinate{Lat: minLat, Lng: minLng}
+	maxCoordLat := model.Coordinate{Lat: maxLat, Lng: minLng}
+	maxCoordLng := model.Coordinate{Lat: minLat, Lng: maxLng}
+
+	latRange := getEuclideanDistanceFromCoordinates(minCoord, maxCoordLat)
+	lngRange := getEuclideanDistanceFromCoordinates(minCoord, maxCoordLng)
+
+	if latRange > lngRange {
+		latDiff := latRange - lngRange
+		latDiffDegrees := metersToLngDegrees(latDiff/2, minLat)
+		minLng = minLng - latDiffDegrees
+		maxLng = maxLng + latDiffDegrees
+	} else {
+		lngDiff := lngRange - latRange
+		lngDiffDegrees := metersToLatDegrees(lngDiff / 2)
+		minLat = minLat - lngDiffDegrees
+		maxLat = maxLat + lngDiffDegrees
+	}
+
+	return minLat, minLng, maxLat, maxLng
 }
 
 // Function to compute the correlation matrix

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
+	"github.com/nfvri/ran-simulator/pkg/signal"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 
@@ -88,40 +89,7 @@ func (m *Manager) initmobilityDriver() {
 	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
 	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
 	// m.mobilityDriver.Start(context.Background())
-	cellList, _ := m.cellStore.List(context.Background())
-	for _, cell := range cellList {
-		cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
-		if err != nil {
-			initializeCellShadowMap(cell, m)
-		} else {
-			cell.GridPoints = cellShadowMap.GridPoints
-			cell.ShadowingMap = cellShadowMap.ShadowingMap
-		}
-	}
-	for i := 0; i < len(cellList); i++ {
-		for j := i + 1; j < len(cellList); j++ {
-			replaceOverlappingShadowMapValues(cellList[i], cellList[j], m)
-		}
-	}
-	for _, cell := range cellList {
-		fmt.Println("*******************")
-		fmt.Println(cell.NCGI)
-		fmt.Println("*******************")
-		gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
-		fmt.Printf("%5v,", "i\\j")
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%8d,", i)
-		}
-		fmt.Println()
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%5d,", i)
-			for j := 0; j < gridSize; j++ {
 
-				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
-			}
-			fmt.Println()
-		}
-	}
 	ueList := m.ueStore.ListAllUEs(context.Background())
 	for _, ue := range ueList {
 		m.mobilityDriver.UpdateUESignalStrength(context.Background(), ue.IMSI)
@@ -129,30 +97,41 @@ func (m *Manager) initmobilityDriver() {
 
 }
 
-func initializeCellShadowMap(cell *model.Cell, m *Manager) {
+func initializeCellShadowMap(cell *model.Cell, coverageCoordinates []model.Coordinate, d_c float64) {
 	log.Warnf("failed to retrieve shadowmap for cell: %d", cell.NCGI)
-	m.mobilityDriver.InitShadowMap(cell, m.model.DecorrelationDistance)
-	// err := redisLib.AddShadowMap(m.rdbClient, uint64(cell.NCGI),
-	// 	&model.ShadowMap{
-	// 		ShadowingMap: cell.ShadowingMap,
-	// 		GridPoints:   cell.GridPoints,
-	// 	})
-	// if err != nil {
-	// 	log.Errorf("failed to store shadowmap for cell: %d", cell.NCGI)
-	// }
+	fmt.Println(cell)
+	log.Info("Initilizing ShadowMap")
+	log.Info(cell)
+	sigma := 6.0
+	switch {
+	case cell.Channel.Environment == "urban" && cell.Channel.LOS:
+		sigma = 4.0
+	case cell.Channel.Environment == "urban" && !cell.Channel.LOS:
+		sigma = 6.0
+	case cell.Channel.Environment == "rural" && cell.Channel.LOS:
+		sigma = 4.0
+	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
+		sigma = 8.0
+	}
+
+	cell.GridPoints = signal.ComputeGridPoints(coverageCoordinates, d_c)
+	cell.ShadowingMap = signal.CalculateShadowMap(cell.GridPoints, d_c, sigma)
 }
 
-func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell, m *Manager) {
-
-	m.mobilityDriver.ReplaceOverlappingShadowMap(cell1, cell2, m.model.DecorrelationDistance)
-	// err := redisLib.AddShadowMap(m.rdbClient, uint64(cell2.NCGI),
-	// 	&model.ShadowMap{
-	// 		ShadowingMap: cell2.ShadowingMap,
-	// 		GridPoints:   cell2.GridPoints,
-	// 	})
-	// if err != nil {
-	// 	log.Errorf("failed to store shadowmap for cell: %d", cell2.NCGI)
-	// }
+func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
+	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := signal.FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
+	if overlapping {
+		if cell1.NCGI == cell2.NCGI {
+			fmt.Printf("%d and %d overlapping but is the same cell\n", cell1.NCGI, cell2.NCGI)
+		} else {
+			for i, _ := range cell1iList {
+				fmt.Printf("%d and %d overlapping: (%d,%d) and (%d,%d)\n", cell1.NCGI, cell2.NCGI, cell1iList[i], cell1jList[i], cell2iList[i], cell2jList[i])
+				cell2.ShadowingMap[cell2iList[i]][cell2jList[i]] = cell1.ShadowingMap[cell1iList[i]][cell1jList[i]]
+			}
+		}
+	} else {
+		fmt.Printf("%d and %d does not overlap\n", cell1.NCGI, cell2.NCGI)
+	}
 }
 
 // Start starts the manager
@@ -212,6 +191,49 @@ func (m *Manager) initModelStores() {
 
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
+
+	initCoverageAndShadowMaps(m)
+}
+
+func initCoverageAndShadowMaps(m *Manager) {
+	cellList, _ := m.cellStore.List(context.Background())
+	d_c := m.model.DecorrelationDistance
+	ueHeight := 1.5
+
+	for _, cell := range cellList {
+		sortedCoords := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight)
+		cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
+		if err != nil {
+			initializeCellShadowMap(cell, sortedCoords, d_c)
+		} else {
+			cell.GridPoints = cellShadowMap.GridPoints
+			cell.ShadowingMap = cellShadowMap.ShadowingMap
+		}
+	}
+	for i := 0; i < len(cellList); i++ {
+		for j := i + 1; j < len(cellList); j++ {
+			replaceOverlappingShadowMapValues(cellList[i], cellList[j])
+		}
+	}
+	for _, cell := range cellList {
+		fmt.Println("*******************")
+		fmt.Println(cell.NCGI)
+		fmt.Println("*******************")
+		gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
+		fmt.Printf("%5v,", "i\\j")
+		for i := 0; i < gridSize; i++ {
+			fmt.Printf("%8d,", i)
+		}
+		fmt.Println()
+		for i := 0; i < gridSize; i++ {
+			fmt.Printf("%5d,", i)
+			for j := 0; j < gridSize; j++ {
+
+				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
+			}
+			fmt.Println()
+		}
+	}
 }
 
 func (m *Manager) initMetricStore() {

@@ -31,7 +31,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	"github.com/redis/go-redis/v9"
 )
 
 var log = logging.GetLogger()
@@ -70,11 +69,11 @@ type Manager struct {
 	server         *northbound.Server
 	nodeStore      nodes.Store
 	cellStore      cells.Store
+	redisStore     redisLib.RedisStore
 	ueStore        ues.Store
 	routeStore     routes.Store
 	metricsStore   metrics.Store
 	mobilityDriver mobility.Driver
-	rdbClient      *redis.Client
 }
 
 // Run starts the manager and the associated services
@@ -140,8 +139,13 @@ func (m *Manager) Start() error {
 	if m.config.RedisEnabled {
 		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
 		redisPort := utils.GetEnv("REDIS_PORT", "6379")
-		rdbClient := redisLib.InitClient(redisHost, redisPort)
-		m.rdbClient = rdbClient
+		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
+		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
+		redisPass := utils.GetEnv("REDIS_PASSWORD", "")
+		rdbClient := redisLib.InitClient(redisHost, redisPort, redisCellCache, redisUsername, redisPass)
+		m.redisStore = redisLib.RedisStore{
+			Rdb: rdbClient,
+		}
 	}
 
 	// Load the model data
@@ -232,6 +236,60 @@ func initCoverageAndShadowMaps(m *Manager) {
 				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
 			}
 			fmt.Println()
+		}
+	}
+
+	cellList, _ := m.cellStore.List(ctx)
+	for _, cell := range cellList {
+		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
+		if err != nil {
+			cell.CoverageBoundaries = []model.CoverageBoundary{
+				{
+					RefSignalStrength: -87,
+					BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
+				},
+			}
+			signal.InitShadowMap(cell, m.model.DecorrelationDistance)
+			m.redisStore.Add(ctx, cell)
+		} else {
+			if cell.ConfigEquivalent(cachedCell) {
+				cell.CoverageBoundaries = cachedCell.CoverageBoundaries
+				cell.GridPoints = cachedCell.GridPoints
+				cell.ShadowingMap = cachedCell.ShadowingMap
+			} else {
+				cell.CoverageBoundaries = []model.CoverageBoundary{
+					{
+						RefSignalStrength: -87,
+						BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
+					},
+				}
+				signal.InitShadowMap(cell, m.model.DecorrelationDistance)
+				m.redisStore.Update(ctx, cell)
+			}
+		}
+	}
+	for i := 0; i < len(cellList); i++ {
+		for j := i + 1; j < len(cellList); j++ {
+			replaceOverlappingShadowMapValues(cellList[i], cellList[j], m)
+		}
+	}
+	for _, cell := range cellList {
+		log.Debug("*******************")
+		log.Debug(cell.NCGI)
+		log.Debug("*******************")
+		gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
+		fmt.Printf("%5v,", "i\\j")
+		for i := 0; i < gridSize; i++ {
+			fmt.Printf("%8d,", i)
+		}
+		log.Debug()
+		for i := 0; i < gridSize; i++ {
+			fmt.Printf("%5d,", i)
+			for j := 0; j < gridSize; j++ {
+
+				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
+			}
+			log.Debug()
 		}
 	}
 }

@@ -132,6 +132,22 @@ type Cell struct {
 	ShadowMap
 }
 
+func (cell *Cell) ConfigEquivalent(otherCell *Cell) bool {
+	return cell.TxPowerDB == otherCell.TxPowerDB &&
+		cell.Channel.SSBFrequency == otherCell.Channel.SSBFrequency &&
+		cell.Channel.Environment == otherCell.Channel.Environment &&
+		cell.Channel.LOS == otherCell.Channel.LOS &&
+		cell.Beam.H3dBAngle == otherCell.Beam.H3dBAngle &&
+		cell.Beam.V3dBAngle == otherCell.Beam.V3dBAngle &&
+		cell.Beam.MaxGain == otherCell.Beam.MaxGain &&
+		cell.Beam.MaxAttenuationDB == otherCell.Beam.MaxAttenuationDB &&
+		cell.Sector.Azimuth == otherCell.Sector.Azimuth &&
+		cell.Sector.Arc == otherCell.Sector.Arc &&
+		cell.Sector.Tilt == otherCell.Sector.Tilt &&
+		cell.Sector.Center.Lat == otherCell.Sector.Center.Lat &&
+		cell.Sector.Center.Lng == otherCell.Sector.Center.Lng
+}
+
 type Beam struct {
 	H3dBAngle              float64 `mapstructure:"h3dBAngle"`
 	V3dBAngle              float64 `mapstructure:"v3dBAngle"`

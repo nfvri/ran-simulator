@@ -28,6 +28,9 @@ test: # @HELP run the unit tests and source code validation producing a golang s
 test: build deps linters license
 	go test -race github.com/nfvri/ran-simulator/...
 
+test-ci: build
+	find . -name "*_test.go" | awk -F/ '{NF=NF-1;$NF=$NF"/"}1' OFS=/ | grep -v '/build/' | xargs go test -v
+
 jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
 jenkins-test: build deps license linters
 	TEST_PACKAGES=github.com/nfvri/ran-simulator/pkg/... ./build/build-tools/build/jenkins/make-unit
@@ -72,3 +75,12 @@ clean:: # @HELP remove all the build artifacts
 	rm -rf ${OUTPUT_DIR} ./cmd/trafficsim/trafficsim ./cmd/ransim/ransim
 	# go clean -testcache github.com/nfvri/ran-simulator/...
 
+docker:
+	DOCKER_BUILDKIT=1 docker build -t ran-simulator:latest .
+	docker save -o ransim.tar ran-simulator:latest
+	scp ransim.tar clx1:~/.
+	scp ransim.tar ilx1:~/.
+	scp ransim.tar clx2:~/.
+	echo "S29zdGFzMTk5I0AhCg==" | base64 -d | ssh clx1 sudo -S ctr -n=k8s.io image import ransim.tar 2>/dev/null
+	echo "S29zdGFzMTk5I0AhCg==" | base64 -d | ssh ilx1 sudo -S ctr -n=k8s.io image import ransim.tar 2>/dev/null
+	echo "S29zdGFzMTk5I0AhCg==" | base64 -d | ssh clx2 sudo -S ctr -n=k8s.io image import ransim.tar 2>/dev/null

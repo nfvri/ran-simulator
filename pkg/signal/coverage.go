@@ -46,15 +46,15 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64, refSignalStr
 		// log.Infof("\n======================================\n")
 		// log.Infof("\tcenter: (%v,%v)\n\t\tx0: (%v)\n", cell.Sector.Center.Lat, cell.Sector.Center.Lng, x0)
 
-		log.Infof("\n======================================\n")
-		log.Infof("\n\t\tx0: %v", x0)
+		log.Debugf("\n======================================\n")
+		log.Debugf("\n\t\tx0: %v", x0)
 		res := solver.Solve(problem, x0)
-		log.Infof("\t\n res: %v\n\t\tx0: %v", res, x0)
+		log.Debugf("\t\n res: %v\n\t\tx0: %v", res, x0)
 		if res.Converged {
 			guesses = append(guesses, x0)
 			results = append(results, res)
 			if math.Abs(res.X[0]) > 90 || math.Abs(res.X[1]) > 180 {
-				log.Infof("\tcenter: (%v,%v)\n\t\toutlier: (%v,%v)", cell.Sector.Center.Lat, cell.Sector.Center.Lng, res.X[0], res.X[1])
+				log.Debugf("\tcenter: (%v,%v)\n\t\toutlier: (%v,%v)", cell.Sector.Center.Lat, cell.Sector.Center.Lng, res.X[0], res.X[1])
 			} else {
 				boundaryPoints = append(boundaryPoints, model.Coordinate{
 					Lat: res.X[0],

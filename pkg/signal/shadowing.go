@@ -7,13 +7,16 @@ import (
 	"sort"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
+	log "github.com/sirupsen/logrus"
 )
 
+// TODO: Move to utils
 // Convert meters to degrees latitude
 func metersToLatDegrees(meters float64) float64 {
 	return meters / 111132.954
 }
 
+// TODO: Move to utils & use AspectRatio
 // Convert meters to degrees longitude at a specific latitude
 func metersToLngDegrees(meters, latitude float64) float64 {
 	return meters / (111132.954 * math.Cos(latitude*math.Pi/180.0))
@@ -33,7 +36,7 @@ func ComputeGridPoints(coverageCoordinates []model.Coordinate, d_c float64) []mo
 	fmt.Println(d_c_lat)
 	avgLat := (minLat + maxLat) / 2.0
 	d_c_lng := metersToLngDegrees(d_c, avgLat)
-	fmt.Println(d_c_lat)
+	fmt.Println(d_c_lng)
 
 	// Calculate the number of grid points based on d_c
 	numLatPoints := int(math.Ceil(latDiff / d_c_lat))
@@ -94,12 +97,12 @@ func getEuclideanDistanceFromCoordinates(coord1 model.Coordinate, coord2 model.C
 }
 
 // findMinMaxCoords finds the minimum and maximum latitude and longitude from a list of coordinates.
-func findMinMaxCoords(coords []model.Coordinate) (float64, float64, float64, float64) {
+func findMinMaxCoords(coords []model.Coordinate) (minLat, minLng, maxLat, maxLng float64) {
 	// Initialize min and max with extreme values
-	minLat := coords[0].Lat
-	minLng := coords[0].Lng
-	maxLat := coords[0].Lat
-	maxLng := coords[0].Lng
+	minLat = coords[0].Lat
+	minLng = coords[0].Lng
+	maxLat = coords[0].Lat
+	maxLng = coords[0].Lng
 
 	for _, coord := range coords {
 		if coord.Lat < minLat {
@@ -116,7 +119,7 @@ func findMinMaxCoords(coords []model.Coordinate) (float64, float64, float64, flo
 		}
 	}
 	fmt.Printf("min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
-	return minLat, minLng, maxLat, maxLng
+	return
 }
 
 // Heuristically calculate min,max points using shadowing
@@ -393,10 +396,8 @@ func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cel
 }
 
 func InitShadowMap(cell *model.Cell, d_c float64) {
-	fmt.Println("failed to retrieve shadowmap for cell: %d", cell.NCGI)
-	fmt.Println(cell)
-	fmt.Println("Initilizing ShadowMap")
-	fmt.Println(cell)
+	log.Info("Initilizing ShadowMap")
+
 	sigma := 6.0
 	switch {
 	case cell.Channel.Environment == "urban" && cell.Channel.LOS:
@@ -409,8 +410,11 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 		sigma = 8.0
 	}
 	coverageCoordinates := cell.CoverageBoundaries[0].BoundaryPoints
+	log.Infof("len(coverageCoordinates): %d", len(coverageCoordinates))
 	cell.GridPoints = ComputeGridPoints(coverageCoordinates, d_c)
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
+	//debug
+	log.Infof("%v", cell.GridPoints)
 }
 
 func ReplaceOverlappingShadowMap(cell1 *model.Cell, cell2 *model.Cell, d_c float64) {

@@ -276,7 +276,7 @@ ueCountPerCell: 2
 plmnID: "138426"
 plmnNumber: 1279014
 apiKey: ""
-decorrelationdistance: 50
+decorrelationdistance: 10
 guami:
   amfregionid: 221
   amfsetid: 819

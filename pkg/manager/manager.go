@@ -183,17 +183,19 @@ func initCoverageAndShadowMaps(m *Manager) {
 	cellList, _ := m.cellStore.List(ctx)
 	d_c := m.model.DecorrelationDistance
 	ueHeight := 1.5
+	const refSignalStrength = -87
 
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
-			boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight)
+
+			boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight, refSignalStrength)
 			if len(boundaryPoints) == 0 {
 				continue
 			}
 			cell.CoverageBoundaries = []model.CoverageBoundary{
 				{
-					RefSignalStrength: -87,
+					RefSignalStrength: refSignalStrength,
 					BoundaryPoints:    boundaryPoints,
 				},
 			}
@@ -205,7 +207,7 @@ func initCoverageAndShadowMaps(m *Manager) {
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
 			} else {
-				boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight)
+				boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight, refSignalStrength)
 				if len(boundaryPoints) == 0 {
 					continue
 				}

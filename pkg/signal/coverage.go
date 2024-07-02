@@ -11,13 +11,13 @@ import (
 )
 
 // Runs Newton Krylov solver to compute the signal coverage points
-func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Coordinate {
+func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64, refSignalStrength float64) []model.Coordinate {
 
 	problem := nonlin.Problem{
 		F: func(out, x []float64) {
 			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-			out[0] = 87 + StrengthAtLocation(coord, ueHeight, cell)
-			out[1] = 87 + StrengthAtLocation(coord, ueHeight, cell)
+			out[0] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
+			out[1] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
 		},
 	}
 

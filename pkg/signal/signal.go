@@ -26,7 +26,7 @@ func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell)
 	strengthAfterPathloss := StrengthAfterPathloss(coord, height, cell)
 
 	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
-	if inGrid {
+	if inGrid && len(cell.ShadowingMap) > 0 {
 		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
 	}

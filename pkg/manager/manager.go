@@ -187,10 +187,14 @@ func initCoverageAndShadowMaps(m *Manager) {
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
+			boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight)
+			if len(boundaryPoints) == 0 {
+				continue
+			}
 			cell.CoverageBoundaries = []model.CoverageBoundary{
 				{
 					RefSignalStrength: -87,
-					BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, ueHeight),
+					BoundaryPoints:    boundaryPoints,
 				},
 			}
 			signal.InitShadowMap(cell, d_c)
@@ -201,10 +205,14 @@ func initCoverageAndShadowMaps(m *Manager) {
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
 			} else {
+				boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight)
+				if len(boundaryPoints) == 0 {
+					continue
+				}
 				cell.CoverageBoundaries = []model.CoverageBoundary{
 					{
 						RefSignalStrength: -87,
-						BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, ueHeight),
+						BoundaryPoints:    boundaryPoints,
 					},
 				}
 				signal.InitShadowMap(cell, d_c)

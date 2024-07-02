@@ -57,7 +57,7 @@ cells:
     - 87893173159116802
     - 87893173159116803
     - 87893173159133185
-    txpowerdb: 120
+    txpowerdb: 40
     measurementparams:
       timetotrigger: 0
       frequencyoffset: 0
@@ -99,7 +99,7 @@ cells:
     - 87893173159116801
     - 87893173159116803
     - 87893173159133186
-    txpowerdb: 120
+    txpowerdb: 35
     measurementparams:
       timetotrigger: 0
       frequencyoffset: 0
@@ -141,7 +141,7 @@ cells:
     - 87893173159116801
     - 87893173159116802
     - 87893173159133187
-    txpowerdb: 110
+    txpowerdb: 30
     measurementparams:
       timetotrigger: 0
       frequencyoffset: 0
@@ -183,7 +183,7 @@ cells:
     - 87893173159133187
     - 87893173159116801
     - 87893173159133186
-    txpowerdb: 110
+    txpowerdb: 40
     measurementparams:
       timetotrigger: 0
       frequencyoffset: 0
@@ -276,7 +276,7 @@ ueCountPerCell: 2
 plmnID: "138426"
 plmnNumber: 1279014
 apiKey: ""
-decorrelationdistance: 10
+decorrelationdistance: 50
 guami:
   amfregionid: 221
   amfsetid: 819

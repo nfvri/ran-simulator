@@ -96,27 +96,6 @@ func (m *Manager) initmobilityDriver() {
 
 }
 
-func initializeCellShadowMap(cell *model.Cell, coverageCoordinates []model.Coordinate, d_c float64) {
-	log.Warnf("failed to retrieve shadowmap for cell: %d", cell.NCGI)
-	fmt.Println(cell)
-	log.Info("Initilizing ShadowMap")
-	log.Info(cell)
-	sigma := 6.0
-	switch {
-	case cell.Channel.Environment == "urban" && cell.Channel.LOS:
-		sigma = 4.0
-	case cell.Channel.Environment == "urban" && !cell.Channel.LOS:
-		sigma = 6.0
-	case cell.Channel.Environment == "rural" && cell.Channel.LOS:
-		sigma = 4.0
-	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
-		sigma = 8.0
-	}
-
-	cell.GridPoints = signal.ComputeGridPoints(coverageCoordinates, d_c)
-	cell.ShadowingMap = signal.CalculateShadowMap(cell.GridPoints, d_c, sigma)
-}
-
 func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
 	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := signal.FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
 	if overlapping {
@@ -200,56 +179,21 @@ func (m *Manager) initModelStores() {
 }
 
 func initCoverageAndShadowMaps(m *Manager) {
-	cellList, _ := m.cellStore.List(context.Background())
+	ctx := context.Background()
+	cellList, _ := m.cellStore.List(ctx)
 	d_c := m.model.DecorrelationDistance
 	ueHeight := 1.5
 
-	for _, cell := range cellList {
-		sortedCoords := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight)
-		cellShadowMap, err := redisLib.GetShadowMapByNCGI(m.rdbClient, uint64(cell.NCGI))
-		if err != nil {
-			initializeCellShadowMap(cell, sortedCoords, d_c)
-		} else {
-			cell.GridPoints = cellShadowMap.GridPoints
-			cell.ShadowingMap = cellShadowMap.ShadowingMap
-		}
-	}
-	for i := 0; i < len(cellList); i++ {
-		for j := i + 1; j < len(cellList); j++ {
-			replaceOverlappingShadowMapValues(cellList[i], cellList[j])
-		}
-	}
-	for _, cell := range cellList {
-		fmt.Println("*******************")
-		fmt.Println(cell.NCGI)
-		fmt.Println("*******************")
-		gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
-		fmt.Printf("%5v,", "i\\j")
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%8d,", i)
-		}
-		fmt.Println()
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%5d,", i)
-			for j := 0; j < gridSize; j++ {
-
-				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
-			}
-			fmt.Println()
-		}
-	}
-
-	cellList, _ := m.cellStore.List(ctx)
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
 			cell.CoverageBoundaries = []model.CoverageBoundary{
 				{
 					RefSignalStrength: -87,
-					BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
+					BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, ueHeight),
 				},
 			}
-			signal.InitShadowMap(cell, m.model.DecorrelationDistance)
+			signal.InitShadowMap(cell, d_c)
 			m.redisStore.Add(ctx, cell)
 		} else {
 			if cell.ConfigEquivalent(cachedCell) {
@@ -260,17 +204,17 @@ func initCoverageAndShadowMaps(m *Manager) {
 				cell.CoverageBoundaries = []model.CoverageBoundary{
 					{
 						RefSignalStrength: -87,
-						BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, 1.5),
+						BoundaryPoints:    signal.ComputeCoverageNewtonKrylov(*cell, ueHeight),
 					},
 				}
-				signal.InitShadowMap(cell, m.model.DecorrelationDistance)
+				signal.InitShadowMap(cell, d_c)
 				m.redisStore.Update(ctx, cell)
 			}
 		}
 	}
 	for i := 0; i < len(cellList); i++ {
 		for j := i + 1; j < len(cellList); j++ {
-			replaceOverlappingShadowMapValues(cellList[i], cellList[j], m)
+			replaceOverlappingShadowMapValues(cellList[i], cellList[j])
 		}
 	}
 	for _, cell := range cellList {

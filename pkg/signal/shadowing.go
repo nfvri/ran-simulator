@@ -96,10 +96,10 @@ func getEuclideanDistanceFromCoordinates(coord1 model.Coordinate, coord2 model.C
 // findMinMaxCoords finds the minimum and maximum latitude and longitude from a list of coordinates.
 func findMinMaxCoords(coords []model.Coordinate) (float64, float64, float64, float64) {
 	// Initialize min and max with extreme values
-	minLat := math.MaxFloat64
-	minLng := math.MaxFloat64
-	maxLat := -math.MaxFloat64
-	maxLng := -math.MaxFloat64
+	minLat := coords[0].Lat
+	minLng := coords[0].Lng
+	maxLat := coords[0].Lat
+	maxLng := coords[0].Lng
 
 	for _, coord := range coords {
 		if coord.Lat < minLat {
@@ -331,37 +331,6 @@ func isPointInsideBoundingBox(point model.Coordinate, minLat, minLng, maxLat, ma
 	return point.Lat >= minLat && point.Lat <= maxLat && point.Lng >= minLng && point.Lng <= maxLng
 }
 
-// // Function to find overlapping grid points between two grids
-// func findOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) []model.Coordinate {
-// 	minLat1, minLng1, maxLat1, maxLng1 := findBoundingBox(gridPoints1)
-// 	minLat2, minLng2, maxLat2, maxLng2 := findBoundingBox(gridPoints2)
-
-// 	// Calculate the intersection of bounding boxes
-// 	intersectMinLat := math.Max(minLat1, minLat2)
-// 	intersectMinLng := math.Max(minLng1, minLng2)
-// 	intersectMaxLat := math.Min(maxLat1, maxLat2)
-// 	intersectMaxLng := math.Min(maxLng1, maxLng2)
-
-// 	// Map to store already visited points
-// 	visited := make(map[model.Coordinate]bool)
-
-// 	// Iterate over grid points within the intersection area and check if they belong to both grids
-// 	overlappingPoints := make([]model.Coordinate, 0)
-// 	for lat := intersectMinLat; lat <= intersectMaxLat; lat += 0.001 { // Adjust the step size as needed
-// 		for lng := intersectMinLng; lng <= intersectMaxLng; lng += 0.001 { // Adjust the step size as needed
-// 			point := model.Coordinate{Lat: lat, Lng: lng}
-// 			if isPointInsideBoundingBox(point, minLat1, minLng1, maxLat1, maxLng1) &&
-// 				isPointInsideBoundingBox(point, minLat2, minLng2, maxLat2, maxLng2) &&
-// 				!visited[point] {
-// 				overlappingPoints = append(overlappingPoints, point)
-// 				visited[point] = true
-// 			}
-// 		}
-// 	}
-
-// 	return overlappingPoints
-// }
-
 // Function to find overlapping grid points between two grids and return index pointers
 func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cell1iList, cell1jList, cell2iList, cell2jList []int, overlapping bool) {
 	// minLat1, minLng1, maxLat1, maxLng1 := findBoundingBox(gridPoints1)
@@ -391,16 +360,6 @@ func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cel
 				cell2iList = append(cell2iList, cell2i)
 				cell2jList = append(cell2jList, cell2j)
 			}
-			// overlapIndices2 = append(overlapIndices2, (cell2i, cell2j))
-
-			// for j, point2 := range gridPoints2 {
-			// 	if isPointInsideBoundingBox(point2, minLat1, minLng1, maxLat1, maxLng1) {
-			// 		fmt.Printf("point1: %v, point2: %v\n", point1, point2)
-			// 		overlapIndices1 = append(overlapIndices1, i)
-			// 		overlapIndices2 = append(overlapIndices2, j)
-			// 		break // Break to avoid duplicates
-			// 	}
-			// }
 		}
 	}
 
@@ -408,7 +367,10 @@ func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cel
 }
 
 func InitShadowMap(cell *model.Cell, d_c float64) {
-
+	fmt.Println("failed to retrieve shadowmap for cell: %d", cell.NCGI)
+	fmt.Println(cell)
+	fmt.Println("Initilizing ShadowMap")
+	fmt.Println(cell)
 	sigma := 6.0
 	switch {
 	case cell.Channel.Environment == "urban" && cell.Channel.LOS:
@@ -420,8 +382,8 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
 		sigma = 8.0
 	}
-
-	cell.GridPoints = ComputeGridPoints(*cell, d_c)
+	coverageCoordinates := cell.CoverageBoundaries[0].BoundaryPoints
+	cell.GridPoints = ComputeGridPoints(coverageCoordinates, d_c)
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
 }
 

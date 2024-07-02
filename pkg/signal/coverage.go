@@ -1,6 +1,7 @@
 package signal
 
 import (
+	"math"
 	"math/rand"
 
 	"github.com/davidkleiven/gononlin/nonlin"
@@ -42,15 +43,29 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64) []model.Coor
 		sign1 := rand.Float64() - 0.5
 		sign2 := rand.Float64() - 0.5
 		x0 := []float64{cell.Sector.Center.Lat + (sign1 * outerPoint), cell.Sector.Center.Lng + (sign2 * outerPoint)}
+		// log.Infof("\n======================================\n")
+		// log.Infof("\tcenter: (%v,%v)\n\t\tx0: (%v)\n", cell.Sector.Center.Lat, cell.Sector.Center.Lng, x0)
+
+		log.Infof("\n======================================\n")
+		log.Infof("\n\t\tx0: %v", x0)
 		res := solver.Solve(problem, x0)
+		log.Infof("\t\n res: %v\n\t\tx0: %v", res, x0)
 		if res.Converged {
 			guesses = append(guesses, x0)
 			results = append(results, res)
-			boundaryPoints = append(boundaryPoints, model.Coordinate{
-				Lat: res.X[0],
-				Lng: res.X[1],
-			})
+			if math.Abs(res.X[0]) > 90 || math.Abs(res.X[1]) > 180 {
+				log.Infof("\tcenter: (%v,%v)\n\t\toutlier: (%v,%v)", cell.Sector.Center.Lat, cell.Sector.Center.Lng, res.X[0], res.X[1])
+			} else {
+				boundaryPoints = append(boundaryPoints, model.Coordinate{
+					Lat: res.X[0],
+					Lng: res.X[1],
+				})
+			}
+
 		}
+	}
+	if len(boundaryPoints) == 0 {
+		log.Errorf("did not Converge")
 	}
 	log.Debugf("results length: %d", len(results))
 	for i, result := range results {

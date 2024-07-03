@@ -119,6 +119,24 @@ func findMinMaxCoords(coords []model.Coordinate) (minLat, minLng, maxLat, maxLng
 		}
 	}
 	fmt.Printf("min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
+	minCoord := model.Coordinate{Lat: minLat, Lng: minLng}
+	maxCoordLat := model.Coordinate{Lat: maxLat, Lng: minLng}
+	maxCoordLng := model.Coordinate{Lat: minLat, Lng: maxLng}
+
+	latRange := getEuclideanDistanceFromCoordinates(minCoord, maxCoordLat)
+	lngRange := getEuclideanDistanceFromCoordinates(minCoord, maxCoordLng)
+
+	if latRange > lngRange {
+		latDiff := latRange - lngRange
+		latDiffDegrees := metersToLngDegrees(latDiff/2, minLat)
+		minLng = minLng - latDiffDegrees
+		maxLng = maxLng + latDiffDegrees
+	} else {
+		lngDiff := lngRange - latRange
+		lngDiffDegrees := metersToLatDegrees(lngDiff / 2)
+		minLat = minLat - lngDiffDegrees
+		maxLat = maxLat + lngDiffDegrees
+	}
 	return
 }
 

@@ -136,21 +136,6 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	return zenithAngle
 }
 
-// func MultipathFading(pathlossDb float64, TxPowerDB float64, r rand.Rand) float64 {
-// 	// r := rand.New(rand.NewSource(42))
-// 	userPathlossLin := math.Pow(10, -pathlossDb/10)
-// 	fmt.Printf("random: %v\n", r.NormFloat64())
-// 	real := r.NormFloat64() * math.Sqrt(userPathlossLin/2)
-// 	imag := r.NormFloat64() * math.Sqrt(userPathlossLin/2)
-// 	channelGain := complex(real, imag)
-
-// 	transmissionPower := math.Pow(10, TxPowerDB/10)
-
-// 	receivedPowerLin := transmissionPower * cmplx.Abs(channelGain) * cmplx.Abs(channelGain)
-
-// 	return 10 * math.Log10(receivedPowerLin)
-// }
-
 func MultipathFading(pathlossDb float64, TxPowerDB float64, K float64) float64 {
 	userPathlossLin := math.Pow(10, -pathlossDb/10)
 	scale := math.Sqrt(userPathlossLin / (2 * (K + 1)))

@@ -1,4 +1,4 @@
-package mobility
+package signal
 
 import (
 	"encoding/csv"

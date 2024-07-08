@@ -18,6 +18,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/measurement"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/signal"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
@@ -384,7 +385,7 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 	}
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
-		rsrp := StrengthAtLocation(ue.Location, ue.Height, *cell)
+		rsrp := signal.StrengthAtLocation(ue.Location, ue.Height, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
 		}
@@ -416,7 +417,7 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}
 
-	strength := StrengthAtLocation(ue.Location, ue.Height, *sCell)
+	strength := signal.StrengthAtLocation(ue.Location, ue.Height, *sCell)
 
 	if math.IsNaN(strength) {
 		strength = -999
@@ -473,12 +474,12 @@ func (d *driver) InitShadowMap(cell *model.Cell, d_c float64) {
 		sigma = 8.0
 	}
 
-	cell.GridPoints = ComputeGridPoints(*cell, d_c)
-	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
+	cell.GridPoints = signal.ComputeGridPoints(*cell, d_c)
+	cell.ShadowingMap = signal.CalculateShadowMap(cell.GridPoints, d_c, sigma)
 }
 
 func (d *driver) ReplaceOverlappingShadowMap(cell1 *model.Cell, cell2 *model.Cell, d_c float64) {
-	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
+	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := signal.FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
 	if overlapping {
 		if cell1.NCGI == cell2.NCGI {
 			fmt.Printf("%d and %d overlapping but is the same cell\n", cell1.NCGI, cell2.NCGI)

@@ -31,5 +31,10 @@ WORKDIR /code
 # Copy the binary from the builder stage
 COPY --from=builder /code/ransim .
 
+# Create a non-root user 'gouser'
+RUN useradd --create-home --shell /bin/bash gouser
+RUN chown -R gouser:gouser /code
+USER gouser
+
 # Set the entrypoint
 ENTRYPOINT ["./ransim"]

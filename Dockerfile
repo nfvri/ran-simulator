@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:alpine3.19 AS builder
+FROM nfvri/golang-base:bookworm-1.20.6-2.10.0 AS builder
 
 # Set environment variables for Go
 ENV GO111MODULE=on \
@@ -23,7 +23,7 @@ COPY . .
 RUN go build -o ransim ./cmd/ransim
 
 # Final stage
-FROM alpine:3.19
+FROM debian:bookworm-slim AS final
 
 # Create and set the working directory
 WORKDIR /code

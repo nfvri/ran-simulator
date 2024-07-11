@@ -1,5 +1,5 @@
 # Build stage
-FROM nfvri/golang-base:bookworm-1.20.6-2.10.0 AS builder
+FROM golang:1.20.14-bullseye AS builder
 
 # Set environment variables for Go
 ENV GO111MODULE=on \
@@ -7,33 +7,22 @@ ENV GO111MODULE=on \
     GOOS=linux \
     GOARCH=amd64
 
-# Create and set the working directory
-WORKDIR /code
+WORKDIR /
+COPY . /code
+RUN cd /code && make all
+RUN cd /code && make release-ran-simulator && cp ransim-latest.tar.gz /ransim-latest.tar.gz
 
-# Copy go.mod and go.sum files first to leverage Docker cache
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy the source code
-COPY . .
-
-# Build the Go app
-RUN go build -o ransim ./cmd/ransim
 
 # Final stage
 FROM debian:bookworm-slim AS final
 
-# Create and set the working directory
-WORKDIR /code
-
-# Copy the binary from the builder stage
-COPY --from=builder /code/ransim .
+COPY --from=builder /ransim-latest.tar.gz .
+RUN tar zxvf ransim-latest.tar.gz
+WORKDIR /ran-simulator
 
 # Create a non-root user 'gouser'
 RUN useradd --create-home --shell /bin/bash gouser
-RUN chown -R gouser:gouser /code
+RUN chown -R gouser:gouser /ran-simulator
 USER gouser
 
 # Set the entrypoint

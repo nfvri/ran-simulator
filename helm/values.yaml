@@ -58,7 +58,7 @@ service:
 
 pci:
   modelName: "model"
-  metricName: "metrics"
+  metricName: ""
 
 mobility:
   # hoLogic: "mho"

@@ -4,59 +4,51 @@
 
 layout:
   center:
-    lat: 52.52
-    lng: 13.405
+    lat: 0
+    lng: 0
   zoom: 0
-  locationsscale: 1.25
+  locationsscale: 0
   fademap: false
   showroutes: false
   showpower: false
+routeEndPoints: []
+wayPointRoute: false
+directRoute: false
 nodes:
-  node1:
-    gnbid: 20819
-    controllers:
-    - e2t-1
-    servicemodels:
-    - mho
-    - rcpre2
-    - kpm2
-    - rc
-    cells:
-    - 87893173159116801
-    - 87893173159116802
-    - 87893173159116803
-    status: stopped
-  node2:
-    gnbid: 20820
-    controllers:
-    - e2t-1
-    servicemodels:
-    - mho
-    - rcpre2
-    - kpm2
-    - rc
-    cells:
-    - 87893173159133185
-    - 87893173159133186
-    - 87893173159133187
-    status: stopped
+  ManagedElement=1193046:
+    gnbid: 1193046
+    controllers: []
+    servicemodels: []
+    cells: []
+    status: ""
+  ManagedElement=1193047:
+    gnbid: 1193047
+    controllers: []
+    servicemodels: []
+    cells: []
+    status: ""
+  ManagedElement=1193048:
+    gnbid: 1193048
+    controllers: []
+    servicemodels: []
+    cells: []
+    status: ""
 cells:
-  cell1:
-    ncgi: 87893173159116801
+  ManagedElement=1193046,GnbDuFunction=3,NrCellDu=3:
+    ncgi: 17660905570307
     sector:
       center:
-        lat: 0.00
-        lng: 0.00
+        lat: 37.969502
+        lng: 23.796955
       azimuth: 0
       arc: 120
-      tilt: 1
-      height: 43
-    color: green
-    maxues: 99999
+      tilt: 20
+      height: 0
+    color: ""
+    maxues: 0
     neighbors:
-    - 87893173159116802
-    - 87893173159116803
-    - 87893173159133185
+    - 17660905537537
+    - 17660905553922
     txpowerdb: 40
     measurementparams:
       timetotrigger: 0
@@ -67,122 +59,42 @@ cells:
       eventa3params:
         a3offset: 0
         reportonleave: false
+    pci: 3
+    earfcn: 0
+    celltype: 0
     channel:
-      ssbfrequency: 3000
-      arfcndl: 3000
-      arfcnul: 3000    
-      environment: "urban"
-      LOS: true
+      ssbfrequency: 900
+      arfcndl: 180000
+      arfcnul: 180000
+      environment: urban
+      los: true
     beam:
-      h3dBAngle: 65
-      v3dBAngle: 65
-      maxGain: 8.0
-      maxAttenuationDB: 30.0
-      vSideLobeAttenuationDB: 30.0
-    pci: 218
-    celltype: 2
+      h3dbangle: 120
+      v3dbangle: 65
+      maxgain: 8
+      maxattenuationdb: 40
+      vsidelobeattenuationdb: 40
+    coverageboundaries: []
     rrcidlecount: 0
     rrcconnectedcount: 0
-  cell2:
-    ncgi: 87893173159116802
+    shadowmap:
+      shadowingmap: []
+      gridpoints: []
+  ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2:
+    ncgi: 17660905553922
     sector:
       center:
-        lat: -0.00023830696000097095
-        lng: 0.005239128892583278
-      azimuth: 120
-      arc: 120
-      tilt: -10
-      height: 28
-    color: green
-    maxues: 99999
+        lat: 38.024973
+        lng: 23.767187
+      azimuth: 150
+      arc: 90
+      tilt: 20
+      height: 0
+    color: ""
+    maxues: 0
     neighbors:
-    - 87893173159116801
-    - 87893173159116803
-    - 87893173159133186
-    txpowerdb: 35
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
-      hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    channel:
-      ssbfrequency: 3000
-      arfcndl: 3000
-      arfcnul: 3000
-      environment: "urban"
-      LOS: false
-    beam:
-      h3dBAngle: 65
-      v3dBAngle: 65
-      maxGain: 8.0
-      maxAttenuationDB: 30.0
-      vSideLobeAttenuationDB: 30.0
-    pci: 148
-    celltype: 2
-    rrcidlecount: 0
-    rrcconnectedcount: 0
-  cell3:
-    ncgi: 87893173159116803
-    sector:
-      center:
-        lat: 0.0003741158206141896
-        lng: 0.009730229098056771
-      azimuth: 240
-      arc: 120
-      tilt: -10
-      height: 22
-    color: green
-    maxues: 99999
-    neighbors:
-    - 87893173159116801
-    - 87893173159116802
-    - 87893173159133187
-    txpowerdb: 30
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
-      hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    channel:
-      ssbfrequency: 3000
-      arfcndl: 3000
-      arfcnul: 3000
-      environment: "rural"
-      LOS: true
-    beam:
-      h3dBAngle: 65
-      v3dBAngle: 65
-      maxGain: 8.0
-      maxAttenuationDB: 30.0
-      vSideLobeAttenuationDB: 30.0
-    pci: 480
-    celltype: 3
-    rrcidlecount: 0
-    rrcconnectedcount: 0
-  cell4:
-    ncgi: 87893173159116804
-    sector:
-      center:
-        lat: -0.004372160724989959
-        lng: 0.005851551647875114
-      azimuth: 0
-      arc: 120
-      tilt: -15
-      height: 46
-    color: green
-    maxues: 99999
-    neighbors:
-    - 87893173159133187
-    - 87893173159116801
-    - 87893173159133186
+    - 17660905570307
+    - 17660905537537
     txpowerdb: 40
     measurementparams:
       timetotrigger: 0
@@ -193,91 +105,85 @@ cells:
       eventa3params:
         a3offset: 0
         reportonleave: false
+    pci: 2
+    earfcn: 0
+    celltype: 0
     channel:
-      ssbfrequency: 3000
-      arfcndl: 3000
-      arfcnul: 3000
-      environment: "rural"
-      LOS: false
-    pci: 115
-    celltype: 2
+      ssbfrequency: 3425
+      arfcndl: 628333
+      arfcnul: 628333
+      environment: urban
+      los: false
+    beam:
+      h3dbangle: 90
+      v3dbangle: 65
+      maxgain: 8
+      maxattenuationdb: 40
+      vsidelobeattenuationdb: 40
+    coverageboundaries: []
     rrcidlecount: 0
     rrcconnectedcount: 0
-controllers:
-  e2t-1:
-    id: e2t-1
-    address: onos-e2t
-    port: 36421
-servicemodels:
-  kpm2:
-    id: 4
-    description: kpm2 service model
-    version: 1.0.0
-  mho:
-    id: 5
-    description: mho service model
-    version: 1.0.0
-  rcpre2:
-    id: 3
-    description: rcpre2 service model
-    version: 1.0.0
-  rc:
-    id: 6
-    description: RAN Control service model
-    version: 1.0.0
-ues:
-  ue1:
-    imsi: 8789317
-    amfUeNgapID: 87893
-    type: "phone"
-    rrcState: 2
-    location: 
-      lat: 0.00045026533893807985 
-      lng: 0.004689571124127287
-    cell: 
-      id: 20819
-      ncgi: 87893173159133185
-      strength: 30.3
-    CRNTI: 90125
-    cells: []
-    isAdmitted: false
-  ue2:
-    imsi: 8789318
-    amfUeNgapID: 87893
-    type: "phone"
-    rrcState: 2
-    location: 
-      lat: 0.00045126533893807985 
-      lng: 0.004690571124127287
-    cell: 
-      id: 20819
-      ncgi: 87893173159133185
-      strength: 30.3
-    CRNTI: 90125
-    cells: []
-    isAdmitted: false
-  ue3:
-    imsi: 8789319
-    amfUeNgapID: 87893
-    type: "phone"
-    rrcState: 2
-    location:
-      lat: 52.486056
-      lng: 13.412017
-    cell: 
-      id: 20819
-      ncgi: 87893173159133185
-      strength: 30.3
-    CRNTI: 90125
-    cells: []
-    isAdmitted: false
-ueCount: 1
-ueCountPerCell: 2
-plmnID: "138426"
-plmnNumber: 1279014
+    shadowmap:
+      shadowingmap: []
+      gridpoints: []
+  ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1:
+    ncgi: 17660905537537
+    sector:
+      center:
+        lat: 37.981629
+        lng: 23.743353
+      azimuth: 90
+      arc: 90
+      tilt: 20
+      height: 0
+    color: ""
+    maxues: 0
+    neighbors:
+    - 17660905570307
+    - 17660905553922
+    txpowerdb: 40
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 1
+    earfcn: 0
+    celltype: 0
+    channel:
+      ssbfrequency: 900
+      arfcndl: 628333
+      arfcnul: 628333
+      environment: urban
+      los: false
+    beam:
+      h3dbangle: 90
+      v3dbangle: 65
+      maxgain: 8
+      maxattenuationdb: 40
+      vsidelobeattenuationdb: 40
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    shadowmap:
+      shadowingmap: []
+      gridpoints: []
+controllers: {}
+servicemodels: {}
+RrcStateChangesDisabled: false
+initialRrcState: ""
+ueCount: 0
+ueCountPerCell: 0
+ues: {}
+plmnID: "00101"
+plmnNumber: 257
 apiKey: ""
-decorrelationdistance: 10
 guami:
-  amfregionid: 221
-  amfsetid: 819
-  amfpointer: 63
+  amfregionid: 0
+  amfsetid: 0
+  amfpointer: 0
+decorrelationdistance: 50

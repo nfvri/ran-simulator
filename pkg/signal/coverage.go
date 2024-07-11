@@ -1,7 +1,6 @@
 package signal
 
 import (
-	"math"
 	"math/rand"
 
 	"github.com/davidkleiven/gononlin/nonlin"
@@ -11,21 +10,13 @@ import (
 )
 
 // Runs Newton Krylov solver to compute the signal coverage points
-func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64, refSignalStrength float64) []model.Coordinate {
-
-	problem := nonlin.Problem{
-		F: func(out, x []float64) {
-			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-			out[0] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
-			out[1] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
-		},
-	}
+func ComputeCoverageNewtonKrylov(cell model.Cell, problem nonlin.Problem, inDomain func(x []float64) bool) []model.Coordinate {
 
 	solver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
 		Maxiter: 10,
 
-		// Stepsize used to appriximate jacobian with finite differences
+		// Stepsize used to approximate jacobian with finite differences
 		StepSize: 1e-4,
 
 		// Tolerance for the solution
@@ -43,8 +34,6 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64, refSignalStr
 		sign1 := rand.Float64() - 0.5
 		sign2 := rand.Float64() - 0.5
 		x0 := []float64{cell.Sector.Center.Lat + (sign1 * outerPoint), cell.Sector.Center.Lng + (sign2 * outerPoint)}
-		// log.Infof("\n======================================\n")
-		// log.Infof("\tcenter: (%v,%v)\n\t\tx0: (%v)\n", cell.Sector.Center.Lat, cell.Sector.Center.Lng, x0)
 
 		log.Debugf("\n======================================\n")
 		log.Debugf("\n\t\tx0: %v", x0)
@@ -53,15 +42,12 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, ueHeight float64, refSignalStr
 		if res.Converged {
 			guesses = append(guesses, x0)
 			results = append(results, res)
-			if math.Abs(res.X[0]) > 90 || math.Abs(res.X[1]) > 180 {
-				log.Debugf("\tcenter: (%v,%v)\n\t\toutlier: (%v,%v)", cell.Sector.Center.Lat, cell.Sector.Center.Lng, res.X[0], res.X[1])
-			} else {
+			if inDomain(res.X) {
 				boundaryPoints = append(boundaryPoints, model.Coordinate{
 					Lat: res.X[0],
 					Lng: res.X[1],
 				})
 			}
-
 		}
 	}
 	if len(boundaryPoints) == 0 {

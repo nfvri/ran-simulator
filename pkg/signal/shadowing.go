@@ -428,6 +428,9 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 		sigma = 8.0
 	}
 	coverageCoordinates := cell.CoverageBoundaries[0].BoundaryPoints
+	if len(coverageCoordinates) == 0 {
+		return
+	}
 	log.Infof("len(coverageCoordinates): %d", len(coverageCoordinates))
 	cell.GridPoints = ComputeGridPoints(coverageCoordinates, d_c)
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)

@@ -129,7 +129,7 @@ func TestGetPathLossUnknownEnvironment(t *testing.T) {
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
 	height := 1.5
-	expectedPathLoss := getFreeSpacePathLoss(coord, cell)
+	expectedPathLoss := getRuralNLOSPathLoss(coord, height, cell)
 
 	pathLoss := GetPathLoss(coord, height, cell)
 	fmt.Println("Unknown")

@@ -1,10 +1,8 @@
 package signal
 
 import (
-	"math"
 	"testing"
 
-	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
@@ -37,17 +35,12 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 	ueHeight := 1.5
 	const refSignalStrength = -87
-	problem := nonlin.Problem{
-		F: func(out, x []float64) {
-			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-			out[0] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
-			out[1] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
-		},
+	coverageF := func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
+		out[1] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
 	}
-	inDomain := func(x []float64) bool {
-		return math.Abs(x[0]) <= 90 && math.Abs(x[1]) <= 180
-	}
-	sortedCoords := ComputeCoverageNewtonKrylov(cell, problem, inDomain)
+	sortedCoords := ComputeCoverageNewtonKrylov(cell, coverageF)
 
 	for _, sortedCoord := range sortedCoords {
 		t.Logf("[%f, %f], \n", sortedCoord.Lat, sortedCoord.Lng)

@@ -1,6 +1,7 @@
 package signal
 
 import (
+	"math"
 	"math/rand"
 
 	"github.com/davidkleiven/gononlin/nonlin"
@@ -10,7 +11,10 @@ import (
 )
 
 // Runs Newton Krylov solver to compute the signal coverage points
-func ComputeCoverageNewtonKrylov(cell model.Cell, problem nonlin.Problem, inDomain func(x []float64) bool) []model.Coordinate {
+func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64)) []model.Coordinate {
+	problem := nonlin.Problem{
+		F: f,
+	}
 
 	solver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
@@ -42,7 +46,7 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, problem nonlin.Problem, inDoma
 		if res.Converged {
 			guesses = append(guesses, x0)
 			results = append(results, res)
-			if inDomain(res.X) {
+			if math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180 {
 				boundaryPoints = append(boundaryPoints, model.Coordinate{
 					Lat: res.X[0],
 					Lng: res.X[1],

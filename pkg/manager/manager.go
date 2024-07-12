@@ -10,7 +10,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/signal"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
@@ -249,17 +248,12 @@ func initCoverageAndShadowMaps(m *Manager) {
 }
 
 func getCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
-	problem := nonlin.Problem{
-		F: func(out, x []float64) {
-			coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-			out[0] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
-			out[1] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
-		},
+	coverageF := func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
+		out[1] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
 	}
-	inDomain := func(x []float64) bool {
-		return math.Abs(x[0]) <= 90 && math.Abs(x[1]) <= 180
-	}
-	boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, problem, inDomain)
+	boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, coverageF)
 	return boundaryPoints
 }
 

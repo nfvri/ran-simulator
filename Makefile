@@ -5,12 +5,11 @@
 export CGO_ENABLED=1
 export GO111MODULE=on
 
-.PHONY: build
+.PHONY: clean build
 
 RAN_SIMULATOR_VERSION := latest
-ONOS_PROTOC_VERSION := v0.6.9
-
-OUTPUT_DIR=./build/_output
+RELEASE_DIR = ran-simulator
+RELEASE_FILE = ransim-latest.tar.gz
 
 all: clean gomodextras build
 
@@ -18,16 +17,18 @@ gomodextras: # extras for go mod
 	GOPROXY=https://proxy.golang.org go mod tidy
 	go mod vendor
 
-build: # build the Go binaries and run all validations (default)
-build:
-	go build ${BUILD_FLAGS} -o ${OUTPUT_DIR}/ransim ./cmd/ransim
-	go build ${BUILD_FLAGS} -o ${OUTPUT_DIR}/honeycomb ./cmd/honeycomb
+build: build-ransim # build-honeycomb
+
+build-ransim:
+	cd cmd/ransim && go build ${BUILD_FLAGS} -o ransim
+
+build-honeycomb:
+	cd cmd/honeycomb && go build ${BUILD_FLAGS} -o honeycomb
 
 clean:: # remove all the build artifacts
-	rm -rf ${OUTPUT_DIR} ./cmd/trafficsim/trafficsim ./cmd/ransim/ransim
-	# go clean -testcache github.com/nfvri/ran-simulator/...
+	rm -rf ./cmd/honeycomb/honeycomb ./cmd/ransim/ransim
 
-docker:
+docker: clean
 	DOCKER_BUILDKIT=1 docker build -t ran-simulator:latest .
 
 debug: BUILD_FLAGS += -gcflags=all="-N -l"
@@ -41,6 +42,13 @@ model-files: # generate various model and model-topo YAML files in sdran-helm-ch
 	go run cmd/honeycomb/honeycomb.go topo --plmnid 314628 --towers 12 --ue-count 100 --sectors-per-tower 6 --controller-yaml ../sdran-helm-charts/ran-simulator/files/topo/scale-model-topo.yaml ../sdran-helm-charts/ran-simulator/files/model/scale-model.yaml
 	go run cmd/honeycomb/honeycomb.go topo --plmnid 314628 --towers 1 --ue-count 5 --controller-yaml ../sdran-helm-charts/ran-simulator/files/topo/three-cell-model-topo.yaml ../sdran-helm-charts/ran-simulator/files/model/three-cell-model.yaml
 
+release-ran-simulator:
+	mkdir -p $(RELEASE_DIR)
+	cp model.yaml $(RELEASE_DIR)
+	cp cmd/ransim/ransim $(RELEASE_DIR)
+	# cp cmd/honeycomb/honeycomb $(RELEASE_DIR)
+	tar -zcvf $(RELEASE_FILE) $(RELEASE_DIR)
+	rm -rf $(RELEASE_DIR)/
 
 
 # build-tools:=$(shell if [ ! -d "./build/build-tools" ]; then cd build && git clone https://github.com/onosproject/build-tools.git; fi)

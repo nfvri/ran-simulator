@@ -326,7 +326,7 @@ func (m *Manager) PauseAndClear(ctx context.Context) {
 	m.nodeStore.Clear(ctx)
 	m.cellStore.Clear(ctx)
 	m.metricsStore.Clear(ctx)
-	m.mobilityDriver.Stop()
+	// m.mobilityDriver.Stop()
 }
 
 // LoadModel loads the new model into the simulator

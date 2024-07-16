@@ -5,6 +5,7 @@
 package signal
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 	"math/rand"
@@ -32,13 +33,17 @@ func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell)
 		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
-	losses := angleAtt + pathLoss + shadowing
+	antenaGain := cell.Beam.MaxGain + angleAtt
+	losses := antenaGain - pathLoss + shadowing
 	k := 7.0
 	if !cell.Channel.LOS {
 		k = 8.0
 	}
-	multiPathFaing := MultipathFading(losses, cell.TxPowerDB, k)
-	return cell.TxPowerDB + (cell.Beam.MaxGain + angleAtt) - pathLoss + shadowing + multiPathFaing
+	multiPathFaing := MultipathFading(losses, k)
+	fmt.Printf("rsrp wo multi: %v\n", cell.TxPowerDB+losses)
+	fmt.Printf("rsrp w multi: %v\n", cell.TxPowerDB+losses+multiPathFaing)
+
+	return cell.TxPowerDB + losses
 
 }
 
@@ -136,18 +141,23 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	return zenithAngle
 }
 
-func MultipathFading(pathlossDb float64, TxPowerDB float64, K float64) float64 {
+func MultipathFading(pathlossDb float64, K float64) float64 {
+	// Convert path loss from dB to linear scale
 	userPathlossLin := math.Pow(10, -pathlossDb/10)
+
+	// Calculate the scaling factor
 	scale := math.Sqrt(userPathlossLin / (2 * (K + 1)))
 	// Rician fading model
 	realPart := math.Sqrt(2*K) + rand.NormFloat64()
 	imagPart := rand.NormFloat64()
+
 	channelGain := complex(realPart, imagPart) * complex(scale, 0)
 
-	transmissionPower := math.Pow(10, TxPowerDB/10)
-	receivedPowerLin := transmissionPower * cmplx.Abs(channelGain) * cmplx.Abs(channelGain)
+	// Calculate the magnitude of the channel gain in dB
+	channelGainDb := 10*math.Log10(cmplx.Abs(channelGain)*cmplx.Abs(channelGain)) + pathlossDb
+	// fmt.Printf("channelGainDb: %v\n", channelGainDb)
 
-	return 10 * math.Log10(receivedPowerLin)
+	return channelGainDb
 }
 
 // ETSI TR 138 901 V16.1.0

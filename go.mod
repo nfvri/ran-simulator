@@ -25,6 +25,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.11.0
 	github.com/stretchr/testify v1.8.2
+	gonum.org/v1/plot v0.10.1
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.34.2
 	googlemaps.github.io/maps v1.3.2
@@ -33,6 +34,7 @@ require (
 )
 
 require (
+	git.sr.ht/~sbinet/gg v0.3.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
@@ -43,6 +45,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.17 // indirect
 	github.com/Microsoft/hcsshim v0.8.21 // indirect
 	github.com/Shopify/sarama v1.38.0 // indirect
+	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/atomix/atomix/api v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -73,13 +76,17 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/garyburd/redigo v1.1.1-0.20170914051019-70e1b1943d4f // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
+	github.com/go-fonts/liberation v0.3.0 // indirect
 	github.com/go-gorp/gorp/v3 v3.0.5 // indirect
+	github.com/go-latex/latex v0.0.0-20230307184459-12ec69307ad9 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
+	github.com/go-pdf/fpdf v0.6.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -165,6 +172,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/image v0.6.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect

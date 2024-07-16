@@ -37,10 +37,10 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	const refSignalStrength = -87
 	coverageF := func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
-		out[1] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
+		out[0] = AntennaRadiationPattern(coord, ueHeight, cell) - refSignalStrength
+		out[1] = AntennaRadiationPattern(coord, ueHeight, cell) - refSignalStrength
 	}
-	sortedCoords := ComputeCoverageNewtonKrylov(cell, coverageF)
+	sortedCoords := ComputeCoverageNewtonKrylov(cell, coverageF, 10, 900)
 
 	for _, sortedCoord := range sortedCoords {
 		t.Logf("[%f, %f], \n", sortedCoord.Lat, sortedCoord.Lng)

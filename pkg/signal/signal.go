@@ -19,7 +19,7 @@ import (
 const powerFactor = 0.001
 
 // StrengthAtLocation returns the signal strength at location relative to the specified cell.
-func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell) float64 {
+func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell, mpf float64) float64 {
 	angleAtt := angularAttenuation(coord, height, cell)
 	pathLoss := GetPathLoss(coord, height, cell)
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
@@ -33,17 +33,51 @@ func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell)
 		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
 	antenaGain := cell.Beam.MaxGain + angleAtt
-	losses := antenaGain - pathLoss + shadowing
-	k := 7.0
-	if !cell.Channel.LOS {
-		k = 8.0
+
+	if math.IsNaN(mpf) {
+		k := 9.0
+		if !cell.Channel.LOS {
+			k = 0.0
+		}
+		mpf = MultipathFading(antenaGain-pathLoss+shadowing, k)
+		fmt.Printf("mpf: %v\n", mpf)
 	}
-	multiPathFaing := MultipathFading(losses, k)
-	fmt.Printf("rsrp wo multi: %v\n", cell.TxPowerDB+losses)
-	fmt.Printf("rsrp w multi: %v\n", cell.TxPowerDB+losses+multiPathFaing)
+	return cell.TxPowerDB + antenaGain - pathLoss + shadowing + mpf
 
-	return cell.TxPowerDB + losses
+}
 
+func AntennaRadiationPattern(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	angleAtt := angularAttenuation(coord, height, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
+		log.Warnf("UE has lat:%v lng:%v", coord.Lat, coord.Lng)
+		return 0
+	}
+
+	antenaGain := cell.Beam.MaxGain + angleAtt
+
+	return cell.TxPowerDB + antenaGain - pathLoss
+
+}
+
+func GetCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+	coverageF := func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = AntennaRadiationPattern(coord, ueHeight, *cell) - refSignalStrength
+		out[1] = AntennaRadiationPattern(coord, ueHeight, *cell) - refSignalStrength
+	}
+	boundaryPoints := ComputeCoverageNewtonKrylov(*cell, coverageF, 10, 900)
+	return boundaryPoints
+}
+
+func GetSimCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+	coverageF := func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = StrengthAtLocation(coord, ueHeight, *cell, math.NaN()) - refSignalStrength
+		out[1] = StrengthAtLocation(coord, ueHeight, *cell, math.NaN()) - refSignalStrength
+	}
+	boundaryPoints := ComputeCoverageNewtonKrylov(*cell, coverageF, 100, 900)
+	return boundaryPoints
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist

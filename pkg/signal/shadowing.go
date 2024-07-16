@@ -260,7 +260,7 @@ func uniqueLongitudes(points []model.Coordinate) []float64 {
 func closestIndex(arr []float64, value float64) int {
 	closest := 0
 	minDist := math.Abs(arr[0] - value)
-	for i := 1; i < len(arr); i++ {
+	for i := 1; i < len(arr)-1; i++ {
 		dist := math.Abs(arr[i] - value)
 		if dist < minDist {
 			closest = i

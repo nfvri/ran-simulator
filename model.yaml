@@ -182,6 +182,7 @@ ues: {}
 plmnID: "00101"
 plmnNumber: 257
 apiKey: ""
+decorrelationdistance: 100
 guami:
   amfregionid: 0
   amfsetid: 0

@@ -188,7 +188,7 @@ func initCoverageAndShadowMaps(m *Manager) {
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
-			boundaryPoints := getCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
+			boundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
 			if len(boundaryPoints) == 0 {
 				continue
 			}
@@ -199,24 +199,45 @@ func initCoverageAndShadowMaps(m *Manager) {
 				},
 			}
 			signal.InitShadowMap(cell, d_c)
+			simBoundaryPoints := signal.GetSimCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
+			if len(simBoundaryPoints) == 0 {
+				continue
+			}
+			cell.SimCoverageBoundaries = []model.CoverageBoundary{
+				{
+					RefSignalStrength: refSignalStrength,
+					BoundaryPoints:    simBoundaryPoints,
+				},
+			}
 			m.redisStore.Add(ctx, cell)
 		} else {
 			if cell.ConfigEquivalent(cachedCell) {
 				cell.CoverageBoundaries = cachedCell.CoverageBoundaries
+				cell.SimCoverageBoundaries = cachedCell.SimCoverageBoundaries
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
 			} else {
-				boundaryPoints := getCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
+				boundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
 				if len(boundaryPoints) == 0 {
 					continue
 				}
 				cell.CoverageBoundaries = []model.CoverageBoundary{
 					{
-						RefSignalStrength: -87,
+						RefSignalStrength: refSignalStrength,
 						BoundaryPoints:    boundaryPoints,
 					},
 				}
 				signal.InitShadowMap(cell, d_c)
+				simBoundaryPoints := signal.GetSimCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
+				if len(simBoundaryPoints) == 0 {
+					continue
+				}
+				cell.SimCoverageBoundaries = []model.CoverageBoundary{
+					{
+						RefSignalStrength: refSignalStrength,
+						BoundaryPoints:    simBoundaryPoints,
+					},
+				}
 				m.redisStore.Update(ctx, cell)
 			}
 		}
@@ -245,16 +266,6 @@ func initCoverageAndShadowMaps(m *Manager) {
 			log.Debug()
 		}
 	}
-}
-
-func getCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
-	coverageF := func(out, x []float64) {
-		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
-		out[1] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
-	}
-	boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, coverageF)
-	return boundaryPoints
 }
 
 func (m *Manager) initMetricStore() {

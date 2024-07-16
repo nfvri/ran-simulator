@@ -11,20 +11,22 @@ import (
 )
 
 // Runs Newton Krylov solver to compute the signal coverage points
-func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64)) []model.Coordinate {
+func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64), maxIter, numGuesses int) []model.Coordinate {
+	//TODO: Coverage as guesses
+	//TODO: generate for each random point channel gain mpf / or define new F with mpf factor
 	problem := nonlin.Problem{
 		F: f,
 	}
 
 	solver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
-		Maxiter: 10,
+		Maxiter: maxIter,
 
 		// Stepsize used to approximate jacobian with finite differences
-		StepSize: 1e-4,
+		StepSize: 1e-3,
 
 		// Tolerance for the solution
-		Tol: 1e-7,
+		Tol: 1e-5,
 
 		// Stencil for Jacobian
 		// Stencil: 8,
@@ -33,7 +35,8 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64)) []mo
 	guesses := make([][]float64, 0)
 	results := make([]nonlin.Result, 0)
 	boundaryPoints := make([]model.Coordinate, 0)
-	for i := 360; i < 900; i++ {
+	for i := 360; i < numGuesses; i++ {
+
 		outerPoint := float64(i) * 0.0005 * rand.Float64()
 		sign1 := rand.Float64() - 0.5
 		sign2 := rand.Float64() - 0.5

@@ -3,7 +3,6 @@ module github.com/nfvri/ran-simulator
 go 1.18
 
 require (
-	github.com/LucaTheHacker/go-haversine v0.0.0-20220213075817-0d811fb84a1a
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/davidkleiven/gononlin v0.2.5
@@ -22,6 +21,7 @@ require (
 	github.com/onosproject/rrm-son-lib v0.0.5
 	github.com/pmcxs/hexgrid v0.0.0-20190126214921-42796ac894ab
 	github.com/redis/go-redis/v9 v9.5.2
+	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.11.0
 	github.com/stretchr/testify v1.8.2
@@ -150,7 +150,6 @@ require (
 	github.com/rubenv/sql-migrate v1.3.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

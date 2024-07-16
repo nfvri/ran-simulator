@@ -12,7 +12,6 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -83,26 +82,26 @@ func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 // Table 7.3-1: Radiation power pattern of a single antenna element
 func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	log.Debug("\n======================================\n")
-	azRads := utils.AzimuthToRads(cell.Sector.Azimuth)
-	ueAngle := utils.GetRotationDegrees(
-		&types.Point{
-			Lat: cell.Sector.Center.Lat,
-			Lng: cell.Sector.Center.Lng,
-		},
-		&types.Point{
-			Lat: coord.Lat,
-			Lng: coord.Lng,
-		})
+	ueAngle := utils.CalculateBearing(cell.Sector.Center.Lat, cell.Sector.Center.Lng, coord.Lat, coord.Lng)
 
-	ueAngleRads := utils.DegreesToRads(ueAngle)
-	azimuthOffsetRads := math.Abs(azRads - ueAngleRads)
-	azimuthOffset := azimuthOffsetRads * (180 / math.Pi)
+	azimuthOffset := math.Abs(cell.Sector.Azimuth - ueAngle)
 	if azimuthOffset > 180 {
 		azimuthOffset = 360 - azimuthOffset
 	}
 	horizontalCut := azimuthAttenuation(azimuthOffset, cell.Beam.H3dBAngle, cell.TxPowerDB)
-	hAttformat := "\nhorizontalCut: %v \ncell.Sector.Azimuth: %v \nazpoint: %v \nazimuthOffset: %v \nazRads: %v \nazpointRads: %v"
-	log.Debugf(hAttformat, horizontalCut, cell.Sector.Azimuth, ueAngleRads*(180/math.Pi), azimuthOffset, azRads, ueAngleRads)
+
+	log.Debugf(
+		`
+		horizontalCut: %v 
+		cell.Sector.Azimuth: %v
+		ueAngle: %v 
+		azimuthOffset: %v 
+		`,
+		horizontalCut,
+		cell.Sector.Azimuth,
+		ueAngle,
+		azimuthOffset,
+	)
 
 	log.Debug("\n======================================\n")
 	zenithAngle := calcZenithAngle(coord, height, cell)
@@ -175,6 +174,7 @@ func zenithAttenuation(zenithAngle, theta3dB float64, slav float64) float64 {
 func azimuthAttenuation(azimuthAngle, phi3dB float64, aMax float64) float64 {
 	angleRatio := azimuthAngle / phi3dB
 	azAtt := 12 * math.Pow(angleRatio, 2)
+	log.Debugf("[azimuth attenuatuation]: %v, [max]: %v", azAtt, aMax)
 	return -math.Min(azAtt, aMax)
 }
 

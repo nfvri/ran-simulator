@@ -102,7 +102,7 @@ func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
 		if cell1.NCGI == cell2.NCGI {
 			fmt.Printf("%d and %d overlapping but is the same cell\n", cell1.NCGI, cell2.NCGI)
 		} else {
-			for i, _ := range cell1iList {
+			for i := range cell1iList {
 				fmt.Printf("%d and %d overlapping: (%d,%d) and (%d,%d)\n", cell1.NCGI, cell2.NCGI, cell1iList[i], cell1jList[i], cell2iList[i], cell2jList[i])
 				cell2.ShadowingMap[cell2iList[i]][cell2jList[i]] = cell1.ShadowingMap[cell1iList[i]][cell1jList[i]]
 			}
@@ -188,8 +188,7 @@ func initCoverageAndShadowMaps(m *Manager) {
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
-
-			boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight, refSignalStrength)
+			boundaryPoints := getCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
 			if len(boundaryPoints) == 0 {
 				continue
 			}
@@ -207,7 +206,7 @@ func initCoverageAndShadowMaps(m *Manager) {
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
 			} else {
-				boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, ueHeight, refSignalStrength)
+				boundaryPoints := getCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
 				if len(boundaryPoints) == 0 {
 					continue
 				}
@@ -246,6 +245,16 @@ func initCoverageAndShadowMaps(m *Manager) {
 			log.Debug()
 		}
 	}
+}
+
+func getCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+	coverageF := func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
+		out[1] = signal.StrengthAtLocation(coord, ueHeight, *cell) - refSignalStrength
+	}
+	boundaryPoints := signal.ComputeCoverageNewtonKrylov(*cell, coverageF)
+	return boundaryPoints
 }
 
 func (m *Manager) initMetricStore() {
@@ -317,7 +326,7 @@ func (m *Manager) PauseAndClear(ctx context.Context) {
 	m.nodeStore.Clear(ctx)
 	m.cellStore.Clear(ctx)
 	m.metricsStore.Clear(ctx)
-	m.mobilityDriver.Stop()
+	// m.mobilityDriver.Stop()
 }
 
 // LoadModel loads the new model into the simulator

@@ -69,9 +69,9 @@ spec:
                   name: {{ include "ran-simulator.fullname" . }}-config
                   key: REDIS_CONTAINER_PORT
           args:
-            - "-caPath=/etc/ran-simulator/certs/tls.cacrt"
-            - "-keyPath=/etc/ran-simulator/certs/tls.key"
-            - "-certPath=/etc/ran-simulator/certs/tls.crt"
+            - "-caPath=/etc/certs/ransimCA.crt"
+            - "-keyPath=/etc/certs/ransim.key"
+            - "-certPath=/etc/certs/ransim.crt"
             - "-modelName={{ .Values.pci.modelName }}"
             - "-metricName={{ .Values.pci.metricName }}"
             - "-hoLogic={{ .Values.mobility.hoLogic }}"
@@ -104,7 +104,7 @@ spec:
             periodSeconds: 10
           volumeMounts:
             - name: secret
-              mountPath: /etc/ran-simulator/certs
+              mountPath: /etc/certs
               readOnly: true
             - name: config
               mountPath: /etc/onos/config

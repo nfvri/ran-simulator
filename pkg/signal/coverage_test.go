@@ -8,11 +8,7 @@ import (
 )
 
 func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
-	// run with: go test -v -timeout 300s  ./pkg/utils/solver
-	// This example shows how one can use NewtonKrylov to solve the
-	// system of equations
-	// (x-1)^2*(x - y) = 0
-	// (x-2)^3*cos(2*x/y) = 0
+
 	cell := model.Cell{
 		TxPowerDB: 40,
 		CellType:  types.CellType_MACRO,
@@ -39,7 +35,12 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 	ueHeight := 1.5
 	const refSignalStrength = -87
-	sortedCoords := ComputeCoverageNewtonKrylov(cell, ueHeight, refSignalStrength)
+	coverageF := func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
+		out[1] = StrengthAtLocation(coord, ueHeight, cell) - refSignalStrength
+	}
+	sortedCoords := ComputeCoverageNewtonKrylov(cell, coverageF)
 
 	for _, sortedCoord := range sortedCoords {
 		t.Logf("[%f, %f], \n", sortedCoord.Lat, sortedCoord.Lng)

@@ -140,51 +140,6 @@ func findMinMaxCoords(coords []model.Coordinate) (minLat, minLng, maxLat, maxLng
 	return
 }
 
-// Heuristically calculate min,max points using shadowing
-func ComputeMinMaxPoints(cell model.Cell, d_c float64) (float64, float64, float64, float64) {
-	latStep := metersToLatDegrees(d_c)
-	lngStep := metersToLngDegrees(d_c, cell.Sector.Center.Lat)
-	maxShadowingEffect := 10.0
-	fmt.Println("latStep:")
-	fmt.Println(latStep)
-	fmt.Println("lngStep:")
-	fmt.Println(lngStep)
-
-	maxLat := cell.Sector.Center.Lat
-	maxLng := cell.Sector.Center.Lng
-
-	ue := model.UE{
-		Height: 1.5,
-	}
-	// Expand in the positive direction
-	for {
-		ue.Location = model.Coordinate{Lat: maxLat, Lng: maxLng}
-		strengthAfterPathloss := StrengthAfterPathloss(ue.Location, ue.Height, cell)
-		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", maxLat, maxLng, strengthAfterPathloss)
-		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
-			break
-		}
-		maxLat += latStep
-		maxLng += lngStep
-	}
-
-	minLat := cell.Sector.Center.Lat
-	minLng := cell.Sector.Center.Lng
-
-	// Expand in the negative direction
-	for {
-		ue.Location = model.Coordinate{Lat: minLat, Lng: minLng}
-		strengthAfterPathloss := StrengthAfterPathloss(ue.Location, ue.Height, cell)
-		fmt.Printf("Coordinate: (%.6f, %.6f), signalStrength: %.2f\n", minLat, minLng, strengthAfterPathloss)
-		if math.Min(strengthAfterPathloss, 100)+maxShadowingEffect <= 0 {
-			break
-		}
-		minLat -= latStep
-		minLng -= lngStep
-	}
-	return minLat, minLng, maxLat, maxLng
-}
-
 // Function to compute the correlation matrix
 func computeCorrelationMatrix(gridPoints []model.Coordinate, d_c float64) [][]float64 {
 	numPoints := len(gridPoints)

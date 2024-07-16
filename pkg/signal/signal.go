@@ -5,8 +5,9 @@
 package signal
 
 import (
-	"fmt"
 	"math"
+	"math/cmplx"
+	"math/rand"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -18,29 +19,26 @@ const powerFactor = 0.001
 
 // StrengthAtLocation returns the signal strength at location relative to the specified cell.
 func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	angleAtt := angularAttenuation(coord, height, cell)
+	pathLoss := GetPathLoss(coord, height, cell)
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
-		err := fmt.Errorf("WTF? lat:%v lng:%v", coord.Lat, coord.Lng)
-		panic(err)
+		log.Warnf("UE has lat:%v lng:%v", coord.Lat, coord.Lng)
+		return 0
 	}
-	strengthAfterPathloss := StrengthAfterPathloss(coord, height, cell)
-
+	shadowing := 0.0
 	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
 	if inGrid && len(cell.ShadowingMap) > 0 {
 		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
-		return strengthAfterPathloss - cell.ShadowingMap[latIdx][lngIdx]
+		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
-	log.Debugf("The point (%.12f, %.12f) is not located in the grid cell\n", coord.Lat, coord.Lng)
-	log.Debugf("strengthAfterPathloss: %v", strengthAfterPathloss)
-	return strengthAfterPathloss
+	losses := angleAtt + pathLoss + shadowing
+	k := 7.0
+	if !cell.Channel.LOS {
+		k = 8.0
+	}
+	multiPathFaing := MultipathFading(losses, cell.TxPowerDB, k)
+	return cell.TxPowerDB + (cell.Beam.MaxGain + angleAtt) - pathLoss + shadowing + multiPathFaing
 
-}
-
-func StrengthAfterPathloss(coord model.Coordinate, height float64, cell model.Cell) float64 {
-	angleAtt := angularAttenuation(coord, height, cell)
-	pathLoss := GetPathLoss(coord, height, cell)
-	log.Debugf("\ncell.TxPowerDB: %v \ncell.Beam.MaxGain:%v \nangleAtt:%v \npathLoss:%v \n", cell.TxPowerDB, cell.Beam.MaxGain, angleAtt, pathLoss)
-
-	return cell.TxPowerDB + cell.Beam.MaxGain + angleAtt - pathLoss
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist
@@ -135,6 +133,20 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	log.Debugf("\nueAngle:%v \nzUE: %v \nztilt: %v", ueAngleRads*(180/math.Pi), zUERads*(180/math.Pi), zTilt)
 	log.Debugf("\nzAngleOffset: %v", zAngleOffset*(180/math.Pi))
 	return zenithAngle
+}
+
+func MultipathFading(pathlossDb float64, TxPowerDB float64, K float64) float64 {
+	userPathlossLin := math.Pow(10, -pathlossDb/10)
+	scale := math.Sqrt(userPathlossLin / (2 * (K + 1)))
+	// Rician fading model
+	realPart := math.Sqrt(2*K) + rand.NormFloat64()
+	imagPart := rand.NormFloat64()
+	channelGain := complex(realPart, imagPart) * complex(scale, 0)
+
+	transmissionPower := math.Pow(10, TxPowerDB/10)
+	receivedPowerLin := transmissionPower * cmplx.Abs(channelGain) * cmplx.Abs(channelGain)
+
+	return 10 * math.Log10(receivedPowerLin)
 }
 
 // ETSI TR 138 901 V16.1.0

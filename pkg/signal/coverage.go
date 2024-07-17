@@ -13,9 +13,7 @@ import (
 
 // Runs Newton Krylov solver to compute the signal coverage points
 func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64), guessChan <-chan []float64, maxIter int) <-chan model.Coordinate {
-	//TODO: Coverage as guesses
-	//TODO: generate for each random point channel gain mpf / or define new F with mpf factor
-	//TODO: add arguments
+
 	problem := nonlin.Problem{
 		F: f,
 	}
@@ -44,10 +42,9 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64), gues
 
 			for x0 := range guessChan {
 				res := solver.Solve(problem, x0)
-				if res.Converged {
-					if math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180 {
-						boundaryPointsCh <- model.Coordinate{Lat: res.X[0], Lng: res.X[1]}
-					}
+				xInDomain := math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180
+				if res.Converged && xInDomain {
+					boundaryPointsCh <- model.Coordinate{Lat: res.X[0], Lng: res.X[1]}
 				}
 			}
 

@@ -127,7 +127,7 @@ type Cell struct {
 	Channel              Channel            `mapstructure:"channel"`
 	Beam                 Beam               `mapstructure:"beam"`
 	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
-	CoverageBoundaries   []CoverageBoundary `mapstructure:"CoverageBoundaries"`
+	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
 	RrcIdleCount         uint32
 	RrcConnectedCount    uint32
 	ShadowMap

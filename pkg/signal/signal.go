@@ -5,7 +5,6 @@
 package signal
 
 import (
-	"fmt"
 	"math"
 	"math/cmplx"
 	"math/rand"
@@ -18,35 +17,32 @@ import (
 // powerFactor relates power to distance in decimal degrees
 const powerFactor = 0.001
 
-// StrengthAtLocation returns the signal strength at location relative to the specified cell.
-func StrengthAtLocation(coord model.Coordinate, height float64, cell model.Cell, mpf float64) float64 {
-	angleAtt := angularAttenuation(coord, height, cell)
-	pathLoss := GetPathLoss(coord, height, cell)
-	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
-		log.Warnf("UE has lat:%v lng:%v", coord.Lat, coord.Lng)
-		return 0
-	}
+// Strength returns the signal strength at location relative to the specified cell.
+func Strength(coord model.Coordinate, height float64, cell model.Cell) float64 {
+
 	shadowing := 0.0
 	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
 	if inGrid && len(cell.ShadowingMap) > 0 {
 		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
-	antenaGain := cell.Beam.MaxGain + angleAtt
 
-	if math.IsNaN(mpf) {
-		k := 9.0
-		if !cell.Channel.LOS {
-			k = 0.0
-		}
-		mpf = MultipathFading(antenaGain-pathLoss+shadowing, k)
-		fmt.Printf("mpf: %v\n", mpf)
+	radiatedStrength := RadiatedStrength(coord, height, cell)
+
+	k := 9.0
+	if !cell.Channel.LOS {
+		k = 0.0
 	}
-	return cell.TxPowerDB + antenaGain - pathLoss + shadowing + mpf
+
+	mpf := MultipathFading(radiatedStrength, k)
+
+	// fmt.Printf("mpf: %v\n", mpf)
+
+	return radiatedStrength + shadowing + mpf
 
 }
 
-func AntennaRadiationPattern(coord model.Coordinate, height float64, cell model.Cell) float64 {
+func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) float64 {
 	angleAtt := angularAttenuation(coord, height, cell)
 	pathLoss := GetPathLoss(coord, height, cell)
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
@@ -60,24 +56,32 @@ func AntennaRadiationPattern(coord model.Coordinate, height float64, cell model.
 
 }
 
-func GetCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+func GetRadiationPatternBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
 	coverageF := func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = AntennaRadiationPattern(coord, ueHeight, *cell) - refSignalStrength
-		out[1] = AntennaRadiationPattern(coord, ueHeight, *cell) - refSignalStrength
+		out[0] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+		out[1] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
 	}
-	boundaryPoints := ComputeCoverageNewtonKrylov(*cell, coverageF, 10, 900)
-	return boundaryPoints
+	boundaryPointsCh := ComputeCoverageNewtonKrylov(*cell, coverageF, GetRandGuessesChan(*cell), 10)
+	boundaryPoints := make([]model.Coordinate, 0)
+	for boundaryPoint := range boundaryPointsCh {
+		boundaryPoints = append(boundaryPoints, boundaryPoint)
+	}
+	return utils.SortCoordinatesByBearing(cell.Sector.Center, boundaryPoints)
 }
 
-func GetSimCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+func GetCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, radiationPatternBoundary []model.Coordinate) []model.Coordinate {
 	coverageF := func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = StrengthAtLocation(coord, ueHeight, *cell, math.NaN()) - refSignalStrength
-		out[1] = StrengthAtLocation(coord, ueHeight, *cell, math.NaN()) - refSignalStrength
+		out[0] = Strength(coord, ueHeight, *cell) - refSignalStrength
+		out[1] = Strength(coord, ueHeight, *cell) - refSignalStrength
 	}
-	boundaryPoints := ComputeCoverageNewtonKrylov(*cell, coverageF, 100, 900)
-	return boundaryPoints
+	boundaryPointsCh := ComputeCoverageNewtonKrylov(*cell, coverageF, GetGuessesChan(radiationPatternBoundary), 100)
+	boundaryPoints := make([]model.Coordinate, 0)
+	for boundaryPoint := range boundaryPointsCh {
+		boundaryPoints = append(boundaryPoints, boundaryPoint)
+	}
+	return utils.SortCoordinatesByBearing(cell.Sector.Center, boundaryPoints)
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist

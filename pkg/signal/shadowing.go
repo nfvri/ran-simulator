@@ -382,7 +382,7 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
 		sigma = 8.0
 	}
-	coverageCoordinates := cell.CoverageBoundaries[0].BoundaryPoints
+	coverageCoordinates := cell.RPCoverageBoundaries[0].BoundaryPoints
 	if len(coverageCoordinates) == 0 {
 		return
 	}

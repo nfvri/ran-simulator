@@ -381,7 +381,7 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 	}
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
-		rsrp := signal.StrengthAtLocation(ue.Location, ue.Height, *cell, math.NaN())
+		rsrp := signal.Strength(ue.Location, ue.Height, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
 		}
@@ -413,7 +413,7 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}
 
-	strength := signal.StrengthAtLocation(ue.Location, ue.Height, *sCell, math.NaN())
+	strength := signal.Strength(ue.Location, ue.Height, *sCell)
 
 	if math.IsNaN(strength) {
 		strength = -999

@@ -188,22 +188,22 @@ func initCoverageAndShadowMaps(m *Manager) {
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
-			boundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
-			if len(boundaryPoints) == 0 {
+			rpBoundaryPoints := signal.GetRadiationPatternBoundaryPoints(ueHeight, cell, refSignalStrength)
+			if len(rpBoundaryPoints) == 0 {
 				continue
 			}
-			cell.CoverageBoundaries = []model.CoverageBoundary{
+			cell.RPCoverageBoundaries = []model.CoverageBoundary{
 				{
 					RefSignalStrength: refSignalStrength,
-					BoundaryPoints:    boundaryPoints,
+					BoundaryPoints:    rpBoundaryPoints,
 				},
 			}
 			signal.InitShadowMap(cell, d_c)
-			simBoundaryPoints := signal.GetSimCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
+			simBoundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
 			if len(simBoundaryPoints) == 0 {
 				continue
 			}
-			cell.SimCoverageBoundaries = []model.CoverageBoundary{
+			cell.CoverageBoundaries = []model.CoverageBoundary{
 				{
 					RefSignalStrength: refSignalStrength,
 					BoundaryPoints:    simBoundaryPoints,
@@ -212,27 +212,27 @@ func initCoverageAndShadowMaps(m *Manager) {
 			m.redisStore.Add(ctx, cell)
 		} else {
 			if cell.ConfigEquivalent(cachedCell) {
+				cell.RPCoverageBoundaries = cachedCell.RPCoverageBoundaries
 				cell.CoverageBoundaries = cachedCell.CoverageBoundaries
-				cell.SimCoverageBoundaries = cachedCell.SimCoverageBoundaries
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
 			} else {
-				boundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
+				boundaryPoints := signal.GetRadiationPatternBoundaryPoints(ueHeight, cell, refSignalStrength)
 				if len(boundaryPoints) == 0 {
 					continue
 				}
-				cell.CoverageBoundaries = []model.CoverageBoundary{
+				cell.RPCoverageBoundaries = []model.CoverageBoundary{
 					{
 						RefSignalStrength: refSignalStrength,
 						BoundaryPoints:    boundaryPoints,
 					},
 				}
 				signal.InitShadowMap(cell, d_c)
-				simBoundaryPoints := signal.GetSimCoverageBoundaryPoints(ueHeight, cell, refSignalStrength)
+				simBoundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength, boundaryPoints)
 				if len(simBoundaryPoints) == 0 {
 					continue
 				}
-				cell.SimCoverageBoundaries = []model.CoverageBoundary{
+				cell.CoverageBoundaries = []model.CoverageBoundary{
 					{
 						RefSignalStrength: refSignalStrength,
 						BoundaryPoints:    simBoundaryPoints,

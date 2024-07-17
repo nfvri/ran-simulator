@@ -114,22 +114,22 @@ type Channel struct {
 
 // Cell represents a section of coverage
 type Cell struct {
-	NCGI                  types.NCGI         `mapstructure:"ncgi"`
-	Sector                Sector             `mapstructure:"sector"`
-	Color                 string             `mapstructure:"color"`
-	MaxUEs                uint32             `mapstructure:"maxUEs"`
-	Neighbors             []types.NCGI       `mapstructure:"neighbors"`
-	TxPowerDB             float64            `mapstructure:"txpowerdb"`
-	MeasurementParams     MeasurementParams  `mapstructure:"measurementParams"`
-	PCI                   uint32             `mapstructure:"pci"`
-	Earfcn                uint32             `mapstructure:"earfcn"`
-	CellType              types.CellType     `mapstructure:"cellType"`
-	Channel               Channel            `mapstructure:"channel"`
-	Beam                  Beam               `mapstructure:"beam"`
-	CoverageBoundaries    []CoverageBoundary `mapstructure:"coverageBoundaries"`
-	SimCoverageBoundaries []CoverageBoundary `mapstructure:"simCoverageBoundaries"`
-	RrcIdleCount          uint32
-	RrcConnectedCount     uint32
+	NCGI                 types.NCGI         `mapstructure:"ncgi"`
+	Sector               Sector             `mapstructure:"sector"`
+	Color                string             `mapstructure:"color"`
+	MaxUEs               uint32             `mapstructure:"maxUEs"`
+	Neighbors            []types.NCGI       `mapstructure:"neighbors"`
+	TxPowerDB            float64            `mapstructure:"txpowerdb"`
+	MeasurementParams    MeasurementParams  `mapstructure:"measurementParams"`
+	PCI                  uint32             `mapstructure:"pci"`
+	Earfcn               uint32             `mapstructure:"earfcn"`
+	CellType             types.CellType     `mapstructure:"cellType"`
+	Channel              Channel            `mapstructure:"channel"`
+	Beam                 Beam               `mapstructure:"beam"`
+	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
+	CoverageBoundaries   []CoverageBoundary `mapstructure:"CoverageBoundaries"`
+	RrcIdleCount         uint32
+	RrcConnectedCount    uint32
 	ShadowMap
 }
 
@@ -163,7 +163,7 @@ type ShadowMap struct {
 }
 
 type CoverageBoundary struct {
-	RefSignalStrength int          `json:"refSignalStrength"`
+	RefSignalStrength float64      `json:"refSignalStrength"`
 	BoundaryPoints    []Coordinate `json:"boundaryPoints"`
 }
 

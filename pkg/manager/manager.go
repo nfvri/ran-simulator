@@ -188,7 +188,7 @@ func initCoverageAndShadowMaps(m *Manager) {
 	for _, cell := range cellList {
 		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
 		if err != nil {
-			rpBoundaryPoints := signal.GetRadiationPatternBoundaryPoints(ueHeight, cell, refSignalStrength)
+			rpBoundaryPoints := signal.GetRPBoundaryPoints(ueHeight, cell, refSignalStrength)
 			if len(rpBoundaryPoints) == 0 {
 				continue
 			}
@@ -199,14 +199,15 @@ func initCoverageAndShadowMaps(m *Manager) {
 				},
 			}
 			signal.InitShadowMap(cell, d_c)
-			simBoundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
-			if len(simBoundaryPoints) == 0 {
+			covBoundaryPoints := signal.GetCovBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
+
+			if len(covBoundaryPoints) == 0 {
 				continue
 			}
 			cell.CoverageBoundaries = []model.CoverageBoundary{
 				{
 					RefSignalStrength: refSignalStrength,
-					BoundaryPoints:    simBoundaryPoints,
+					BoundaryPoints:    covBoundaryPoints,
 				},
 			}
 			m.redisStore.Add(ctx, cell)
@@ -217,25 +218,26 @@ func initCoverageAndShadowMaps(m *Manager) {
 				cell.GridPoints = cachedCell.GridPoints
 				cell.ShadowingMap = cachedCell.ShadowingMap
 			} else {
-				boundaryPoints := signal.GetRadiationPatternBoundaryPoints(ueHeight, cell, refSignalStrength)
-				if len(boundaryPoints) == 0 {
+				rpBoundaryPoints := signal.GetRPBoundaryPoints(ueHeight, cell, refSignalStrength)
+				if len(rpBoundaryPoints) == 0 {
 					continue
 				}
 				cell.RPCoverageBoundaries = []model.CoverageBoundary{
 					{
 						RefSignalStrength: refSignalStrength,
-						BoundaryPoints:    boundaryPoints,
+						BoundaryPoints:    rpBoundaryPoints,
 					},
 				}
 				signal.InitShadowMap(cell, d_c)
-				simBoundaryPoints := signal.GetCoverageBoundaryPoints(ueHeight, cell, refSignalStrength, boundaryPoints)
-				if len(simBoundaryPoints) == 0 {
+				covBoundaryPoints := signal.GetCovBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
+
+				if len(covBoundaryPoints) == 0 {
 					continue
 				}
 				cell.CoverageBoundaries = []model.CoverageBoundary{
 					{
 						RefSignalStrength: refSignalStrength,
-						BoundaryPoints:    simBoundaryPoints,
+						BoundaryPoints:    covBoundaryPoints,
 					},
 				}
 				m.redisStore.Update(ctx, cell)

@@ -35,12 +35,10 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 	ueHeight := 1.5
 	const refSignalStrength = -87
-	coverageF := func(out, x []float64) {
-		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = RadiatedStrength(coord, ueHeight, cell) - refSignalStrength
-		out[1] = RadiatedStrength(coord, ueHeight, cell) - refSignalStrength
+	rpFp := func(x0 []float64) (f func(out, x []float64)) {
+		return RadiationPatternF(ueHeight, &cell, refSignalStrength)
 	}
-	rpBoundaryPointsCh := ComputeCoverageNewtonKrylov(cell, coverageF, GetRandGuessesChan(cell), 10)
+	rpBoundaryPointsCh := ComputeCoverageNewtonKrylov(rpFp, GetRandGuessesChan(cell), 10)
 
 	for rpBoundaryPoint := range rpBoundaryPointsCh {
 		t.Logf("[%f, %f], \n", rpBoundaryPoint.Lat, rpBoundaryPoint.Lng)

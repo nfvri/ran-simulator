@@ -18,7 +18,9 @@ import (
 const powerFactor = 0.001
 
 // Strength returns the signal strength at location relative to the specified cell.
-func Strength(coord model.Coordinate, height float64, cell model.Cell) float64 {
+func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) float64 {
+
+	radiatedStrength := RadiatedStrength(coord, height, cell)
 
 	shadowing := 0.0
 	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
@@ -26,17 +28,6 @@ func Strength(coord model.Coordinate, height float64, cell model.Cell) float64 {
 		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
-
-	radiatedStrength := RadiatedStrength(coord, height, cell)
-
-	k := 9.0
-	if !cell.Channel.LOS {
-		k = 0.0
-	}
-
-	mpf := MultipathFading(radiatedStrength, k)
-
-	// fmt.Printf("mpf: %v\n", mpf)
 
 	return radiatedStrength + shadowing + mpf
 
@@ -54,34 +45,6 @@ func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) f
 
 	return cell.TxPowerDB + antenaGain - pathLoss
 
-}
-
-func GetRadiationPatternBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
-	coverageF := func(out, x []float64) {
-		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
-		out[1] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
-	}
-	boundaryPointsCh := ComputeCoverageNewtonKrylov(*cell, coverageF, GetRandGuessesChan(*cell), 10)
-	boundaryPoints := make([]model.Coordinate, 0)
-	for boundaryPoint := range boundaryPointsCh {
-		boundaryPoints = append(boundaryPoints, boundaryPoint)
-	}
-	return utils.SortCoordinatesByBearing(cell.Sector.Center, boundaryPoints)
-}
-
-func GetCoverageBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, radiationPatternBoundary []model.Coordinate) []model.Coordinate {
-	coverageF := func(out, x []float64) {
-		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = Strength(coord, ueHeight, *cell) - refSignalStrength
-		out[1] = Strength(coord, ueHeight, *cell) - refSignalStrength
-	}
-	boundaryPointsCh := ComputeCoverageNewtonKrylov(*cell, coverageF, GetGuessesChan(radiationPatternBoundary), 100)
-	boundaryPoints := make([]model.Coordinate, 0)
-	for boundaryPoint := range boundaryPointsCh {
-		boundaryPoints = append(boundaryPoints, boundaryPoint)
-	}
-	return utils.SortCoordinatesByBearing(cell.Sector.Center, boundaryPoints)
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist
@@ -178,7 +141,11 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	return zenithAngle
 }
 
-func MultipathFading(pathlossDb float64, K float64) float64 {
+func MultipathFading(pathlossDb float64, NLOS bool) float64 {
+	K := 9.0
+	if NLOS {
+		K = 0.0
+	}
 	// Convert path loss from dB to linear scale
 	userPathlossLin := math.Pow(10, -pathlossDb/10)
 

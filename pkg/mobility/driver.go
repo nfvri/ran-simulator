@@ -381,7 +381,8 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 	}
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
-		rsrp := signal.Strength(ue.Location, ue.Height, *cell)
+		mpf := signal.MultipathFading(signal.RadiatedStrength(ue.Location, ue.Height, *cell), !cell.Channel.LOS)
+		rsrp := signal.Strength(ue.Location, ue.Height, mpf, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
 		}
@@ -413,7 +414,8 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}
 
-	strength := signal.Strength(ue.Location, ue.Height, *sCell)
+	mpf := signal.MultipathFading(signal.RadiatedStrength(ue.Location, ue.Height, *sCell), !sCell.Channel.LOS)
+	strength := signal.Strength(ue.Location, ue.Height, mpf, *sCell)
 
 	if math.IsNaN(strength) {
 		strength = -999

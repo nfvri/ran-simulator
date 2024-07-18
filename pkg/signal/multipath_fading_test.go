@@ -16,7 +16,7 @@ func PlotReceivedPower(pathlossDb float64, K float64, realizations int) {
 
 	for i := 0; i < realizations; i++ {
 		receivedPowerDb[i].X = float64(i)
-		receivedPowerDb[i].Y = MultipathFading(pathlossDb, K)
+		receivedPowerDb[i].Y = MultipathFading(pathlossDb, false)
 	}
 
 	p := plot.New()

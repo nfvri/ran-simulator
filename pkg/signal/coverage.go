@@ -1,7 +1,6 @@
 package signal
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"sync"
@@ -9,23 +8,23 @@ import (
 
 	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 )
 
-// Runs Newton Krylov solver to compute the signal coverage points
-func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64), guessChan <-chan []float64, maxIter int) <-chan model.Coordinate {
+type FProvider func(x0 []float64) (f func(out, x []float64))
 
-	problem := nonlin.Problem{
-		F: f,
-	}
+// Runs Newton Krylov solver to compute the signal coverage points
+func ComputeCoverageNewtonKrylov(fp FProvider, guessChan <-chan []float64, maxIter int) <-chan model.Coordinate {
 
 	boundaryPointsCh := make(chan model.Coordinate)
 	var wg sync.WaitGroup
-	numWorkers := 10
+	numWorkers := 15
 
 	for i := 1; i <= numWorkers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
 			solver := nonlin.NewtonKrylov{
 				// Maximum number of Newton iterations
 				Maxiter: maxIter,
@@ -41,6 +40,9 @@ func ComputeCoverageNewtonKrylov(cell model.Cell, f func(out, x []float64), gues
 			}
 
 			for x0 := range guessChan {
+				problem := nonlin.Problem{
+					F: fp(x0),
+				}
 				res := solver.Solve(problem, x0)
 				xInDomain := math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180
 				if res.Converged && xInDomain {
@@ -63,14 +65,13 @@ func GetRandGuessesChan(cell model.Cell) <-chan []float64 {
 	rgChan := make(chan []float64)
 	go func() {
 		defer close(rgChan)
-		for i := 360; i < 900; i++ {
+		for i := 360; i < 20000; i++ {
 			outerPoint := float64(i) * 0.0005 * rand.Float64()
 			sign1 := rand.Float64() - 0.5
 			sign2 := rand.Float64() - 0.5
 			guess := []float64{cell.Sector.Center.Lat + (sign1 * outerPoint), cell.Sector.Center.Lng + (sign2 * outerPoint)}
 			select {
 			case rgChan <- guess:
-				// fmt.Printf("\nInitial Guess: %v \n", guess)
 			default:
 				time.Sleep(1 * time.Millisecond)
 			}
@@ -87,11 +88,51 @@ func GetGuessesChan(guessesCoord []model.Coordinate) <-chan []float64 {
 			guess := []float64{guessCoord.Lat, guessCoord.Lng}
 			select {
 			case gChan <- guess:
-				fmt.Printf("Initial Guess: %v\n", guess)
 			default:
 				time.Sleep(1 * time.Millisecond)
 			}
 		}
 	}()
 	return gChan
+}
+
+func RadiationPatternF(ueHeight float64, cell *model.Cell, refSignalStrength float64) (f func(out, x []float64)) {
+	return func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+		out[1] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+	}
+}
+func CoverageF(ueHeight float64, cell *model.Cell, refSignalStrength, mpf float64, radiationPatternBoundary []model.Coordinate) (f func(out, x []float64)) {
+	return func(out, x []float64) {
+		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
+		out[0] = Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
+		out[1] = Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
+	}
+}
+
+func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+	rpFp := func(x0 []float64) (f func(out, x []float64)) {
+		return RadiationPatternF(ueHeight, cell, refSignalStrength)
+	}
+	rpBoundaryPointsCh := ComputeCoverageNewtonKrylov(rpFp, GetRandGuessesChan(*cell), 60)
+	rpBoundaryPoints := make([]model.Coordinate, 0)
+	for rpBp := range rpBoundaryPointsCh {
+		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)
+	}
+	return utils.SortCoordinatesByBearing(cell.Sector.Center, rpBoundaryPoints)
+}
+
+func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {
+	cfp := func(x0 []float64) (f func(out, x []float64)) {
+		coord := model.Coordinate{Lat: x0[0], Lng: x0[1]}
+		mpf := MultipathFading(RadiatedStrength(coord, ueHeight, *cell), !cell.Channel.LOS)
+		return CoverageF(ueHeight, cell, refSignalStrength, mpf, rpBoundaryPoints)
+	}
+	covBoundaryPointsCh := ComputeCoverageNewtonKrylov(cfp, GetGuessesChan(rpBoundaryPoints), 100)
+	covBoundaryPoints := make([]model.Coordinate, 0)
+	for cbp := range covBoundaryPointsCh {
+		covBoundaryPoints = append(covBoundaryPoints, cbp)
+	}
+	return utils.SortCoordinatesByBearing(cell.Sector.Center, covBoundaryPoints)
 }

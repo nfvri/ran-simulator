@@ -19,16 +19,16 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/store/cells"
 )
 
 const (
-	minIMSI = 1000000
-	maxIMSI = 9999999
+	MinIMSI = 1000000
+	MaxIMSI = 9999999
 )
 
 var log = liblog.GetLogger()
@@ -216,10 +216,10 @@ func randomBoolean() bool {
 func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 	s.mu.Lock()
 	for i := uint(0); i < count; i++ {
-		imsi := types.IMSI(rand.Int63n(maxIMSI-minIMSI) + minIMSI)
+		imsi := types.IMSI(rand.Int63n(MaxIMSI-MinIMSI) + MinIMSI)
 		if _, ok := s.ues[imsi]; ok {
 			// FIXME: more robust check for duplicates
-			imsi = types.IMSI(rand.Int63n(maxIMSI-minIMSI) + minIMSI)
+			imsi = types.IMSI(rand.Int63n(MaxIMSI-MinIMSI) + MinIMSI)
 		}
 
 		randomCell, err := s.cellStore.GetRandomCell()

@@ -6,7 +6,6 @@ package signal
 
 import (
 	"math"
-	"math/cmplx"
 	"math/rand"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -15,21 +14,29 @@ import (
 )
 
 // powerFactor relates power to distance in decimal degrees
-const powerFactor = 0.001
+const (
+	powerFactor        = 0.001
+	RICEAN_K_MEAN      = 9.0
+	RICEAN_K_STD_MICRO = 5.0
+	RICEAN_K_STD_MACRO = 3.5
+)
 
 // Strength returns the signal strength at location relative to the specified cell.
 func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) float64 {
+	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
+	if !inGrid {
+		return math.Inf(-1)
+	}
 
 	radiatedStrength := RadiatedStrength(coord, height, cell)
 
 	shadowing := 0.0
-	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
-	if inGrid && len(cell.ShadowingMap) > 0 {
+	if len(cell.ShadowingMap) > 0 {
 		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
 
-	return radiatedStrength + shadowing + mpf
+	return (radiatedStrength + shadowing) * mpf
 
 }
 
@@ -141,27 +148,31 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	return zenithAngle
 }
 
-func MultipathFading(pathlossDb float64, NLOS bool) float64 {
-	K := 9.0
-	if NLOS {
-		K = 0.0
-	}
-	// Convert path loss from dB to linear scale
-	userPathlossLin := math.Pow(10, -pathlossDb/10)
+// RicianRandom generates a random variable following the Rician distribution
+// with parameters nu (non-centrality parameter) and sigma (scale parameter).
+func RicianRandom(nu, sigma float64) float64 {
+	// Generate two Gaussian random variables with mean 0 and standard deviation sigma
+	x := sigma*rand.NormFloat64() + nu
+	y := sigma * rand.NormFloat64()
 
-	// Calculate the scaling factor
-	scale := math.Sqrt(userPathlossLin / (2 * (K + 1)))
-	// Rician fading model
-	realPart := math.Sqrt(2*K) + rand.NormFloat64()
-	imagPart := rand.NormFloat64()
+	// Generate Rician-distributed random variable
+	return math.Sqrt(x*x + y*y)
+}
 
-	channelGain := complex(realPart, imagPart) * complex(scale, 0)
+// Calculate nu and sigma from K-factor
+func calculateNuSigma(K float64) (float64, float64) {
+	// Assume total power P = 1
+	sigma := math.Sqrt(1 / (2 * (K + 1)))
+	nu := math.Sqrt(K / (K + 1))
+	return nu, sigma
+}
 
-	// Calculate the magnitude of the channel gain in dB
-	channelGainDb := 10*math.Log10(cmplx.Abs(channelGain)*cmplx.Abs(channelGain)) + pathlossDb
-	// fmt.Printf("channelGainDb: %v\n", channelGainDb)
-
-	return channelGainDb
+// RiceanFading calculates the channel fading using the rician fading model
+func RiceanFading(K float64) float64 {
+	nu, sigma := calculateNuSigma(K)
+	// fading := complex(RicianRandom(nu, sigma), RicianRandom(0, sigma))
+	fading := RicianRandom(nu, sigma)
+	return fading
 }
 
 // ETSI TR 138 901 V16.1.0

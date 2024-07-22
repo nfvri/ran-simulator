@@ -2,25 +2,33 @@ package signal
 
 import (
 	"fmt"
+	"math/rand"
 	"path/filepath"
 	"testing"
 
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
 )
 
 // PlotReceivedPower plots the received power values and saves it as a PNG file
-func PlotReceivedPower(pathlossDb float64, K float64, realizations int) {
+func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
 	receivedPowerDb := make(plotter.XYs, realizations)
+
+	K := 0.0
+
+	if cell.Channel.LOS {
+		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+	}
 
 	for i := 0; i < realizations; i++ {
 		receivedPowerDb[i].X = float64(i)
-		receivedPowerDb[i].Y = MultipathFading(pathlossDb, false)
+		receivedPowerDb[i].Y = RiceanFading(K)
 	}
 
 	p := plot.New()
-	p.Title.Text = fmt.Sprintf("Received Power (dB) - K=%.2f", K)
+	p.Title.Text = fmt.Sprintf("LOS: %v", cell.Channel.LOS)
 	p.X.Label.Text = "Realization"
 	p.Y.Label.Text = "Received Power (dB)"
 
@@ -37,7 +45,7 @@ func PlotReceivedPower(pathlossDb float64, K float64, realizations int) {
 	// 	panic(err)
 	// }
 
-	receivedPowerFilename := filepath.Join("./multipath_test_results/graphs/", fmt.Sprintf("%s_K%.2f.png", "multipath_db", K))
+	receivedPowerFilename := filepath.Join("./multipath_test_results/graphs/", fmt.Sprintf("%sLOS_%v.png", "multipath_db", cell.Channel.LOS))
 	if err := p.Save(15*vg.Inch, 10*vg.Inch, receivedPowerFilename); err != nil {
 		panic(err)
 	}
@@ -49,7 +57,7 @@ func PlotReceivedPower(pathlossDb float64, K float64, realizations int) {
 	// }
 
 	// Plot the distribution separately
-	distributionFilename := filepath.Join("./multipath_test_results/distributions/", fmt.Sprintf("%s_distribution_K%.2f.png", "multipath_db_", K))
+	distributionFilename := filepath.Join("./multipath_test_results/distributions/", fmt.Sprintf("%s_distribution_LOS_%v.png", "multipath_db_", cell.Channel.LOS))
 
 	distribution := make(plotter.Values, len(receivedPowerDb))
 	for i, pt := range receivedPowerDb {
@@ -61,7 +69,7 @@ func PlotReceivedPower(pathlossDb float64, K float64, realizations int) {
 	pl.X.Label.Text = "Received Power (dB)"
 	pl.Y.Label.Text = "Frequency"
 
-	h, err := plotter.NewHist(distribution, 16) // 16 bins for the histogram
+	h, err := plotter.NewHist(distribution, 50) // 50 bins for the histogram
 	if err != nil {
 		panic(err)
 	}
@@ -77,15 +85,36 @@ func PlotReceivedPower(pathlossDb float64, K float64, realizations int) {
 }
 
 func TestRayleighFading(t *testing.T) {
-	pathloss := 80.0
-	// TxPowerDB := 40.0
-	realizations := 500
-	K_start := 4.0
-	K_increment := 1.0
-	num_tests := 9
-
-	for i := 0; i < num_tests; i++ {
-		K := K_start + float64(i)*K_increment
-		PlotReceivedPower(pathloss, K, realizations)
+	cell := model.Cell{
+		TxPowerDB: 45,
+		Sector: model.Sector{
+			Azimuth: 90,
+			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
+			Height:  30,
+		},
+		Beam: model.Beam{
+			H3dBAngle:              65,
+			V3dBAngle:              65,
+			MaxGain:                8,
+			MaxAttenuationDB:       30,
+			VSideLobeAttenuationDB: 30,
+		},
+		Channel: model.Channel{
+			SSBFrequency: 3600,
+			LOS:          true,
+			Environment:  "urban",
+		},
 	}
+	pathloss := GetPathLoss(model.Coordinate{Lat: 37.979207, Lng: 23.720989}, 1.5, cell)
+	fmt.Printf("pathloss: %v", pathloss)
+	// TxPowerDB := 40.0
+	realizations := 1000
+
+	//LOS
+	PlotReceivedPower(pathloss, realizations, cell)
+
+	//NLOS
+	cell.Channel.LOS = false
+	PlotReceivedPower(pathloss, realizations, cell)
+
 }

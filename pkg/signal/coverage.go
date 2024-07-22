@@ -9,6 +9,7 @@ import (
 	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type FProvider func(x0 []float64) (f func(out, x []float64))
@@ -30,10 +31,10 @@ func ComputeCoverageNewtonKrylov(fp FProvider, guessChan <-chan []float64, maxIt
 				Maxiter: maxIter,
 
 				// Stepsize used to approximate jacobian with finite differences
-				StepSize: 1e-3,
+				StepSize: 1e-4,
 
 				// Tolerance for the solution
-				Tol: 1e-5,
+				Tol: 1e-6,
 
 				// Stencil for Jacobian
 				// Stencil: 8,
@@ -43,8 +44,12 @@ func ComputeCoverageNewtonKrylov(fp FProvider, guessChan <-chan []float64, maxIt
 				problem := nonlin.Problem{
 					F: fp(x0),
 				}
-				res := solver.Solve(problem, x0)
-				xInDomain := math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180
+				res, err := solver.Solve(problem, x0)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				xInDomain := res.X[0] > 0 && res.X[1] > 0 && math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180
 				if res.Converged && xInDomain {
 					boundaryPointsCh <- model.Coordinate{Lat: res.X[0], Lng: res.X[1]}
 				}
@@ -65,7 +70,7 @@ func GetRandGuessesChan(cell model.Cell) <-chan []float64 {
 	rgChan := make(chan []float64)
 	go func() {
 		defer close(rgChan)
-		for i := 360; i < 20000; i++ {
+		for i := 360; i < 30000; i++ {
 			outerPoint := float64(i) * 0.0005 * rand.Float64()
 			sign1 := rand.Float64() - 0.5
 			sign2 := rand.Float64() - 0.5
@@ -125,8 +130,11 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 
 func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
-		coord := model.Coordinate{Lat: x0[0], Lng: x0[1]}
-		mpf := MultipathFading(RadiatedStrength(coord, ueHeight, *cell), !cell.Channel.LOS)
+		K := 0.0
+		if cell.Channel.LOS {
+			K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+		}
+		mpf := RiceanFading(K)
 		return CoverageF(ueHeight, cell, refSignalStrength, mpf, rpBoundaryPoints)
 	}
 	covBoundaryPointsCh := ComputeCoverageNewtonKrylov(cfp, GetGuessesChan(rpBoundaryPoints), 100)

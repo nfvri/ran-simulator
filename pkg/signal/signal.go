@@ -58,11 +58,19 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 	bandwidth := 10e6 // 20 MHz bandwidth
 	noise := CalculateNoisePower(bandwidth, sCell.CellType)
 
-	mpf := RiceanFading(sCell.Channel.LOS)
+	K := 0.0
+	if sCell.Channel.LOS {
+		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+	}
+	mpf := RiceanFading(K)
 	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)
 	rsrpNeighSum := 0.0
 	for _, n := range neighborCells {
-		mpf := RiceanFading(n.Channel.LOS)
+		K = 0.0
+		if n.Channel.LOS {
+			K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+		}
+		mpf := RiceanFading(K)
 		rsrpNeighSum += Strength(coord, ueHeight, mpf, *n)
 	}
 	return rsrpServing / (rsrpNeighSum + noise)
@@ -182,11 +190,7 @@ func calculateNuSigma(K float64) (float64, float64) {
 }
 
 // RiceanFading calculates the channel fading using the rician fading model
-func RiceanFading(LOS bool) float64 {
-	K := 0.0
-	if LOS {
-		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
-	}
+func RiceanFading(K float64) float64 {
 	nu, sigma := calculateNuSigma(K)
 	// fading := complex(RicianRandom(nu, sigma), RicianRandom(0, sigma))
 	fading := RicianRandom(nu, sigma)

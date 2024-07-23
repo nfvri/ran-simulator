@@ -377,11 +377,16 @@ func (d *driver) UpdateUESignalStrength(ctx context.Context, imsi types.IMSI) {
 func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *model.UE) error {
 	cellList, err := d.cellStore.List(ctx)
 	if err != nil {
-		return fmt.Errorf("Unable to get all cells")
+		return fmt.Errorf("unable to get all cells")
 	}
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
-		mpf := signal.RiceanFading(cell.Channel.LOS)
+		K := 0.0
+
+		if cell.Channel.LOS {
+			K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + signal.RICEAN_K_MEAN
+		}
+		mpf := signal.RiceanFading(K)
 		rsrp := signal.Strength(ue.Location, ue.Height, mpf, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
@@ -414,7 +419,13 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}
 
-	mpf := signal.RiceanFading(sCell.Channel.LOS)
+	K := 0.0
+
+	if sCell.Channel.LOS {
+		K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + signal.RICEAN_K_MEAN
+	}
+	mpf := signal.RiceanFading(K)
+
 	strength := signal.Strength(ue.Location, ue.Height, mpf, *sCell)
 
 	if math.IsNaN(strength) {

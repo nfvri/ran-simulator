@@ -2,6 +2,7 @@ package signal
 
 import (
 	"fmt"
+	"math/rand"
 	"path/filepath"
 	"testing"
 
@@ -14,10 +15,15 @@ import (
 // PlotReceivedPower plots the received power values and saves it as a PNG file
 func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
 	receivedPowerDb := make(plotter.XYs, realizations)
+	K := 0.0
+
+	if cell.Channel.LOS {
+		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+	}
 
 	for i := 0; i < realizations; i++ {
 		receivedPowerDb[i].X = float64(i)
-		receivedPowerDb[i].Y = RiceanFading(cell.Channel.LOS)
+		receivedPowerDb[i].Y = RiceanFading(K)
 	}
 
 	p := plot.New()

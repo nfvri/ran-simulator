@@ -130,7 +130,11 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 
 func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
-		mpf := RiceanFading(cell.Channel.LOS)
+		K := 0.0
+		if cell.Channel.LOS {
+			K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+		}
+		mpf := RiceanFading(K)
 		return CoverageF(ueHeight, cell, refSignalStrength, mpf, rpBoundaryPoints)
 	}
 	covBoundaryPointsCh := ComputePointsWithNewtonKrylov(cfp, GetGuessesChan(rpBoundaryPoints), 100)

@@ -12,7 +12,6 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // CQItoSINR mapping
@@ -43,7 +42,6 @@ func GetSINR(cqi int) float64 {
 	upperBound := CQItoSINRmap[cqi]
 
 	sinr := lowerBound + math.Abs(rand.Float64()*(upperBound-lowerBound))
-	log.Infof("CQI: %d -- sinr: %f", cqi, sinr)
 	return sinr
 }
 
@@ -59,8 +57,6 @@ func CalculateUEsLocations(ncgi uint64, numUes int, sinr float64, simModel *mode
 	}
 
 	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, numUes)
-
-	log.Infof("ueLocations: %v", ueLocations)
 
 	return ueLocations
 }

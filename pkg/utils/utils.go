@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
@@ -174,4 +175,18 @@ func GetEnv(key string, defaultVal string) string {
 		return value
 	}
 	return defaultVal
+}
+
+func GetCell(ncgi types.NCGI, simModel *model.Model) *model.Cell {
+
+	NCGI := types.NCGI(ncgi)
+	var foundCell *model.Cell
+
+	for _, cell := range simModel.Cells {
+		if cell.NCGI == NCGI {
+			foundCell = &cell
+			break
+		}
+	}
+	return foundCell
 }

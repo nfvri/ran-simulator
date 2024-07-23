@@ -54,6 +54,20 @@ func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) f
 
 }
 
+func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborCells []*model.Cell) float64 {
+	bandwidth := 10e6 // 20 MHz bandwidth
+	noise := CalculateNoisePower(bandwidth, sCell.CellType)
+
+	mpf := RiceanFading(sCell.Channel.LOS)
+	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)
+	rsrpNeighSum := 0.0
+	for _, n := range neighborCells {
+		mpf := RiceanFading(n.Channel.LOS)
+		rsrpNeighSum += Strength(coord, ueHeight, mpf, *n)
+	}
+	return rsrpServing / (rsrpNeighSum + noise)
+}
+
 // distanceAttenuation is the antenna Gain as a function of the dist
 // a very rough approximation to take in to account the width of
 // the antenna beam. A 120° wide beam with 30° height will span ≅ 2x0.5 = 1 steradians
@@ -168,7 +182,11 @@ func calculateNuSigma(K float64) (float64, float64) {
 }
 
 // RiceanFading calculates the channel fading using the rician fading model
-func RiceanFading(K float64) float64 {
+func RiceanFading(LOS bool) float64 {
+	K := 0.0
+	if LOS {
+		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+	}
 	nu, sigma := calculateNuSigma(K)
 	// fading := complex(RicianRandom(nu, sigma), RicianRandom(0, sigma))
 	fading := RicianRandom(nu, sigma)

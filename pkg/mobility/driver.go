@@ -382,11 +382,15 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
 		K := 0.0
-
+		scaleNu := 1.0
+		scaleSigma := 0.09
 		if cell.Channel.LOS {
 			K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + signal.RICEAN_K_MEAN
+		} else {
+			scaleNu = 1.5
+			K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + (signal.RICEAN_K_MEAN * 2)
 		}
-		mpf := signal.RiceanFading(K)
+		mpf := signal.RiceanFading(K, scaleNu, scaleSigma)
 		rsrp := signal.Strength(ue.Location, ue.Height, mpf, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
@@ -416,14 +420,19 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.UE) error {
 	sCell, err := d.cellStore.Get(ctx, ue.Cell.NCGI)
 	if err != nil {
-		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
+		return fmt.Errorf("unable to find serving cell %d", ue.Cell.NCGI)
 	}
-	K := 0.0
 
+	K := 0.0
+	scaleNu := 1.0
+	scaleSigma := 0.09
 	if sCell.Channel.LOS {
 		K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + signal.RICEAN_K_MEAN
+	} else {
+		scaleNu = 1.5
+		K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + (signal.RICEAN_K_MEAN * 2)
 	}
-	mpf := signal.RiceanFading(K)
+	mpf := signal.RiceanFading(K, scaleNu, scaleSigma)
 	strength := signal.Strength(ue.Location, ue.Height, mpf, *sCell)
 
 	if math.IsNaN(strength) {

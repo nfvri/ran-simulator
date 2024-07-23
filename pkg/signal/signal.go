@@ -6,6 +6,7 @@ package signal
 
 import (
 	"math"
+	"math/cmplx"
 	"math/rand"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -52,6 +53,15 @@ func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) f
 
 	return cell.TxPowerDB + antenaGain - pathLoss
 
+}
+
+func thermalNoisePower(bandwidth float64) float64 {
+	const (
+		Temperature = 290.0    // Standard temperature in Kelvin
+		Boltzmann   = 1.38e-23 // Boltzmann constant
+	)
+
+	return Boltzmann * Temperature * bandwidth
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist
@@ -160,19 +170,34 @@ func RicianRandom(nu, sigma float64) float64 {
 }
 
 // Calculate nu and sigma from K-factor
-func calculateNuSigma(K float64) (float64, float64) {
+func calculateNuSigma(K, scaleNu, scaleSigma float64) (float64, float64) {
 	// Assume total power P = 1
-	sigma := math.Sqrt(1 / (2 * (K + 1)))
-	nu := math.Sqrt(K / (K + 1))
+	sigma := math.Sqrt(scaleSigma / (2 * (K + 1)))
+	nu := math.Sqrt(scaleNu * K / (K + 1))
+
 	return nu, sigma
 }
 
 // RiceanFading calculates the channel fading using the rician fading model
-func RiceanFading(K float64) float64 {
-	nu, sigma := calculateNuSigma(K)
+func RiceanFading(K, scaleNu, scaleSigma float64) float64 {
+	nu, sigma := calculateNuSigma(K, scaleNu, scaleSigma)
 	// fading := complex(RicianRandom(nu, sigma), RicianRandom(0, sigma))
 	fading := RicianRandom(nu, sigma)
 	return fading
+}
+
+func MultipathFading(pathlossDb float64, K float64, txPowerDb float64) float64 {
+	userPathlossLin := math.Pow(10, -pathlossDb/10)
+	scale := math.Sqrt(userPathlossLin / (2 * (K + 1)))
+	// Rician fading model
+	realPart := math.Sqrt(2*K) + rand.NormFloat64()
+	imagPart := rand.NormFloat64()
+	channelGain := complex(realPart, imagPart) * complex(scale, 0)
+
+	transmissionPower := math.Pow(10, txPowerDb/10)
+	receivedPowerLin := transmissionPower * cmplx.Abs(channelGain) * cmplx.Abs(channelGain)
+
+	return 10 * math.Log10(receivedPowerLin)
 }
 
 // ETSI TR 138 901 V16.1.0

@@ -2,6 +2,7 @@ package signal
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"path/filepath"
 	"testing"
@@ -17,14 +18,22 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
 	receivedPowerDb := make(plotter.XYs, realizations)
 
 	K := 0.0
-
+	scaleNu := 1.0
+	scaleSigma := 0.09
 	if cell.Channel.LOS {
 		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+	} else {
+		scaleNu = 1.5
+		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + (RICEAN_K_MEAN * 2)
 	}
-
 	for i := 0; i < realizations; i++ {
+		f := RiceanFading(K, scaleNu, scaleSigma)
+		if math.IsNaN(f) {
+			continue
+		}
 		receivedPowerDb[i].X = float64(i)
-		receivedPowerDb[i].Y = RiceanFading(K)
+		receivedPowerDb[i].Y = f
+		fmt.Printf("\n\n %v", receivedPowerDb[i].Y)
 	}
 
 	p := plot.New()
@@ -105,16 +114,25 @@ func TestRayleighFading(t *testing.T) {
 			Environment:  "urban",
 		},
 	}
-	pathloss := GetPathLoss(model.Coordinate{Lat: 37.979207, Lng: 23.720989}, 1.5, cell)
-	fmt.Printf("pathloss: %v", pathloss)
+	// cell.RPCoverageBoundaries = []model.CoverageBoundary{
+	// 	{
+	// 		RefSignalStrength: -90,
+	// 		BoundaryPoints:    GetRPBoundaryPoints(1.5, &cell, -90),
+	// 	},
+	// }
+	// InitShadowMap(&cell, 150)
+	rs := RadiatedStrength(model.Coordinate{Lat: 37.979207, Lng: 23.720989}, 1.5, cell)
+
+	fmt.Printf("rs: %v", rs)
+
 	// TxPowerDB := 40.0
 	realizations := 1000
 
 	//LOS
-	PlotReceivedPower(pathloss, realizations, cell)
+	PlotReceivedPower(rs, realizations, cell)
 
 	//NLOS
 	cell.Channel.LOS = false
-	PlotReceivedPower(pathloss, realizations, cell)
+	PlotReceivedPower(rs, realizations, cell)
 
 }

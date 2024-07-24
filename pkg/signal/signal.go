@@ -192,9 +192,15 @@ func calculateNuSigma(K float64) (float64, float64) {
 // RiceanFading calculates the channel fading using the rician fading model
 func RiceanFading(K float64) float64 {
 	nu, sigma := calculateNuSigma(K)
-	// fading := complex(RicianRandom(nu, sigma), RicianRandom(0, sigma))
-	fading := RicianRandom(nu, sigma)
-	return fading
+	// fadingAmplitude := complex(RicianRandom(nu, sigma), RicianRandom(0, sigma))
+	fadingAmplitude := RicianRandom(nu, sigma)
+	// TODO: define random sampling per environment & LOS/NLOS
+	numSubPaths := 14.0
+	for i := 0; i <= int(numSubPaths); i++ {
+		fadingAmplitude += RicianRandom(nu, sigma)
+	}
+
+	return fadingAmplitude / numSubPaths
 }
 
 // ETSI TR 138 901 V16.1.0

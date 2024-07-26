@@ -82,9 +82,7 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 		}
 		rsrpNeighSum += nRsrp
 	}
-	sinr := rsrpServing / (rsrpNeighSum + noise)
-	log.Infof("rsrpServing: %v, neigh: %v, noise: %v", rsrpServing, rsrpNeighSum, noise)
-	log.Infof("-------------------------------------------sinr: %v", sinr)
+
 	return rsrpServing / (rsrpNeighSum + noise)
 }
 

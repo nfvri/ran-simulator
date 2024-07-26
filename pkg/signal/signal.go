@@ -32,7 +32,7 @@ func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) floa
 
 	shadowing := 0.0
 	if len(cell.ShadowingMap) > 0 {
-		log.Debugf("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
+		// log.Infof("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
 
@@ -44,7 +44,7 @@ func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) f
 	angleAtt := angularAttenuation(coord, height, cell)
 	pathLoss := GetPathLoss(coord, height, cell)
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
-		log.Warnf("UE has lat:%v lng:%v", coord.Lat, coord.Lng)
+		// log.Warnf("UE has lat:%v lng:%v", coord.Lat, coord.Lng)
 		return 0
 	}
 
@@ -64,6 +64,10 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 	}
 	mpf := RiceanFading(K)
 	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)
+	if rsrpServing == math.Inf(-1) {
+		return math.Inf(-1)
+	}
+
 	rsrpNeighSum := 0.0
 	for _, n := range neighborCells {
 		K = 0.0
@@ -71,8 +75,16 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 			K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
 		}
 		mpf := RiceanFading(K)
-		rsrpNeighSum += Strength(coord, ueHeight, mpf, *n)
+
+		nRsrp := Strength(coord, ueHeight, mpf, *n)
+		if nRsrp == math.Inf(-1) {
+			continue
+		}
+		rsrpNeighSum += nRsrp
 	}
+	sinr := rsrpServing / (rsrpNeighSum + noise)
+	log.Infof("rsrpServing: %v, neigh: %v, noise: %v", rsrpServing, rsrpNeighSum, noise)
+	log.Infof("-------------------------------------------sinr: %v", sinr)
 	return rsrpServing / (rsrpNeighSum + noise)
 }
 

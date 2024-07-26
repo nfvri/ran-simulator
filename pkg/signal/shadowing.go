@@ -343,8 +343,8 @@ func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cel
 	gridSize1 := int(math.Sqrt(float64(len(gridPoints1)))) - 1
 	gridSize2 := int(math.Sqrt(float64(len(gridPoints2)))) - 1
 
-	fmt.Printf("gridSize1: %v\n", gridSize1)
-	fmt.Printf("gridSize2: %v\n", gridSize2)
+	// fmt.Printf("gridSize1: %v\n", gridSize1)
+	// fmt.Printf("gridSize2: %v\n", gridSize2)
 
 	cell1iList = make([]int, 0)
 	cell1jList = make([]int, 0)
@@ -391,21 +391,4 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
 	//debug
 	log.Infof("%v", cell.GridPoints)
-}
-
-func ReplaceOverlappingShadowMap(cell1 *model.Cell, cell2 *model.Cell, d_c float64) {
-	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
-	if overlapping {
-		if cell1.NCGI == cell2.NCGI {
-			fmt.Printf("%d and %d overlapping but is the same cell\n", cell1.NCGI, cell2.NCGI)
-		} else {
-			for i := range cell1iList {
-				fmt.Printf("%d and %d overlapping: (%d,%d) and (%d,%d)\n", cell1.NCGI, cell2.NCGI, cell1iList[i], cell1jList[i], cell2iList[i], cell2jList[i])
-				cell2.ShadowingMap[cell2iList[i]][cell2jList[i]] = cell1.ShadowingMap[cell1iList[i]][cell1jList[i]]
-			}
-		}
-	} else {
-		fmt.Printf("%d and %d does not overlap\n", cell1.NCGI, cell2.NCGI)
-	}
-
 }

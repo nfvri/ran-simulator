@@ -45,15 +45,14 @@ func GetSINR(cqi int) float64 {
 	return sinr
 }
 
-func CalculateUEsLocations(ncgi uint64, numUes int, sinr float64, simModel *model.Model) []model.Coordinate {
-
-	ueHeight := 1.5
+func CalculateUEsLocations(ncgi uint64, numUes int, sinr, ueHeight float64, simModel *model.Model) []model.Coordinate {
 
 	cell := utils.GetCell(types.NCGI(ncgi), simModel)
 
 	neighborCells := []*model.Cell{}
 	for _, ncgi := range cell.Neighbors {
-		neighborCells = append(neighborCells, utils.GetCell(ncgi, simModel))
+		nCell := utils.GetCell(ncgi, simModel)
+		neighborCells = append(neighborCells, nCell)
 	}
 
 	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, numUes)
@@ -61,7 +60,7 @@ func CalculateUEsLocations(ncgi uint64, numUes int, sinr float64, simModel *mode
 	return ueLocations
 }
 
-func CreateSimulationUE(ncgi uint64, counter int, sinr float64, location model.Coordinate) (*model.UE, string) {
+func CreateSimulationUE(ncgi uint64, counter int, sinr, rsrp float64, location model.Coordinate) (*model.UE, string) {
 
 	imsi := types.IMSI(rand.Int63n(ues.MaxIMSI-ues.MinIMSI) + ues.MinIMSI)
 	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
@@ -71,7 +70,7 @@ func CreateSimulationUE(ncgi uint64, counter int, sinr float64, location model.C
 	servingCell := &model.UECell{
 		ID:   types.GnbID(ncgi),
 		NCGI: types.NCGI(ncgi),
-		Rsrp: rand.Float64() * 100,
+		Rsrp: rsrp,
 		Sinr: sinr,
 	}
 
@@ -111,12 +110,20 @@ func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Ce
 		sinrPoints = []model.Coordinate{}
 		sinrPointsCh := ComputePointsWithNewtonKrylov(cfp, GetRandGuessesChan(*cell, numUes*i), 100)
 		for sp := range sinrPointsCh {
-			sinrPoints = append(sinrPoints, sp)
+			_, _, inGrid := FindGridCell(sp, []model.Coordinate{{Lat: 37.97307913505482, Lng: 23.748905565922435}, {Lat: 37.98684672014083, Lng: 23.76652231473225}})
+			if inGrid {
+				sinrPoints = append(sinrPoints, sp)
+			}
 		}
 		if len(sinrPoints) >= numUes {
 			break
 		}
 	}
+
+	if len(sinrPoints) > numUes {
+		sinrPoints = sinrPoints[:numUes]
+	}
+
 	return utils.SortCoordinatesByBearing(cell.Sector.Center, sinrPoints)
 }
 

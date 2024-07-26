@@ -9,7 +9,6 @@ import (
 	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type FProvider func(x0 []float64) (f func(out, x []float64))
@@ -46,7 +45,6 @@ func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, max
 				}
 				res, err := solver.Solve(problem, x0)
 				if err != nil {
-					log.Error(err)
 					continue
 				}
 				xInDomain := res.X[0] > 0 && res.X[1] > 0 && math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180
@@ -68,13 +66,19 @@ func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, max
 
 func GetRandGuessesChan(cell model.Cell, numGuesses int) <-chan []float64 {
 	rgChan := make(chan []float64)
+
+	distance_to_deg := map[string]float64{"1m": 0.00001, "55m": 0.0005, "3.3km": 0.03}
+
 	go func() {
 		defer close(rgChan)
 		for i := 1; i < numGuesses; i++ {
-			outerPoint := (360 + float64(i)) * 0.0005 * rand.Float64()
-			sign1 := rand.Float64() - 0.5
-			sign2 := rand.Float64() - 0.5
-			guess := []float64{cell.Sector.Center.Lat + (sign1 * outerPoint), cell.Sector.Center.Lng + (sign2 * outerPoint)}
+
+			offset := distance_to_deg["55m"] + math.Min(float64(i)*distance_to_deg["1m"]*rand.Float64(), distance_to_deg["3.3km"])
+
+			latSign := (rand.Float64() - 0.5) * 2
+			longSign := (rand.Float64() - 0.5) * 2
+
+			guess := []float64{cell.Sector.Center.Lat + (latSign * offset), cell.Sector.Center.Lng + (longSign * offset)}
 			select {
 			case rgChan <- guess:
 			default:
@@ -120,7 +124,7 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, cell, refSignalStrength)
 	}
-	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChan(*cell, 30000), 60)
+	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChan(*cell, 10000), 60)
 	rpBoundaryPoints := make([]model.Coordinate, 0)
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)

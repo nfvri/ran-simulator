@@ -6,8 +6,6 @@ package manager
 
 import (
 	"context"
-	"fmt"
-	"math"
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
@@ -96,22 +94,6 @@ func (m *Manager) initmobilityDriver() {
 
 }
 
-func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
-	cell1iList, cell1jList, cell2iList, cell2jList, overlapping := signal.FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
-	if overlapping {
-		if cell1.NCGI == cell2.NCGI {
-			fmt.Printf("%d and %d overlapping but is the same cell\n", cell1.NCGI, cell2.NCGI)
-		} else {
-			for i := range cell1iList {
-				fmt.Printf("%d and %d overlapping: (%d,%d) and (%d,%d)\n", cell1.NCGI, cell2.NCGI, cell1iList[i], cell1jList[i], cell2iList[i], cell2jList[i])
-				cell2.ShadowingMap[cell2iList[i]][cell2jList[i]] = cell1.ShadowingMap[cell1iList[i]][cell1jList[i]]
-			}
-		}
-	} else {
-		fmt.Printf("%d and %d does not overlap\n", cell1.NCGI, cell2.NCGI)
-	}
-}
-
 // Start starts the manager
 func (m *Manager) Start() error {
 
@@ -175,99 +157,13 @@ func (m *Manager) initModelStores() {
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
 
-	initCoverageAndShadowMaps(m)
-}
+	cellList, _ := m.cellStore.List(context.Background())
 
-func initCoverageAndShadowMaps(m *Manager) {
-	ctx := context.Background()
-	cellList, _ := m.cellStore.List(ctx)
-	d_c := m.model.DecorrelationDistance
 	ueHeight := 1.5
-	const refSignalStrength = -87
+	refSignalStrength := -87.0
+	dc := m.model.DecorrelationDistance
 
-	for _, cell := range cellList {
-		cachedCell, err := m.redisStore.Get(ctx, cell.NCGI)
-		if err != nil {
-			rpBoundaryPoints := signal.GetRPBoundaryPoints(ueHeight, cell, refSignalStrength)
-			if len(rpBoundaryPoints) == 0 {
-				continue
-			}
-			cell.RPCoverageBoundaries = []model.CoverageBoundary{
-				{
-					RefSignalStrength: refSignalStrength,
-					BoundaryPoints:    rpBoundaryPoints,
-				},
-			}
-			signal.InitShadowMap(cell, d_c)
-			covBoundaryPoints := signal.GetCovBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
-
-			if len(covBoundaryPoints) == 0 {
-				continue
-			}
-			cell.CoverageBoundaries = []model.CoverageBoundary{
-				{
-					RefSignalStrength: refSignalStrength,
-					BoundaryPoints:    covBoundaryPoints,
-				},
-			}
-			m.redisStore.Add(ctx, cell)
-		} else {
-			if cell.ConfigEquivalent(cachedCell) {
-				cell.RPCoverageBoundaries = cachedCell.RPCoverageBoundaries
-				cell.CoverageBoundaries = cachedCell.CoverageBoundaries
-				cell.GridPoints = cachedCell.GridPoints
-				cell.ShadowingMap = cachedCell.ShadowingMap
-			} else {
-				rpBoundaryPoints := signal.GetRPBoundaryPoints(ueHeight, cell, refSignalStrength)
-				if len(rpBoundaryPoints) == 0 {
-					continue
-				}
-				cell.RPCoverageBoundaries = []model.CoverageBoundary{
-					{
-						RefSignalStrength: refSignalStrength,
-						BoundaryPoints:    rpBoundaryPoints,
-					},
-				}
-				signal.InitShadowMap(cell, d_c)
-				covBoundaryPoints := signal.GetCovBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
-
-				if len(covBoundaryPoints) == 0 {
-					continue
-				}
-				cell.CoverageBoundaries = []model.CoverageBoundary{
-					{
-						RefSignalStrength: refSignalStrength,
-						BoundaryPoints:    covBoundaryPoints,
-					},
-				}
-				m.redisStore.Update(ctx, cell)
-			}
-		}
-	}
-	for i := 0; i < len(cellList); i++ {
-		for j := i + 1; j < len(cellList); j++ {
-			replaceOverlappingShadowMapValues(cellList[i], cellList[j])
-		}
-	}
-	for _, cell := range cellList {
-		log.Debug("*******************")
-		log.Debug(cell.NCGI)
-		log.Debug("*******************")
-		gridSize := int(math.Sqrt(float64(len(cell.GridPoints)))) - 1
-		fmt.Printf("%5v,", "i\\j")
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%8d,", i)
-		}
-		log.Debug()
-		for i := 0; i < gridSize; i++ {
-			fmt.Printf("%5d,", i)
-			for j := 0; j < gridSize; j++ {
-
-				fmt.Printf("%8.4f,", cell.ShadowingMap[i][j])
-			}
-			log.Debug()
-		}
-	}
+	signal.ΙnitCoverageAndShadowMaps(cellList, m.redisStore, ueHeight, refSignalStrength, dc)
 }
 
 func (m *Manager) initMetricStore() {

@@ -46,7 +46,7 @@ func GetSINR(cqi int) float64 {
 	return sinr
 }
 
-func CalculateUEsLocations(ncgi uint64, numUes int, sinr, ueHeight float64, simModel *model.Model) []model.Coordinate {
+func CalculateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight float64, simModel *model.Model) []model.Coordinate {
 
 	cell := utils.GetCell(types.NCGI(ncgi), simModel)
 
@@ -56,7 +56,7 @@ func CalculateUEsLocations(ncgi uint64, numUes int, sinr, ueHeight float64, simM
 		neighborCells = append(neighborCells, nCell)
 	}
 
-	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, numUes)
+	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, numUes, cqi)
 
 	return ueLocations
 }
@@ -142,12 +142,12 @@ func SinrF(ueHeight float64, cell *model.Cell, refSinr float64, neighborCells []
 	}
 }
 
-func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Cell, refSinr float64, numUes int) []model.Coordinate {
+func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Cell, refSinr float64, numUes, cqi int) []model.Coordinate {
 
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
 		return SinrF(ueHeight, cell, refSinr, neighborCells)
 	}
-
+	log.Infof("CQI: %d -- SINR: %f", cqi, refSinr)
 	sinrPoints := []model.Coordinate{}
 	for i := 1000; i <= 10000; i += 1000 {
 		sinrPointsCh := ComputePointsWithNewtonKrylov(cfp, GetRandGuessesChan(*cell, numUes*i), 100)

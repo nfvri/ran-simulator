@@ -111,11 +111,7 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 	bandwidth := 10e6 // 20 MHz bandwidth
 	noise := CalculateNoisePower(bandwidth, types.CellType_MACRO)
 
-	K := 0.0
-	if sCell.Channel.LOS {
-		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
-	}
-	mpf := RiceanFading(K)
+	mpf := RiceanFading(GetRiceanK(sCell))
 	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)
 	if rsrpServing == math.Inf(-1) {
 		return math.Inf(-1)
@@ -123,11 +119,8 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 
 	rsrpNeighSum := 0.0
 	for _, n := range neighborCells {
-		K = 0.0
-		if n.Channel.LOS {
-			K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
-		}
-		mpf := RiceanFading(K)
+
+		mpf := RiceanFading(GetRiceanK(n))
 
 		nRsrp := Strength(coord, ueHeight, mpf, *n)
 		if nRsrp == math.Inf(-1) {

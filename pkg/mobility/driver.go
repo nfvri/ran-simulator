@@ -381,12 +381,8 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 	}
 	var csCellList []*model.UECell
 	for _, cell := range cellList {
-		K := 0.0
 
-		if cell.Channel.LOS {
-			K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + signal.RICEAN_K_MEAN
-		}
-		mpf := signal.RiceanFading(K)
+		mpf := signal.RiceanFading(signal.GetRiceanK(cell))
 		rsrp := signal.Strength(ue.Location, ue.Height, mpf, *cell)
 		if math.IsInf(rsrp, 0) {
 			rsrp = 0
@@ -419,12 +415,7 @@ func (d *driver) updateUESignalStrengthServCell(ctx context.Context, ue *model.U
 		return fmt.Errorf("Unable to find serving cell %d", ue.Cell.NCGI)
 	}
 
-	K := 0.0
-
-	if sCell.Channel.LOS {
-		K = rand.NormFloat64()*signal.RICEAN_K_STD_MACRO + signal.RICEAN_K_MEAN
-	}
-	mpf := signal.RiceanFading(K)
+	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
 
 	strength := signal.Strength(ue.Location, ue.Height, mpf, *sCell)
 

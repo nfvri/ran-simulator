@@ -3,7 +3,6 @@ package signal
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"path/filepath"
 	"testing"
 
@@ -17,14 +16,8 @@ import (
 func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
 	receivedPowerDb := make(plotter.XYs, realizations)
 
-	KdB := 9.0
-
-	if cell.Channel.LOS {
-		KdB = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
-	}
-	K := 10 * math.Log10(KdB)
 	for i := 0; i < realizations; i++ {
-		f := RiceanFading(K)
+		f := RiceanFading(GetRiceanK(&cell))
 		if math.IsNaN(f) {
 			continue
 		}

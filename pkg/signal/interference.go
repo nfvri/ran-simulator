@@ -7,6 +7,7 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	log "github.com/sirupsen/logrus"
 
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
@@ -90,12 +91,61 @@ func CreateSimulationUE(ncgi uint64, counter int, sinr, rsrp float64, location m
 	return ue, ueIMSI
 }
 
+func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {
+
+	rsrpServingMw := DbmToMw(rsrpServingDbm)
+	noiseMw := DbmToMw(noiseDbm)
+
+	sinrMw := rsrpServingMw / noiseMw
+	if rsrpNeighSumDbm != 0.0 {
+		interferenceMw := DbmToMw(rsrpNeighSumDbm)
+		sinrMw = rsrpServingMw / (interferenceMw + noiseMw)
+	}
+
+	sinrDbm := MwToDbm(sinrMw)
+
+	return sinrDbm
+}
+
+func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborCells []*model.Cell) float64 {
+	bandwidth := 10e6 // 20 MHz bandwidth
+	noise := CalculateNoisePower(bandwidth, types.CellType_MACRO)
+
+	K := 0.0
+	if sCell.Channel.LOS {
+		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+	}
+	mpf := RiceanFading(K)
+	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)
+	if rsrpServing == math.Inf(-1) {
+		return math.Inf(-1)
+	}
+
+	rsrpNeighSum := 0.0
+	for _, n := range neighborCells {
+		K = 0.0
+		if n.Channel.LOS {
+			K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+		}
+		mpf := RiceanFading(K)
+
+		nRsrp := Strength(coord, ueHeight, mpf, *n)
+		if nRsrp == math.Inf(-1) {
+			continue
+		}
+		rsrpNeighSum += nRsrp
+	}
+
+	return calculateSinr(rsrpServing, rsrpNeighSum, noise)
+}
+
 func SinrF(ueHeight float64, cell *model.Cell, refSinr float64, neighborCells []*model.Cell) (f func(out, x []float64)) {
 
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = Sinr(coord, ueHeight, cell, neighborCells) - refSinr
-		out[1] = Sinr(coord, ueHeight, cell, neighborCells) - refSinr
+		fValue := Sinr(coord, ueHeight, cell, neighborCells) - refSinr
+		out[0] = fValue
+		out[1] = fValue
 	}
 }
 
@@ -105,18 +155,20 @@ func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Ce
 		return SinrF(ueHeight, cell, refSinr, neighborCells)
 	}
 
-	var sinrPoints []model.Coordinate
-	for i := 1; i <= 100; i += 10 {
-		sinrPoints = []model.Coordinate{}
+	sinrPoints := []model.Coordinate{}
+	for i := 1000; i <= 10000; i += 1000 {
 		sinrPointsCh := ComputePointsWithNewtonKrylov(cfp, GetRandGuessesChan(*cell, numUes*i), 100)
 		for sp := range sinrPointsCh {
-			_, _, inGrid := FindGridCell(sp, []model.Coordinate{{Lat: 37.97307913505482, Lng: 23.748905565922435}, {Lat: 37.98684672014083, Lng: 23.76652231473225}})
-			if inGrid {
+			if isPointInsideGrid(sp, cell.GridPoints) {
+				log.Info("----------found point -------")
 				sinrPoints = append(sinrPoints, sp)
+				if len(sinrPoints) >= numUes {
+					break
+				}
 			}
-		}
-		if len(sinrPoints) >= numUes {
-			break
+			if len(sinrPoints) >= numUes {
+				break
+			}
 		}
 	}
 

@@ -292,10 +292,7 @@ func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bo
 }
 
 // Function to find the grid cell containing the given point
-func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int, bool) {
-	if !isPointInsideGrid(point, gridPoints) {
-		return -1, -1, false
-	}
+func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int) {
 
 	latitudes := uniqueLatitudes(gridPoints)
 	longitudes := uniqueLongitudes(gridPoints)
@@ -303,7 +300,7 @@ func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, i
 	latIdx := closestIndex(latitudes, point.Lat)
 	lngIdx := closestIndex(longitudes, point.Lng)
 
-	return latIdx, lngIdx, true
+	return latIdx, lngIdx
 }
 
 // Function to find the bounding box (min and max lat/lng) of a list of coordinates
@@ -354,8 +351,8 @@ func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cel
 	for _, point1 := range gridPoints1 {
 		if isPointInsideBoundingBox(point1, minLat2, minLng2, maxLat2, maxLng2) {
 			overlapping = true
-			cell1i, cell1j, _ := FindGridCell(point1, gridPoints1)
-			cell2i, cell2j, _ := FindGridCell(point1, gridPoints2)
+			cell1i, cell1j := FindGridCell(point1, gridPoints1)
+			cell2i, cell2j := FindGridCell(point1, gridPoints2)
 			if cell1i < gridSize1 && cell1j < gridSize1 && cell2i < gridSize2 && cell2j < gridSize2 {
 				cell1iList = append(cell1iList, cell1i)
 				cell1jList = append(cell1jList, cell1j)

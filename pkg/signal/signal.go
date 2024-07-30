@@ -23,16 +23,19 @@ const (
 
 // Strength returns the signal strength at location relative to the specified cell.
 func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) float64 {
-	latIdx, lngIdx, inGrid := FindGridCell(coord, cell.GridPoints)
-	if !inGrid {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || !isPointInsideGrid(coord, cell.GridPoints) {
 		return math.Inf(-1)
 	}
 
+	latIdx, lngIdx := FindGridCell(coord, cell.GridPoints)
+
 	radiatedStrength := RadiatedStrength(coord, height, cell)
+	if radiatedStrength == math.Inf(-1) {
+		return math.Inf(-1)
+	}
 
 	shadowing := 0.0
 	if len(cell.ShadowingMap) > 0 {
-		// log.Infof("The point (%.12f, %.12f) is located in the grid cell %v with indices i: %d, j: %d and the value in faded grid is: %.5f\n", coord.Lat, coord.Lng, cell.NCGI, latIdx, lngIdx, cell.ShadowingMap[latIdx][lngIdx])
 		shadowing = cell.ShadowingMap[latIdx][lngIdx]
 	}
 
@@ -41,49 +44,16 @@ func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) floa
 }
 
 func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) float64 {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
+		return math.Inf(-1)
+	}
 	angleAtt := angularAttenuation(coord, height, cell)
 	pathLoss := GetPathLoss(coord, height, cell)
-	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
-		// log.Warnf("UE has lat:%v lng:%v", coord.Lat, coord.Lng)
-		return 0
-	}
 
 	antenaGain := cell.Beam.MaxGain + angleAtt
 
 	return cell.TxPowerDB + antenaGain - pathLoss
 
-}
-
-func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborCells []*model.Cell) float64 {
-	bandwidth := 10e6 // 20 MHz bandwidth
-	noise := CalculateNoisePower(bandwidth, sCell.CellType)
-
-	K := 0.0
-	if sCell.Channel.LOS {
-		K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
-	}
-	mpf := RiceanFading(K)
-	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)
-	if rsrpServing == math.Inf(-1) {
-		return math.Inf(-1)
-	}
-
-	rsrpNeighSum := 0.0
-	for _, n := range neighborCells {
-		K = 0.0
-		if n.Channel.LOS {
-			K = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
-		}
-		mpf := RiceanFading(K)
-
-		nRsrp := Strength(coord, ueHeight, mpf, *n)
-		if nRsrp == math.Inf(-1) {
-			continue
-		}
-		rsrpNeighSum += nRsrp
-	}
-
-	return rsrpServing / (rsrpNeighSum + noise)
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist

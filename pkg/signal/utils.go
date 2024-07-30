@@ -2,6 +2,7 @@ package signal
 
 import (
 	"context"
+	"math"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
@@ -96,4 +97,12 @@ func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
 	} else {
 		log.Debugf("%d and %d does not overlap\n", cell1.NCGI, cell2.NCGI)
 	}
+}
+
+func DbmToMw(dbm float64) float64 {
+	return math.Pow(10, dbm/10)
+}
+
+func MwToDbm(mw float64) float64 {
+	return 10 * math.Log10(mw)
 }

@@ -71,8 +71,8 @@ func GetRandGuessesChan(cell model.Cell, numGuesses int) <-chan []float64 {
 
 	go func() {
 		defer close(rgChan)
-		for i := 1; i < numGuesses; i++ {
-
+		for i := 0; i < numGuesses; i++ {
+			// TODO: use decorrelation distance
 			offset := distance_to_deg["55m"] + math.Min(float64(i)*distance_to_deg["1m"]*rand.Float64(), distance_to_deg["3.3km"])
 
 			latSign := (rand.Float64() - 0.5) * 2
@@ -108,15 +108,17 @@ func GetGuessesChan(guessesCoord []model.Coordinate) <-chan []float64 {
 func RadiationPatternF(ueHeight float64, cell *model.Cell, refSignalStrength float64) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
-		out[1] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+		fValue := RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+		out[0] = fValue
+		out[1] = fValue
 	}
 }
 func CoverageF(ueHeight float64, cell *model.Cell, refSignalStrength, mpf float64, radiationPatternBoundary []model.Coordinate) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
-		out[1] = Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
+		fValue := Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
+		out[0] = fValue
+		out[1] = fValue
 	}
 }
 

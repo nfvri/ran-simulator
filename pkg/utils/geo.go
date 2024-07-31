@@ -30,6 +30,17 @@ func Distance(c1 model.Coordinate, c2 model.Coordinate) float64 {
 	return 2 * earthRadius * math.Asin(math.Sqrt(h))
 }
 
+// Euclidean distance function
+func GetSphericalDistance(coord1 model.Coordinate, coord2 model.Coordinate) float64 {
+	earthRadius := 6378.137
+	dLat := coord1.Lat*math.Pi/180 - coord2.Lat*math.Pi/180
+	dLng := coord1.Lng*math.Pi/180 - coord2.Lng*math.Pi/180
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(coord1.Lat*math.Pi/180)*math.Cos(coord2.Lat*math.Pi/180)*
+		math.Sin(dLng/2)*math.Sin(dLng/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return earthRadius * c * 1000 // distance in meters
+}
+
 // TargetPoint returns the target coordinate specified distance and heading from the starting coordinate
 func TargetPoint(c model.Coordinate, bearing float64, dist float64) model.Coordinate {
 	var la1, lo1, la2, lo2, azimuth, d float64
@@ -126,10 +137,9 @@ func MetersToLatDegrees(meters float64) float64 {
 	return meters / 111132.954
 }
 
-// TODO: use AspectRatio
 // Convert meters to degrees longitude at a specific latitude
 func MetersToLngDegrees(meters, latitude float64) float64 {
-	return meters / (111132.954 * math.Cos(latitude*math.Pi/180.0))
+	return meters / (111132.954 * AspectRatio(latitude))
 }
 
 // AzimuthToRads - angle measured in degrees clockwise from north, expressed in rads from 3 o'clock anticlockwise
@@ -148,4 +158,34 @@ func DegreesToRads(degrees float64) float64 {
 // AspectRatio - Compensate for the narrowing of meridians at higher latitudes
 func AspectRatio(latitude float64) float64 {
 	return math.Cos(DegreesToRads(latitude))
+}
+
+// Function to find the unique Latitudes
+func UniqueLatitudes(points []model.Coordinate) []float64 {
+	unique := make(map[float64]struct{})
+	for _, point := range points {
+		unique[point.Lat] = struct{}{}
+	}
+
+	latitudes := make([]float64, 0, len(unique))
+	for k := range unique {
+		latitudes = append(latitudes, k)
+	}
+	sort.Float64s(latitudes)
+	return latitudes
+}
+
+// Function to find the unique Longitudes
+func UniqueLongitudes(points []model.Coordinate) []float64 {
+	unique := make(map[float64]struct{})
+	for _, point := range points {
+		unique[point.Lng] = struct{}{}
+	}
+
+	longitudes := make([]float64, 0, len(unique))
+	for k := range unique {
+		longitudes = append(longitudes, k)
+	}
+	sort.Float64s(longitudes)
+	return longitudes
 }

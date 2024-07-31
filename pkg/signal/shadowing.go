@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"sort"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-func ComputeGridPoints(coverageCoordinates []model.Coordinate, d_c float64) []model.Coordinate {
+func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model.Coordinate {
 
-	minLat, minLng, maxLat, maxLng := findMinMaxCoords(coverageCoordinates)
+	minLat, minLng, maxLat, maxLng := findMinMaxCoords(rpBoundaryPoints)
 
 	fmt.Printf("square min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
 
@@ -41,73 +40,33 @@ func ComputeGridPoints(coverageCoordinates []model.Coordinate, d_c float64) []mo
 }
 
 func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float64) [][]float64 {
-	gridSize := int(math.Sqrt(float64(len(gridPoints)))) - 1
-	fmt.Println("gridSize:")
-	fmt.Println(gridSize)
+
+	log.Infof("computeCorrelationMatrix ...")
 	// Compute the correlation matrix
 	A := computeCorrelationMatrix(gridPoints, d_c)
 
 	// Compute the correlated shadow fading
+	log.Infof("computeCorrelatedShadowFading ...")
 	shadowing := computeCorrelatedShadowFading(A, sigma)
 
+	log.Infof("makeCorrelatedFadingGrid ...")
 	mappedCorrelatedFadingGrid := makeCorrelatedFadingGrid(shadowing)
-
-	// fmt.Println("Mapped Correlated Fading to the Grid:")
-	// for i := 0; i < gridSize; i++ {
-	// 	for j := 0; j < gridSize; j++ {
-
-	// 		fmt.Printf(" %8.4f |", mappedCorrelatedFadingGrid[i][j])
-	// 	}
-	// 	fmt.Println()
-	// 	for j := 0; j < gridSize; j++ {
-	// 		fmt.Printf("----------|")
-	// 	}
-	// 	fmt.Println()
-	// }
 
 	return mappedCorrelatedFadingGrid
 }
 
-// Function to compute the Euclidean distance from GPS coordinates
-func getEuclideanDistanceFromCoordinates(coord1 model.Coordinate, coord2 model.Coordinate) float64 {
-	earthRadius := 6378.137
-	dLat := coord1.Lat*math.Pi/180 - coord2.Lat*math.Pi/180
-	dLng := coord1.Lng*math.Pi/180 - coord2.Lng*math.Pi/180
-	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(coord1.Lat*math.Pi/180)*math.Cos(coord2.Lat*math.Pi/180)*
-		math.Sin(dLng/2)*math.Sin(dLng/2)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	return earthRadius * c * 1000 // distance in meters
-}
-
 // findMinMaxCoords finds the minimum and maximum latitude and longitude from a list of coordinates.
 func findMinMaxCoords(coords []model.Coordinate) (minLat, minLng, maxLat, maxLng float64) {
-	// Initialize min and max with extreme values
-	minLat = coords[0].Lat
-	minLng = coords[0].Lng
-	maxLat = coords[0].Lat
-	maxLng = coords[0].Lng
 
-	for _, coord := range coords {
-		if coord.Lat < minLat {
-			minLat = coord.Lat
-		}
-		if coord.Lng < minLng {
-			minLng = coord.Lng
-		}
-		if coord.Lat > maxLat {
-			maxLat = coord.Lat
-		}
-		if coord.Lng > maxLng {
-			maxLng = coord.Lng
-		}
-	}
+	minLat, minLng, maxLat, maxLng = findBoundingBox(coords)
+
 	fmt.Printf("min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
 	minCoord := model.Coordinate{Lat: minLat, Lng: minLng}
 	maxCoordLat := model.Coordinate{Lat: maxLat, Lng: minLng}
 	maxCoordLng := model.Coordinate{Lat: minLat, Lng: maxLng}
 
-	latRange := getEuclideanDistanceFromCoordinates(minCoord, maxCoordLat)
-	lngRange := getEuclideanDistanceFromCoordinates(minCoord, maxCoordLng)
+	latRange := utils.GetSphericalDistance(minCoord, maxCoordLat)
+	lngRange := utils.GetSphericalDistance(minCoord, maxCoordLng)
 
 	if latRange > lngRange {
 		latDiff := latRange - lngRange
@@ -137,7 +96,7 @@ func computeCorrelationMatrix(gridPoints []model.Coordinate, d_c float64) [][]fl
 	for i := range A {
 		A[i] = make([]float64, int(gridNumPoints))
 		for j := range A[i] {
-			A[i][j] = math.Exp(-getEuclideanDistanceFromCoordinates(gridPoints[i], gridPoints[j]) / d_c)
+			A[i][j] = math.Exp(-utils.GetSphericalDistance(gridPoints[i], gridPoints[j]) / d_c)
 		}
 	}
 	return A
@@ -209,36 +168,6 @@ func makeCorrelatedFadingGrid(shadowing []float64) [][]float64 {
 	return mappedCorrelatedFadingGrid
 }
 
-// Function to find the unique Latitudes
-func uniqueLatitudes(points []model.Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lat] = struct{}{}
-	}
-
-	latitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		latitudes = append(latitudes, k)
-	}
-	sort.Float64s(latitudes)
-	return latitudes
-}
-
-// Function to find the unique Longitudes
-func uniqueLongitudes(points []model.Coordinate) []float64 {
-	unique := make(map[float64]struct{})
-	for _, point := range points {
-		unique[point.Lng] = struct{}{}
-	}
-
-	longitudes := make([]float64, 0, len(unique))
-	for k := range unique {
-		longitudes = append(longitudes, k)
-	}
-	sort.Float64s(longitudes)
-	return longitudes
-}
-
 // Function to find the closest index
 func closestIndex(arr []float64, value float64) int {
 	closest := 0
@@ -255,8 +184,8 @@ func closestIndex(arr []float64, value float64) int {
 
 // Function to check if a point is inside the grid
 func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bool {
-	latitudes := uniqueLatitudes(gridPoints)
-	longitudes := uniqueLongitudes(gridPoints)
+	latitudes := utils.UniqueLatitudes(gridPoints)
+	longitudes := utils.UniqueLongitudes(gridPoints)
 
 	if len(latitudes) == 0 || len(longitudes) == 0 {
 		return false
@@ -277,8 +206,8 @@ func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bo
 // Function to find the grid cell containing the given point
 func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int) {
 
-	latitudes := uniqueLatitudes(gridPoints)
-	longitudes := uniqueLongitudes(gridPoints)
+	latitudes := utils.UniqueLatitudes(gridPoints)
+	longitudes := utils.UniqueLongitudes(gridPoints)
 
 	latIdx := closestIndex(latitudes, point.Lat)
 	lngIdx := closestIndex(longitudes, point.Lng)
@@ -291,19 +220,11 @@ func findBoundingBox(gridPoints []model.Coordinate) (minLat, minLng, maxLat, max
 	minLat, minLng = math.MaxFloat64, math.MaxFloat64
 	maxLat, maxLng = -math.MaxFloat64, -math.MaxFloat64
 
-	for _, point := range gridPoints {
-		if point.Lat < minLat {
-			minLat = point.Lat
-		}
-		if point.Lat > maxLat {
-			maxLat = point.Lat
-		}
-		if point.Lng < minLng {
-			minLng = point.Lng
-		}
-		if point.Lng > maxLng {
-			maxLng = point.Lng
-		}
+	for _, coord := range gridPoints {
+		minLat = math.Min(minLat, coord.Lat)
+		minLng = math.Min(minLng, coord.Lng)
+		maxLat = math.Max(maxLat, coord.Lng)
+		maxLng = math.Max(maxLng, coord.Lng)
 	}
 	return minLat, minLng, maxLat, maxLng
 }

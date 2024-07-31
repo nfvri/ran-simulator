@@ -182,10 +182,10 @@ func GetServedUEs(cell *model.Cell, ues []model.UE) (servedUEs []model.UE) {
 	return
 }
 
-func DbmToDb(dbm float64) float64 {
+func MwToDb(dbm float64) float64 {
 	return math.Pow(10, dbm/10)
 }
 
-func DbToDbm(db float64) float64 {
+func DbToMw(db float64) float64 {
 	return 10 * math.Log10(db)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type FProvider func(x0 []float64) (f func(out, x []float64))
@@ -123,6 +124,7 @@ func CoverageF(ueHeight float64, cell *model.Cell, refSignalStrength, mpf float6
 }
 
 func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+	log.Debugf("calculating radiation pattern for cell:%v", cell.NCGI)
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, cell, refSignalStrength)
 	}
@@ -135,6 +137,7 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 }
 
 func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {
+	log.Debugf("calculating coverage for cell:%v", cell.NCGI)
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
 		mpf := RiceanFading(GetRiceanK(cell))
 		return CoverageF(ueHeight, cell, refSignalStrength, mpf, rpBoundaryPoints)

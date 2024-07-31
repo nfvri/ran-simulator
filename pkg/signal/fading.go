@@ -12,11 +12,11 @@ import (
 // with parameters nu (non-centrality parameter) and sigma (scale parameter).
 func RicianRandom(nu, sigma float64) float64 {
 	// Generate two Gaussian random variables with mean 0 and standard deviation sigma
-	x := sigma*rand.NormFloat64() + nu
+	x := (sigma * rand.NormFloat64()) + nu
 	y := sigma * rand.NormFloat64()
 
 	// Generate Rician-distributed random variable
-	return math.Sqrt(x*x + y*y)
+	return math.Sqrt((x * x) + (y * y))
 }
 
 // Calculate nu and sigma from K-factor
@@ -44,8 +44,8 @@ func RiceanFading(K float64) float64 {
 func GetRiceanK(cell *model.Cell) float64 {
 	KdB := 9.0
 	if cell.Channel.LOS {
-		KdB = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
+		KdB = (rand.Float64() * RICEAN_K_STD_MACRO) + RICEAN_K_MEAN
 	}
-	K := utils.DbmToMw(KdB)
+	K := utils.DbToDbm(KdB)
 	return K
 }

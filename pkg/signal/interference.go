@@ -93,16 +93,16 @@ func CreateSimulationUE(ncgi uint64, counter int, sinr, rsrp float64, location m
 
 func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {
 
-	rsrpServingMw := utils.DbmToMw(rsrpServingDbm)
-	noiseMw := utils.DbmToMw(noiseDbm)
+	rsrpServingMw := utils.DbmToDb(rsrpServingDbm)
+	noiseMw := utils.DbmToDb(noiseDbm)
 
 	sinrMw := rsrpServingMw / noiseMw
 	if rsrpNeighSumDbm != 0.0 {
-		interferenceMw := utils.DbmToMw(rsrpNeighSumDbm)
+		interferenceMw := utils.DbmToDb(rsrpNeighSumDbm)
 		sinrMw = rsrpServingMw / (interferenceMw + noiseMw)
 	}
 
-	sinrDbm := utils.MwToDbm(sinrMw)
+	sinrDbm := utils.DbToDbm(sinrMw)
 
 	return sinrDbm
 }
@@ -179,7 +179,7 @@ func CalculateNoisePower(bandwidthHz float64, cellType types.CellType) float64 {
 	)
 
 	thermalNoisePower := Boltzmann * Temperature * bandwidthHz // noise power in watts
-	thermalNoiseDbm := utils.MwToDbm(thermalNoisePower / 1e-3) // convert to dBm
+	thermalNoiseDbm := utils.DbToDbm(thermalNoisePower / 1e-3) // convert to dBm
 
 	noiseFigureDb := GetNoiseFigure(bandwidthHz, cellType)
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/sirupsen/logrus"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
@@ -19,6 +20,7 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
 	for i := 0; i < realizations; i++ {
 		f := RiceanFading(GetRiceanK(&cell))
 		if math.IsNaN(f) {
+			logrus.Warnf("NAN fading for realization:%d", i)
 			continue
 		}
 		receivedPowerDb[i].X = float64(i)

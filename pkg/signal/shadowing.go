@@ -28,9 +28,14 @@ func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model
 	numLatPoints := int(math.Ceil(latDiff / d_c_lat))
 	numLngPoints := int(math.Ceil(lngDiff / d_c_lng))
 
+	if numLatPoints != numLngPoints {
+		log.Warnf("grid dimensions unequal %v, %v", numLatPoints, numLngPoints)
+	}
+	maxDim := int(math.Max(float64(numLatPoints), float64(numLngPoints)))
+
 	gridPoints := make([]model.Coordinate, 0, numLatPoints*numLngPoints)
-	for i := 0; i <= numLatPoints; i++ {
-		for j := 0; j <= numLngPoints; j++ {
+	for i := 0; i <= maxDim; i++ {
+		for j := 0; j <= maxDim; j++ {
 			lat := minLat + float64(i)*d_c_lat
 			lng := minLng + float64(j)*d_c_lng
 			gridPoints = append(gridPoints, model.Coordinate{Lat: lat, Lng: lng})
@@ -60,25 +65,25 @@ func findMinMaxCoords(coords []model.Coordinate) (minLat, minLng, maxLat, maxLng
 
 	minLat, minLng, maxLat, maxLng = findBoundingBox(coords)
 
-	fmt.Printf("min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
-	minCoord := model.Coordinate{Lat: minLat, Lng: minLng}
-	maxCoordLat := model.Coordinate{Lat: maxLat, Lng: minLng}
-	maxCoordLng := model.Coordinate{Lat: minLat, Lng: maxLng}
+	// fmt.Printf("min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
+	// minCoord := model.Coordinate{Lat: minLat, Lng: minLng}
+	// maxCoordLat := model.Coordinate{Lat: maxLat, Lng: minLng}
+	// maxCoordLng := model.Coordinate{Lat: minLat, Lng: maxLng}
 
-	latRange := utils.GetSphericalDistance(minCoord, maxCoordLat)
-	lngRange := utils.GetSphericalDistance(minCoord, maxCoordLng)
+	// latRange := utils.GetSphericalDistance(minCoord, maxCoordLat)
+	// lngRange := utils.GetSphericalDistance(minCoord, maxCoordLng)
 
-	if latRange > lngRange {
-		latDiff := latRange - lngRange
-		latDiffDegrees := utils.MetersToLngDegrees(latDiff/2, minLat)
-		minLng = minLng - latDiffDegrees
-		maxLng = maxLng + latDiffDegrees
-	} else {
-		lngDiff := lngRange - latRange
-		lngDiffDegrees := utils.MetersToLatDegrees(lngDiff / 2)
-		minLat = minLat - lngDiffDegrees
-		maxLat = maxLat + lngDiffDegrees
-	}
+	// if latRange > lngRange {
+	// 	latDiff := latRange - lngRange
+	// 	latDiffDegrees := utils.MetersToLngDegrees(latDiff/2, minLat)
+	// 	minLng = minLng - latDiffDegrees
+	// 	maxLng = maxLng + latDiffDegrees
+	// } else {
+	// 	lngDiff := lngRange - latRange
+	// 	lngDiffDegrees := utils.MetersToLatDegrees(lngDiff / 2)
+	// 	minLat = minLat - lngDiffDegrees
+	// 	maxLat = maxLat + lngDiffDegrees
+	// }
 	return
 }
 
@@ -206,8 +211,8 @@ func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bo
 // Function to find the grid cell containing the given point
 func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int) {
 
-	latitudes := utils.UniqueLatitudes(gridPoints)
-	longitudes := utils.UniqueLongitudes(gridPoints)
+	latitudes := utils.Latitudes(gridPoints)
+	longitudes := utils.Longitudes(gridPoints)
 
 	latIdx := closestIndex(latitudes, point.Lat)
 	lngIdx := closestIndex(longitudes, point.Lng)
@@ -223,7 +228,7 @@ func findBoundingBox(gridPoints []model.Coordinate) (minLat, minLng, maxLat, max
 	for _, coord := range gridPoints {
 		minLat = math.Min(minLat, coord.Lat)
 		minLng = math.Min(minLng, coord.Lng)
-		maxLat = math.Max(maxLat, coord.Lng)
+		maxLat = math.Max(maxLat, coord.Lat)
 		maxLng = math.Max(maxLng, coord.Lng)
 	}
 	return minLat, minLng, maxLat, maxLng

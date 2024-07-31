@@ -175,6 +175,27 @@ func UniqueLatitudes(points []model.Coordinate) []float64 {
 	return latitudes
 }
 
+// Function to find the Latitudes
+func Latitudes(gridPoints []model.Coordinate) []float64 {
+	size := int(math.Sqrt(float64(len(gridPoints))))
+	lats := make([]float64, 0)
+	for i := 0; i < len(gridPoints); i += size {
+		lats = append(lats, gridPoints[i].Lat)
+	}
+
+	return lats
+}
+
+// Function to find the Longitudes
+func Longitudes(gridPoints []model.Coordinate) []float64 {
+	size := int(math.Sqrt(float64(len(gridPoints))))
+	lngs := make([]float64, 0)
+	for i := 0; i < size; i++ {
+		lngs = append(lngs, gridPoints[i].Lng)
+	}
+	return lngs
+}
+
 // Function to find the unique Longitudes
 func UniqueLongitudes(points []model.Coordinate) []float64 {
 	unique := make(map[float64]struct{})

@@ -108,15 +108,17 @@ func GetGuessesChan(guessesCoord []model.Coordinate) <-chan []float64 {
 func RadiationPatternF(ueHeight float64, cell *model.Cell, refSignalStrength float64) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
-		out[1] = RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+		fValue := RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+		out[0] = fValue
+		out[1] = fValue
 	}
 }
 func CoverageF(ueHeight float64, cell *model.Cell, refSignalStrength, mpf float64, radiationPatternBoundary []model.Coordinate) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		out[0] = Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
-		out[1] = Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
+		fValue := Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
+		out[0] = fValue
+		out[1] = fValue
 	}
 }
 
@@ -124,7 +126,7 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, cell, refSignalStrength)
 	}
-	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChan(*cell, 10000), 60)
+	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChan(*cell, 3000), 60)
 	rpBoundaryPoints := make([]model.Coordinate, 0)
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)
@@ -143,13 +145,4 @@ func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength 
 		covBoundaryPoints = append(covBoundaryPoints, cbp)
 	}
 	return utils.SortCoordinatesByBearing(cell.Sector.Center, covBoundaryPoints)
-}
-
-func GetRiceanK(cell *model.Cell) float64 {
-	KdB := 9.0
-	if cell.Channel.LOS {
-		KdB = rand.NormFloat64()*RICEAN_K_STD_MACRO + RICEAN_K_MEAN
-	}
-	K := 10 * math.Log10(KdB)
-	return K
 }

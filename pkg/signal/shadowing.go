@@ -7,44 +7,27 @@ import (
 	"sort"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
-
-// TODO: Move to utils
-// Convert meters to degrees latitude
-func metersToLatDegrees(meters float64) float64 {
-	return meters / 111132.954
-}
-
-// TODO: Move to utils & use AspectRatio
-// Convert meters to degrees longitude at a specific latitude
-func metersToLngDegrees(meters, latitude float64) float64 {
-	return meters / (111132.954 * math.Cos(latitude*math.Pi/180.0))
-}
 
 func ComputeGridPoints(coverageCoordinates []model.Coordinate, d_c float64) []model.Coordinate {
 
 	minLat, minLng, maxLat, maxLng := findMinMaxCoords(coverageCoordinates)
-	// fmt.Println(coverageCoordinates)
+
 	fmt.Printf("square min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
 
 	latDiff := math.Abs(maxLat - minLat)
 	lngDiff := math.Abs(maxLng - minLng)
 
 	// Convert d_c from meters to degrees
-	d_c_lat := metersToLatDegrees(d_c)
-	fmt.Println(d_c_lat)
+	d_c_lat := utils.MetersToLatDegrees(d_c)
 	avgLat := (minLat + maxLat) / 2.0
-	d_c_lng := metersToLngDegrees(d_c, avgLat)
-	fmt.Println(d_c_lng)
+	d_c_lng := utils.MetersToLngDegrees(d_c, avgLat)
 
 	// Calculate the number of grid points based on d_c
 	numLatPoints := int(math.Ceil(latDiff / d_c_lat))
 	numLngPoints := int(math.Ceil(lngDiff / d_c_lng))
-	// fmt.Println("*******************")
-	// fmt.Println(cell.NCGI)
-	// fmt.Println("*******************")
-	// fmt.Printf("------------------\n minLat: %f\n maxLat: %f\n latDiff: %f\n minLng: %f\n maxLng: %f\n lngDiff: %f\n", minLat, maxLat, latDiff, minLng, maxLng, lngDiff)
 
 	gridPoints := make([]model.Coordinate, 0, numLatPoints*numLngPoints)
 	for i := 0; i <= numLatPoints; i++ {
@@ -69,18 +52,18 @@ func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float6
 
 	mappedCorrelatedFadingGrid := makeCorrelatedFadingGrid(shadowing)
 
-	fmt.Println("Mapped Correlated Fading to the Grid:")
-	for i := 0; i < gridSize; i++ {
-		for j := 0; j < gridSize; j++ {
+	// fmt.Println("Mapped Correlated Fading to the Grid:")
+	// for i := 0; i < gridSize; i++ {
+	// 	for j := 0; j < gridSize; j++ {
 
-			fmt.Printf(" %8.4f |", mappedCorrelatedFadingGrid[i][j])
-		}
-		fmt.Println()
-		for j := 0; j < gridSize; j++ {
-			fmt.Printf("----------|")
-		}
-		fmt.Println()
-	}
+	// 		fmt.Printf(" %8.4f |", mappedCorrelatedFadingGrid[i][j])
+	// 	}
+	// 	fmt.Println()
+	// 	for j := 0; j < gridSize; j++ {
+	// 		fmt.Printf("----------|")
+	// 	}
+	// 	fmt.Println()
+	// }
 
 	return mappedCorrelatedFadingGrid
 }
@@ -128,12 +111,12 @@ func findMinMaxCoords(coords []model.Coordinate) (minLat, minLng, maxLat, maxLng
 
 	if latRange > lngRange {
 		latDiff := latRange - lngRange
-		latDiffDegrees := metersToLngDegrees(latDiff/2, minLat)
+		latDiffDegrees := utils.MetersToLngDegrees(latDiff/2, minLat)
 		minLng = minLng - latDiffDegrees
 		maxLng = maxLng + latDiffDegrees
 	} else {
 		lngDiff := lngRange - latRange
-		lngDiffDegrees := metersToLatDegrees(lngDiff / 2)
+		lngDiffDegrees := utils.MetersToLatDegrees(lngDiff / 2)
 		minLat = minLat - lngDiffDegrees
 		maxLat = maxLat + lngDiffDegrees
 	}
@@ -366,7 +349,7 @@ func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cel
 }
 
 func InitShadowMap(cell *model.Cell, d_c float64) {
-	log.Info("Initilizing ShadowMap")
+	log.Info("Initializing ShadowMap")
 
 	sigma := 6.0
 	switch {
@@ -379,13 +362,13 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
 		sigma = 8.0
 	}
-	coverageCoordinates := cell.RPCoverageBoundaries[0].BoundaryPoints
-	if len(coverageCoordinates) == 0 {
+	rpBoundaryPoints := cell.RPCoverageBoundaries[0].BoundaryPoints
+	if len(rpBoundaryPoints) == 0 {
 		return
 	}
-	log.Infof("len(coverageCoordinates): %d", len(coverageCoordinates))
-	cell.GridPoints = ComputeGridPoints(coverageCoordinates, d_c)
+	log.Infof("len(rpBoundaryPoints): %d", len(rpBoundaryPoints))
+	cell.GridPoints = ComputeGridPoints(rpBoundaryPoints, d_c)
+	log.Infof("len(cell.GridPoints): %d", len(cell.GridPoints))
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
-	//debug
-	log.Infof("%v", cell.GridPoints)
+	log.Infof("len(cell.ShadowingMap): %d", len(cell.ShadowingMap))
 }

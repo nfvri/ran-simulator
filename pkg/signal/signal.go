@@ -6,7 +6,6 @@ package signal
 
 import (
 	"math"
-	"math/rand"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -67,7 +66,7 @@ func DistanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	realLngDist := (coord.Lng - cell.Sector.Center.Lng) / utils.AspectRatio(cell.Sector.Center.Lat)
 	r := math.Hypot(latDist, realLngDist)
 	gain := 120.0 / float64(cell.Sector.Arc)
-	return 10 * math.Log10(gain*math.Sqrt(powerFactor/r))
+	return utils.MwToDbm(gain * math.Sqrt(powerFactor/r))
 }
 
 // angleAttenuation is the attenuation of power reaching a UE due to its
@@ -148,39 +147,6 @@ func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) fl
 	log.Debugf("\nueAngle:%v \nzUE: %v \nztilt: %v", ueAngleRads*(180/math.Pi), zUERads*(180/math.Pi), zTilt)
 	log.Debugf("\nzAngleOffset: %v", zAngleOffset*(180/math.Pi))
 	return zenithAngle
-}
-
-// RicianRandom generates a random variable following the Rician distribution
-// with parameters nu (non-centrality parameter) and sigma (scale parameter).
-func RicianRandom(nu, sigma float64) float64 {
-	// Generate two Gaussian random variables with mean 0 and standard deviation sigma
-	x := sigma*rand.NormFloat64() + nu
-	y := sigma * rand.NormFloat64()
-
-	// Generate Rician-distributed random variable
-	return math.Sqrt(x*x + y*y)
-}
-
-// Calculate nu and sigma from K-factor
-func calculateNuSigma(K float64) (float64, float64) {
-	// Assume total power P = 1
-	sigma := math.Sqrt(1 / (2 * (K + 1)))
-	nu := math.Sqrt(K / (K + 1))
-	return nu, sigma
-}
-
-// RiceanFading calculates the channel fading using the rician fading model
-func RiceanFading(K float64) float64 {
-	nu, sigma := calculateNuSigma(K)
-	// fadingAmplitude := complex(RicianRandom(nu, sigma), RicianRandom(0, sigma))
-	fadingAmplitude := RicianRandom(nu, sigma)
-	// TODO: define random sampling per environment & LOS/NLOS
-	numSubPaths := 14.0
-	for i := 0; i <= int(numSubPaths); i++ {
-		fadingAmplitude += RicianRandom(nu, sigma)
-	}
-
-	return fadingAmplitude / numSubPaths
 }
 
 // ETSI TR 138 901 V16.1.0

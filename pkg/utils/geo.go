@@ -120,3 +120,32 @@ func SortCoordinatesByBearing(center model.Coordinate, coordinates []model.Coord
 
 	return sortedCoords
 }
+
+// Convert meters to degrees latitude
+func MetersToLatDegrees(meters float64) float64 {
+	return meters / 111132.954
+}
+
+// TODO: use AspectRatio
+// Convert meters to degrees longitude at a specific latitude
+func MetersToLngDegrees(meters, latitude float64) float64 {
+	return meters / (111132.954 * math.Cos(latitude*math.Pi/180.0))
+}
+
+// AzimuthToRads - angle measured in degrees clockwise from north, expressed in rads from 3 o'clock anticlockwise
+func AzimuthToRads(azimuth float64) float64 {
+	if azimuth == 90 {
+		return 0
+	}
+	return DegreesToRads(90 - azimuth)
+}
+
+// DegreesToRads - general conversion of degrees to rads, both starting at 3 o'clock going anticlockwise
+func DegreesToRads(degrees float64) float64 {
+	return 2 * math.Pi * degrees / 360
+}
+
+// AspectRatio - Compensate for the narrowing of meridians at higher latitudes
+func AspectRatio(latitude float64) float64 {
+	return math.Cos(DegreesToRads(latitude))
+}

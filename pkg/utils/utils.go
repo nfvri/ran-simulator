@@ -126,24 +126,6 @@ func ImsiGenerator(ueIdx int) types.IMSI {
 	return ImsiBaseCbrs + types.IMSI(ueIdx) + 1
 }
 
-// AzimuthToRads - angle measured in degrees clockwise from north, expressed in rads from 3 o'clock anticlockwise
-func AzimuthToRads(azimuth float64) float64 {
-	if azimuth == 90 {
-		return 0
-	}
-	return DegreesToRads(90 - azimuth)
-}
-
-// DegreesToRads - general conversion of degrees to rads, both starting at 3 o'clock going anticlockwise
-func DegreesToRads(degrees float64) float64 {
-	return 2 * math.Pi * degrees / 360
-}
-
-// AspectRatio - Compensate for the narrowing of meridians at higher latitudes
-func AspectRatio(latitude float64) float64 {
-	return math.Cos(DegreesToRads(latitude))
-}
-
 // Uint64ToBitString converts uint64 to a bit string byte array
 func Uint64ToBitString(value uint64, bitCount int) []byte {
 	result := make([]byte, bitCount/8+1)
@@ -189,4 +171,21 @@ func GetCell(ncgi types.NCGI, simModel *model.Model) *model.Cell {
 		}
 	}
 	return foundCell
+}
+
+func GetServedUEs(cell *model.Cell, ues []model.UE) (servedUEs []model.UE) {
+	for _, ue := range ues {
+		if ue.Cell.NCGI == cell.NCGI {
+			servedUEs = append(servedUEs, ue)
+		}
+	}
+	return
+}
+
+func DbmToMw(dbm float64) float64 {
+	return math.Pow(10, dbm/10)
+}
+
+func MwToDbm(mw float64) float64 {
+	return 10 * math.Log10(mw)
 }

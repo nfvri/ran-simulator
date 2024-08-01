@@ -7,7 +7,6 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	log "github.com/sirupsen/logrus"
 
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
@@ -144,17 +143,16 @@ func SinrF(ueHeight float64, cell *model.Cell, refSinr float64, neighborCells []
 
 func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Cell, refSinr, d_c float64, numUes, cqi int) []model.Coordinate {
 
+	const overSampling = 100
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
 		return SinrF(ueHeight, cell, refSinr, neighborCells)
 	}
-	log.Infof("CQI: %d -- SINR: %f", cqi, refSinr)
 	sinrPoints := []model.Coordinate{}
 
 	stop := false
-	sinrPointsCh := ComputePointsWithNewtonKrylovUEs(cfp, GetRandGuessesChanUEs(*cell, numUes*1000, cqi, 50), 100, &stop)
+	sinrPointsCh := ComputePointsWithNewtonKrylovUEs(cfp, GetRandGuessesChanUEs(*cell, numUes*overSampling, cqi, 50), 100, &stop)
 	for sp := range sinrPointsCh {
 		if isPointInsideGrid(sp, cell.GridPoints) {
-			log.Info("---fp--")
 			sinrPoints = append(sinrPoints, sp)
 			if len(sinrPoints) >= numUes {
 				stop = true

@@ -115,22 +115,26 @@ func GetRandGuessesChanUEs(cell model.Cell, numGuesses, cqi, stepMeters int) <-c
 	rgChan := make(chan []float64)
 
 	step := utils.MetersToLatDegrees(float64(stepMeters))
-	initOffset := utils.MetersToLatDegrees(50)
 	cutOffDistance := utils.MetersToLatDegrees(5000)
 
+	bb := findBoundingBox(cell.RPCoverageBoundaries[0].BoundaryPoints)
+	latScalingFactor := utils.DegreesToMeters(bb.maxLat-bb.minLat) * 0.01
+	lngScalingFactor := utils.DegreesToMeters(bb.maxLng-bb.minLng) * 0.01
+
+	centerLat := (bb.minLat + bb.maxLat) / 2.0
+	centerLng := (bb.minLng + bb.maxLng) / 2.0
 	go func() {
 		defer close(rgChan)
 		for j := 0; j < 5; j++ {
 			for i := 0; i < numGuesses/5; i++ {
 
-				offsetLat := initOffset + math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
-				offsetLong := initOffset + math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
+				offsetLat := math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
+				offsetLng := math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
 
-				repositionLat := (rand.Float64() - 0.5) * 2 / float64(cqi)
+				repositionLat := (rand.Float64() - 0.5) * 2 * latScalingFactor / float64(cqi)
+				repositionLng := (rand.Float64() - 0.5) * 2 * lngScalingFactor / float64(cqi)
 
-				repositionLong := (rand.Float64() - 0.5) * 2 / float64(cqi)
-
-				guess := []float64{cell.Sector.Center.Lat + (repositionLat * offsetLat), cell.Sector.Center.Lng + (repositionLong * offsetLong)}
+				guess := []float64{centerLat + (repositionLat * offsetLat), centerLng + (repositionLng * offsetLng)}
 				select {
 				case rgChan <- guess:
 				default:

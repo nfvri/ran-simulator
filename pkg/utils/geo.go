@@ -150,6 +150,10 @@ func AzimuthToRads(azimuth float64) float64 {
 	return DegreesToRads(90 - azimuth)
 }
 
+func DegreesToMeters(degrees float64) float64 {
+	return degrees * 111132.954
+}
+
 // DegreesToRads - general conversion of degrees to rads, both starting at 3 o'clock going anticlockwise
 func DegreesToRads(degrees float64) float64 {
 	return 2 * math.Pi * degrees / 360

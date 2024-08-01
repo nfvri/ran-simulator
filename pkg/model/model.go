@@ -158,7 +158,7 @@ type Beam struct {
 }
 
 type ShadowMap struct {
-	ShadowingMap [][]float64  `json:"shadowingMap"`
+	ShadowingMap []float64    `json:"shadowingMap"`
 	GridPoints   []Coordinate `json:"gridPoints"`
 }
 

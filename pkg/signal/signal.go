@@ -35,7 +35,7 @@ func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) floa
 
 	shadowing := 0.0
 	if len(cell.ShadowingMap) > 0 {
-		shadowing = cell.ShadowingMap[latIdx][lngIdx]
+		shadowing = GetShadowValue(cell.ShadowingMap, latIdx, lngIdx)
 	}
 
 	return (radiatedStrength + shadowing) * mpf

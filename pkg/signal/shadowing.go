@@ -12,16 +12,16 @@ import (
 
 func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model.Coordinate {
 
-	minLat, minLng, maxLat, maxLng := findMinMaxCoords(rpBoundaryPoints)
+	bb := findBoundingBox(rpBoundaryPoints)
 
-	fmt.Printf("square min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
+	fmt.Printf("square min point(%v, %v), max point(%v, %v)\n", bb.minLat, bb.minLng, bb.maxLat, bb.maxLng)
 
-	latDiff := math.Abs(maxLat - minLat)
-	lngDiff := math.Abs(maxLng - minLng)
+	latDiff := math.Abs(bb.maxLat - bb.minLat)
+	lngDiff := math.Abs(bb.maxLng - bb.minLng)
 
 	// Convert d_c from meters to degrees
 	d_c_lat := utils.MetersToLatDegrees(d_c)
-	avgLat := (minLat + maxLat) / 2.0
+	avgLat := (bb.minLat + bb.maxLat) / 2.0
 	d_c_lng := utils.MetersToLngDegrees(d_c, avgLat)
 
 	// Calculate the number of grid points based on d_c
@@ -36,141 +36,56 @@ func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model
 	gridPoints := make([]model.Coordinate, 0, numLatPoints*numLngPoints)
 	for i := 0; i <= maxDim; i++ {
 		for j := 0; j <= maxDim; j++ {
-			lat := minLat + float64(i)*d_c_lat
-			lng := minLng + float64(j)*d_c_lng
+			lat := bb.minLat + float64(i)*d_c_lat
+			lng := bb.minLng + float64(j)*d_c_lng
 			gridPoints = append(gridPoints, model.Coordinate{Lat: lat, Lng: lng})
 		}
 	}
 	return gridPoints
 }
 
-func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float64) [][]float64 {
-
-	log.Infof("computeCorrelationMatrix ...")
-	// Compute the correlation matrix
-	A := computeCorrelationMatrix(gridPoints, d_c)
-
-	// Compute the correlated shadow fading
-	log.Infof("computeCorrelatedShadowFading ...")
-	shadowing := computeCorrelatedShadowFading(A, sigma)
-
-	log.Infof("makeCorrelatedFadingGrid ...")
-	mappedCorrelatedFadingGrid := makeCorrelatedFadingGrid(shadowing)
-
-	return mappedCorrelatedFadingGrid
-}
-
-// findMinMaxCoords finds the minimum and maximum latitude and longitude from a list of coordinates.
-func findMinMaxCoords(coords []model.Coordinate) (minLat, minLng, maxLat, maxLng float64) {
-
-	minLat, minLng, maxLat, maxLng = findBoundingBox(coords)
-
-	// fmt.Printf("min point(%v, %v), max point(%v, %v)\n", minLat, minLng, maxLat, maxLng)
-	// minCoord := model.Coordinate{Lat: minLat, Lng: minLng}
-	// maxCoordLat := model.Coordinate{Lat: maxLat, Lng: minLng}
-	// maxCoordLng := model.Coordinate{Lat: minLat, Lng: maxLng}
-
-	// latRange := utils.GetSphericalDistance(minCoord, maxCoordLat)
-	// lngRange := utils.GetSphericalDistance(minCoord, maxCoordLng)
-
-	// if latRange > lngRange {
-	// 	latDiff := latRange - lngRange
-	// 	latDiffDegrees := utils.MetersToLngDegrees(latDiff/2, minLat)
-	// 	minLng = minLng - latDiffDegrees
-	// 	maxLng = maxLng + latDiffDegrees
-	// } else {
-	// 	lngDiff := lngRange - latRange
-	// 	lngDiffDegrees := utils.MetersToLatDegrees(lngDiff / 2)
-	// 	minLat = minLat - lngDiffDegrees
-	// 	maxLat = maxLat + lngDiffDegrees
-	// }
-	return
-}
-
-// Function to compute the correlation matrix
-func computeCorrelationMatrix(gridPoints []model.Coordinate, d_c float64) [][]float64 {
-	numPoints := len(gridPoints)
-	gridSize := int(math.Sqrt(float64(numPoints))) - 1
-	gridNumPoints := gridSize * gridSize
-	fmt.Println("----")
-	fmt.Printf("numPoints: %v\n", numPoints)
-	fmt.Printf("gridSize: %v\n", gridSize)
-	fmt.Printf("gridNumPoints: %v\n", gridNumPoints)
-	fmt.Println("----")
-	A := make([][]float64, int(gridNumPoints))
-	for i := range A {
-		A[i] = make([]float64, int(gridNumPoints))
-		for j := range A[i] {
-			A[i][j] = math.Exp(-utils.GetSphericalDistance(gridPoints[i], gridPoints[j]) / d_c)
-		}
-	}
-	return A
-}
-
-// Function to generate samples from N(0, sigma^2)
-func generateNormalSamples(numSamples int, sigma float64) []float64 {
-	samples := make([]float64, numSamples)
-	for i := range samples {
-		samples[i] = rand.NormFloat64() * sigma
-	}
-	return samples
-}
-
-// Function to perform Cholesky decomposition
-func choleskyDecomposition(matrix [][]float64) [][]float64 {
-	size := len(matrix)
-	lowerTriangular := make([][]float64, size)
-	for i := range lowerTriangular {
-		lowerTriangular[i] = make([]float64, size)
+func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float64) []float64 {
+	A := func(i, j int) float64 {
+		return math.Exp(-utils.GetSphericalDistance(gridPoints[i], gridPoints[j]) / d_c)
 	}
 
-	for row := 0; row < size; row++ {
-		for col := 0; col <= row; col++ {
-			sum := 0.0
-			for k := 0; k < col; k++ {
-				sum += lowerTriangular[row][k] * lowerTriangular[col][k]
-			}
-			if row == col {
-				lowerTriangular[row][col] = math.Sqrt(matrix[row][row] - sum)
-			} else {
-				lowerTriangular[row][col] = (matrix[row][col] - sum) / lowerTriangular[col][col]
-			}
-		}
+	n := len(gridPoints)
+	L := make([][]float64, n)
+	for i := range L {
+		L[i] = make([]float64, i+1)
 	}
-	return lowerTriangular
-}
-
-// Function to compute correlated shadow fading
-func computeCorrelatedShadowFading(A [][]float64, sigma float64) []float64 {
-	numPoints := len(A)
-
-	// Draw sample S from N(0, sigma^2)
-	S := generateNormalSamples(numPoints, sigma)
-	// Compute the Cholesky decomposition L of A
-	L := choleskyDecomposition(A)
-
-	// Multiply L with S
-	shadowing := make([]float64, numPoints)
-	for i := 0; i < numPoints; i++ {
+	shadowing := make([]float64, n)
+	// Cholesky
+	// Compute entries of L
+	for i := 0; i < n; i++ {
 		for j := 0; j <= i; j++ {
-			shadowing[i] += L[i][j] * S[j]
+			sum := 0.0
+			for k := 0; k < j; k++ {
+				sum += L[i][k] * L[j][k]
+			}
+			if i == j {
+				// Compute L_ii
+				L[i][i] = math.Sqrt(A(i, i) - sum)
+				shadowing[i] += L[i][i] * rand.NormFloat64() * sigma
+			} else {
+				// Compute L_ij
+				L[i][j] = (A(i, j) - sum) / L[j][j]
+				shadowing[i] += L[i][j] * rand.NormFloat64() * sigma
+			}
 		}
 	}
+
 	return shadowing
 }
 
-// Function for mapping the correlated fading to the grid
-func makeCorrelatedFadingGrid(shadowing []float64) [][]float64 {
-	gridSize := int(math.Sqrt(float64(len(shadowing))))
-	mappedCorrelatedFadingGrid := make([][]float64, gridSize)
+func GetShadowMapIndex(shadowingLen, i, j int) int {
+	gridSize := int(math.Sqrt(float64(shadowingLen)))
+	return i*gridSize + j
+}
 
-	for i := 0; i < gridSize; i++ {
-		mappedCorrelatedFadingGrid[i] = make([]float64, gridSize)
-		for j := 0; j < gridSize; j++ {
-			mappedCorrelatedFadingGrid[i][j] = shadowing[i*gridSize+j]
-		}
-	}
-	return mappedCorrelatedFadingGrid
+func GetShadowValue(shadowing []float64, i, j int) float64 {
+	gridSize := int(math.Sqrt(float64(len(shadowing))))
+	return shadowing[i*gridSize+j]
 }
 
 // Function to find the closest index
@@ -220,58 +135,55 @@ func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, i
 	return latIdx, lngIdx
 }
 
-// Function to find the bounding box (min and max lat/lng) of a list of coordinates
-func findBoundingBox(gridPoints []model.Coordinate) (minLat, minLng, maxLat, maxLng float64) {
-	minLat, minLng = math.MaxFloat64, math.MaxFloat64
-	maxLat, maxLng = -math.MaxFloat64, -math.MaxFloat64
+type BoundingBox struct {
+	minLat, minLng, maxLat, maxLng float64
+}
 
-	for _, coord := range gridPoints {
-		minLat = math.Min(minLat, coord.Lat)
-		minLng = math.Min(minLng, coord.Lng)
-		maxLat = math.Max(maxLat, coord.Lat)
-		maxLng = math.Max(maxLng, coord.Lng)
+// Function to find the bounding box (min and max lat/lng) of a list of coordinates
+func findBoundingBox(gridPoints []model.Coordinate) (bb BoundingBox) {
+
+	bb = BoundingBox{
+		minLat: math.MaxFloat64,
+		minLng: math.MaxFloat64,
+		maxLat: -math.MaxFloat64,
+		maxLng: -math.MaxFloat64,
 	}
-	return minLat, minLng, maxLat, maxLng
+	for _, coord := range gridPoints {
+		bb.minLat = math.Min(bb.minLat, coord.Lat)
+		bb.minLng = math.Min(bb.minLng, coord.Lng)
+		bb.maxLat = math.Max(bb.maxLat, coord.Lat)
+		bb.maxLng = math.Max(bb.maxLng, coord.Lng)
+	}
+	return
 }
 
 // Function to check if a point is inside a bounding box
-func isPointInsideBoundingBox(point model.Coordinate, minLat, minLng, maxLat, maxLng float64) bool {
-	return point.Lat >= minLat && point.Lat <= maxLat && point.Lng >= minLng && point.Lng <= maxLng
+func isPointInsideBoundingBox(point model.Coordinate, bb BoundingBox) bool {
+	return point.Lat >= bb.minLat &&
+		point.Lat <= bb.maxLat &&
+		point.Lng >= bb.minLng &&
+		point.Lng <= bb.maxLng
 }
 
 // Function to find overlapping grid points between two grids and return index pointers
-func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (cell1iList, cell1jList, cell2iList, cell2jList []int, overlapping bool) {
-	// minLat1, minLng1, maxLat1, maxLng1 := findBoundingBox(gridPoints1)
-	minLat2, minLng2, maxLat2, maxLng2 := findBoundingBox(gridPoints2)
+func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (pointIndxsG1, pointIndxsG2 [][]int, overlapping bool) {
 
+	pointIndxsG1 = make([][]int, 0)
+	pointIndxsG2 = make([][]int, 0)
+	bb := findBoundingBox(gridPoints2)
 	overlapping = false
 
-	gridSize1 := int(math.Sqrt(float64(len(gridPoints1)))) - 1
-	gridSize2 := int(math.Sqrt(float64(len(gridPoints2)))) - 1
-
-	// fmt.Printf("gridSize1: %v\n", gridSize1)
-	// fmt.Printf("gridSize2: %v\n", gridSize2)
-
-	cell1iList = make([]int, 0)
-	cell1jList = make([]int, 0)
-	cell2iList = make([]int, 0)
-	cell2jList = make([]int, 0)
-	// Iterate over grid points within the intersection area and check if they belong to both grids
-	for _, point1 := range gridPoints1 {
-		if isPointInsideBoundingBox(point1, minLat2, minLng2, maxLat2, maxLng2) {
+	for _, p1 := range gridPoints1 {
+		if isPointInsideBoundingBox(p1, bb) {
 			overlapping = true
-			cell1i, cell1j := FindGridCell(point1, gridPoints1)
-			cell2i, cell2j := FindGridCell(point1, gridPoints2)
-			if cell1i < gridSize1 && cell1j < gridSize1 && cell2i < gridSize2 && cell2j < gridSize2 {
-				cell1iList = append(cell1iList, cell1i)
-				cell1jList = append(cell1jList, cell1j)
-				cell2iList = append(cell2iList, cell2i)
-				cell2jList = append(cell2jList, cell2j)
-			}
+			rowG1, colG1 := FindGridCell(p1, gridPoints1)
+			rowG2, colG2 := FindGridCell(p1, gridPoints2)
+			pointIndxsG1 = append(pointIndxsG1, []int{rowG1, colG1})
+			pointIndxsG2 = append(pointIndxsG2, []int{rowG2, colG2})
 		}
 	}
 
-	return cell1iList, cell1jList, cell2iList, cell2jList, overlapping
+	return
 }
 
 func InitShadowMap(cell *model.Cell, d_c float64) {
@@ -297,4 +209,15 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	log.Infof("len(cell.GridPoints): %d", len(cell.GridPoints))
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
 	log.Infof("len(cell.ShadowingMap): %d", len(cell.ShadowingMap))
+}
+
+func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
+	pointIndxsG1, pointIndxsG2, overlapping := FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
+	if overlapping && (cell1.NCGI != cell2.NCGI) {
+		for i := range pointIndxsG1 {
+			log.Debugf("%d and %d overlapping: (%v) and (%v)\n", cell1.NCGI, cell2.NCGI, pointIndxsG1[i], pointIndxsG2[i])
+			si2 := GetShadowMapIndex(len(cell2.ShadowingMap), pointIndxsG2[i][0], pointIndxsG2[i][1])
+			cell2.ShadowingMap[si2] = GetShadowValue(cell1.ShadowingMap, pointIndxsG1[i][0], pointIndxsG1[i][1])
+		}
+	}
 }

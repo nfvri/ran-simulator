@@ -160,7 +160,7 @@ func (m *Manager) initModelStores() {
 	cellList, _ := m.cellStore.List(context.Background())
 
 	ueHeight := 1.5
-	refSignalStrength := -127.0
+	refSignalStrength := -87.0
 	dc := m.model.DecorrelationDistance
 
 	signal.ΙnitCoverageAndShadowMaps(cellList, m.redisStore, ueHeight, refSignalStrength, dc)

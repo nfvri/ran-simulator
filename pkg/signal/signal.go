@@ -66,7 +66,7 @@ func DistanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	realLngDist := (coord.Lng - cell.Sector.Center.Lng) / utils.AspectRatio(cell.Sector.Center.Lat)
 	r := math.Hypot(latDist, realLngDist)
 	gain := 120.0 / float64(cell.Sector.Arc)
-	return utils.DbToMw(gain * math.Sqrt(powerFactor/r))
+	return utils.DbmToMw(gain * math.Sqrt(powerFactor/r))
 }
 
 // angleAttenuation is the attenuation of power reaching a UE due to its

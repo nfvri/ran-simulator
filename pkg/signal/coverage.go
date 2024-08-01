@@ -65,21 +65,101 @@ func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, max
 	return pointsChannel
 }
 
-func GetRandGuessesChan(cell model.Cell, numGuesses int) <-chan []float64 {
+// Runs Newton Krylov solver to compute the signal coverage points
+func ComputePointsWithNewtonKrylovUEs(fp FProvider, guessChan <-chan []float64, maxIter int, stop *bool) <-chan model.Coordinate {
+
+	pointsChannel := make(chan model.Coordinate)
+	var wg sync.WaitGroup
+	numWorkers := 30
+
+	for i := 1; i <= numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			solver := nonlin.NewtonKrylov{
+				Maxiter:  maxIter,
+				StepSize: 5e-5,
+				Tol:      0.5,
+			}
+
+			for x0 := range guessChan {
+				if *stop {
+					break
+				}
+				problem := nonlin.Problem{
+					F: fp(x0),
+				}
+				res, err := solver.Solve(problem, x0)
+				if err != nil {
+					continue
+				}
+				xInDomain := res.X[0] > 0 && res.X[1] > 0 && math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180
+				if res.Converged && xInDomain {
+					pointsChannel <- model.Coordinate{Lat: res.X[0], Lng: res.X[1]}
+				}
+			}
+
+		}()
+	}
+
+	go func() {
+		defer close(pointsChannel)
+		wg.Wait()
+	}()
+
+	return pointsChannel
+}
+
+func GetRandGuessesChanUEs(cell model.Cell, numGuesses, cqi, stepMeters int) <-chan []float64 {
 	rgChan := make(chan []float64)
 
-	distance_to_deg := map[string]float64{"1m": 0.00001, "55m": 0.0005, "3.3km": 0.03}
+	step := utils.MetersToLatDegrees(float64(stepMeters))
+	initOffset := utils.MetersToLatDegrees(50)
+	cutOffDistance := utils.MetersToLatDegrees(5000)
 
 	go func() {
 		defer close(rgChan)
-		for i := 1; i < numGuesses; i++ {
+		for j := 0; j < 5; j++ {
+			for i := 0; i < numGuesses/5; i++ {
 
-			offset := distance_to_deg["55m"] + math.Min(float64(i)*distance_to_deg["1m"]*rand.Float64(), distance_to_deg["3.3km"])
+				offsetLat := initOffset + math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
+				offsetLong := initOffset + math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
+
+				repositionLat := (rand.Float64() - 0.5) * 2 / float64(cqi)
+
+				repositionLong := (rand.Float64() - 0.5) * 2 / float64(cqi)
+
+				guess := []float64{cell.Sector.Center.Lat + (repositionLat * offsetLat), cell.Sector.Center.Lng + (repositionLong * offsetLong)}
+				select {
+				case rgChan <- guess:
+				default:
+					time.Sleep(1 * time.Millisecond)
+				}
+			}
+		}
+	}()
+	return rgChan
+}
+
+func GetRandGuessesChanCells(cell model.Cell, numGuesses, stepMeters int) <-chan []float64 {
+	rgChan := make(chan []float64)
+
+	step := utils.MetersToLatDegrees(float64(stepMeters))
+	initOffset := utils.MetersToLatDegrees(50)
+	cutOffDistance := utils.MetersToLatDegrees(5000)
+
+	go func() {
+		defer close(rgChan)
+		for i := 0; i < numGuesses; i++ {
+
+			offsetLat := initOffset + math.Min(float64(i)*step*rand.Float64(), cutOffDistance)
+			offsetLong := initOffset + math.Min(float64(i)*step*rand.Float64(), cutOffDistance)
 
 			latSign := (rand.Float64() - 0.5) * 2
 			longSign := (rand.Float64() - 0.5) * 2
 
-			guess := []float64{cell.Sector.Center.Lat + (latSign * offset), cell.Sector.Center.Lng + (longSign * offset)}
+			guess := []float64{cell.Sector.Center.Lat + (latSign * offsetLat), cell.Sector.Center.Lng + (longSign * offsetLong)}
 			select {
 			case rgChan <- guess:
 			default:
@@ -128,7 +208,7 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, cell, refSignalStrength)
 	}
-	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChan(*cell, 3000), 60)
+	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(*cell, 3000, 50), 60)
 	rpBoundaryPoints := make([]model.Coordinate, 0)
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)

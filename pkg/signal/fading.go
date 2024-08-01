@@ -46,6 +46,6 @@ func GetRiceanK(cell *model.Cell) float64 {
 	if cell.Channel.LOS {
 		KdB = (rand.Float64() * RICEAN_K_STD_MACRO) + RICEAN_K_MEAN
 	}
-	K := utils.DbToMw(KdB)
+	K := utils.DbmToMw(KdB)
 	return K
 }

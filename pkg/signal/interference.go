@@ -56,7 +56,7 @@ func CalculateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight float64,
 		neighborCells = append(neighborCells, nCell)
 	}
 
-	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, numUes, cqi)
+	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, simModel.DecorrelationDistance, numUes, cqi)
 
 	return ueLocations
 }
@@ -93,16 +93,16 @@ func CreateSimulationUE(ncgi uint64, counter int, sinr, rsrp float64, location m
 
 func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {
 
-	rsrpServingMw := utils.MwToDb(rsrpServingDbm)
-	noiseMw := utils.MwToDb(noiseDbm)
+	rsrpServingMw := utils.MwToDbm(rsrpServingDbm)
+	noiseMw := utils.MwToDbm(noiseDbm)
 
 	sinrMw := rsrpServingMw / noiseMw
 	if rsrpNeighSumDbm != 0.0 {
-		interferenceMw := utils.MwToDb(rsrpNeighSumDbm)
+		interferenceMw := utils.MwToDbm(rsrpNeighSumDbm)
 		sinrMw = rsrpServingMw / (interferenceMw + noiseMw)
 	}
 
-	sinrDbm := utils.DbToMw(sinrMw)
+	sinrDbm := utils.DbmToMw(sinrMw)
 
 	return sinrDbm
 }
@@ -142,31 +142,25 @@ func SinrF(ueHeight float64, cell *model.Cell, refSinr float64, neighborCells []
 	}
 }
 
-func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Cell, refSinr float64, numUes, cqi int) []model.Coordinate {
+func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Cell, refSinr, d_c float64, numUes, cqi int) []model.Coordinate {
 
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
 		return SinrF(ueHeight, cell, refSinr, neighborCells)
 	}
 	log.Infof("CQI: %d -- SINR: %f", cqi, refSinr)
 	sinrPoints := []model.Coordinate{}
-	for i := 1000; i <= 10000; i += 1000 {
-		sinrPointsCh := ComputePointsWithNewtonKrylov(cfp, GetRandGuessesChan(*cell, numUes*i), 100)
-		for sp := range sinrPointsCh {
-			if isPointInsideGrid(sp, cell.GridPoints) {
-				log.Info("----------found point -------")
-				sinrPoints = append(sinrPoints, sp)
-				if len(sinrPoints) >= numUes {
-					break
-				}
-			}
+
+	stop := false
+	sinrPointsCh := ComputePointsWithNewtonKrylovUEs(cfp, GetRandGuessesChanUEs(*cell, numUes*1000, cqi, 50), 100, &stop)
+	for sp := range sinrPointsCh {
+		if isPointInsideGrid(sp, cell.GridPoints) {
+			log.Info("---fp--")
+			sinrPoints = append(sinrPoints, sp)
 			if len(sinrPoints) >= numUes {
+				stop = true
 				break
 			}
 		}
-	}
-
-	if len(sinrPoints) > numUes {
-		sinrPoints = sinrPoints[:numUes]
 	}
 
 	return utils.SortCoordinatesByBearing(cell.Sector.Center, sinrPoints)
@@ -179,7 +173,7 @@ func CalculateNoisePower(bandwidthHz float64, cellType types.CellType) float64 {
 	)
 
 	thermalNoisePower := Boltzmann * Temperature * bandwidthHz // noise power in watts
-	thermalNoiseDbm := utils.DbToMw(thermalNoisePower / 1e-3)  // convert to dBm
+	thermalNoiseDbm := utils.DbmToMw(thermalNoisePower / 1e-3) // convert to dBm
 
 	noiseFigureDb := GetNoiseFigure(bandwidthHz, cellType)
 

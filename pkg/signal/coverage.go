@@ -117,12 +117,11 @@ func GetRandGuessesChanUEs(cell model.Cell, numGuesses, cqi, stepMeters int) <-c
 	step := utils.MetersToLatDegrees(float64(stepMeters))
 	cutOffDistance := utils.MetersToLatDegrees(5000)
 
-	bb := findBoundingBox(cell.RPCoverageBoundaries[0].BoundaryPoints)
-	latScalingFactor := utils.DegreesToMeters(bb.maxLat-bb.minLat) * 0.01
-	lngScalingFactor := utils.DegreesToMeters(bb.maxLng-bb.minLng) * 0.01
+	latScalingFactor := utils.DegreesToMeters(cell.BoundingBox.MaxLat-cell.BoundingBox.MinLat) * 0.01
+	lngScalingFactor := utils.DegreesToMeters(cell.BoundingBox.MaxLng-cell.BoundingBox.MinLng) * 0.01
 
-	centerLat := (bb.minLat + bb.maxLat) / 2.0
-	centerLng := (bb.minLng + bb.maxLng) / 2.0
+	centerLat := (cell.BoundingBox.MinLat + cell.BoundingBox.MaxLat) / 2.0
+	centerLng := (cell.BoundingBox.MinLng + cell.BoundingBox.MaxLng) / 2.0
 	go func() {
 		defer close(rgChan)
 		for j := 0; j < 5; j++ {

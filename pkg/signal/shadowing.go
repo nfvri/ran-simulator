@@ -9,18 +9,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model.Coordinate {
+func ComputeGridPoints(bb model.BoundingBox, d_c float64) []model.Coordinate {
 
-	bb := findBoundingBox(rpBoundaryPoints)
+	log.Debugf("square min point(%v, %v), max point(%v, %v)\n", bb.MinLat, bb.MinLng, bb.MaxLat, bb.MaxLng)
 
-	log.Debugf("square min point(%v, %v), max point(%v, %v)\n", bb.minLat, bb.minLng, bb.maxLat, bb.maxLng)
-
-	latDiff := math.Abs(bb.maxLat - bb.minLat)
-	lngDiff := math.Abs(bb.maxLng - bb.minLng)
+	latDiff := math.Abs(bb.MaxLat - bb.MinLat)
+	lngDiff := math.Abs(bb.MaxLng - bb.MinLng)
 
 	// Convert d_c from meters to degrees
 	d_c_lat := utils.MetersToLatDegrees(d_c)
-	avgLat := (bb.minLat + bb.maxLat) / 2.0
+	avgLat := (bb.MinLat + bb.MaxLat) / 2.0
 	d_c_lng := utils.MetersToLngDegrees(d_c, avgLat)
 
 	// Calculate the number of grid points based on d_c
@@ -34,9 +32,9 @@ func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model
 
 	gridPoints := make([]model.Coordinate, 0, maxDim*maxDim)
 	for i := 0; i <= maxDim; i++ {
-		lat := bb.minLat + float64(i)*d_c_lat
+		lat := bb.MinLat + float64(i)*d_c_lat
 		for j := 0; j <= maxDim; j++ {
-			lng := bb.minLng + float64(j)*d_c_lng
+			lng := bb.MinLng + float64(j)*d_c_lng
 			gridPoints = append(gridPoints, model.Coordinate{Lat: lat, Lng: lng})
 		}
 	}
@@ -89,96 +87,71 @@ func GetShadowValue(shadowing []float64, i, j int) float64 {
 	return shadowing[i*gridSize+j]
 }
 
-// Function to find the closest index
-func closestIndex(arr []float64, value float64) int {
-	closest := 0
-	minDist := math.Abs(arr[0] - value)
-	for i := 1; i < len(arr)-1; i++ {
-		dist := math.Abs(arr[i] - value)
-		if dist < minDist {
-			closest = i
-			minDist = dist
-		}
-	}
-	return closest
-}
-
-// Function to check if a point is inside the grid
-func isPointInsideGrid(point model.Coordinate, gridPoints []model.Coordinate) bool {
-	latitudes := utils.UniqueLatitudes(gridPoints)
-	longitudes := utils.UniqueLongitudes(gridPoints)
-
-	if len(latitudes) == 0 || len(longitudes) == 0 {
-		return false
-	}
-	// Check if point's latitude is within the range of grid latitudes
-	if point.Lat < latitudes[0] || point.Lat > latitudes[len(latitudes)-1] {
-		return false
-	}
-
-	// Check if point's longitude is within the range of grid longitudes
-	if point.Lng < longitudes[0] || point.Lng > longitudes[len(longitudes)-1] {
-		return false
-	}
-
-	return true
-}
-
 // Function to find the grid cell containing the given point
 func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, int) {
 
-	latitudes := utils.Latitudes(gridPoints)
-	longitudes := utils.Longitudes(gridPoints)
+	size := int(math.Sqrt(float64(len(gridPoints)))) - 1
 
-	latIdx := closestIndex(latitudes, point.Lat)
-	lngIdx := closestIndex(longitudes, point.Lng)
+	closestLat := 0
+	closestLng := 0
 
-	return latIdx, lngIdx
-}
+	minDistLat := math.Abs(gridPoints[0].Lat - point.Lat)
+	minDistLng := math.Abs(gridPoints[0].Lng - point.Lng)
 
-type BoundingBox struct {
-	minLat, minLng, maxLat, maxLng float64
+	for i := 1; i < size; i++ {
+		distLat := math.Abs(gridPoints[i].Lat - point.Lat)
+		distLng := math.Abs(gridPoints[i].Lng - point.Lng)
+		if distLat < minDistLat {
+			closestLat = i
+			minDistLat = distLat
+		}
+		if distLng < minDistLng {
+			closestLng = i
+			minDistLng = distLng
+		}
+	}
+
+	return closestLat, closestLng
 }
 
 // Function to find the bounding box (min and max lat/lng) of a list of coordinates
-func findBoundingBox(gridPoints []model.Coordinate) (bb BoundingBox) {
+func FindBoundingBox(gridPoints []model.Coordinate) (bb model.BoundingBox) {
 
-	bb = BoundingBox{
-		minLat: math.MaxFloat64,
-		minLng: math.MaxFloat64,
-		maxLat: -math.MaxFloat64,
-		maxLng: -math.MaxFloat64,
+	bb = model.BoundingBox{
+		MinLat: math.MaxFloat64,
+		MinLng: math.MaxFloat64,
+		MaxLat: -math.MaxFloat64,
+		MaxLng: -math.MaxFloat64,
 	}
 	for _, coord := range gridPoints {
-		bb.minLat = math.Min(bb.minLat, coord.Lat)
-		bb.minLng = math.Min(bb.minLng, coord.Lng)
-		bb.maxLat = math.Max(bb.maxLat, coord.Lat)
-		bb.maxLng = math.Max(bb.maxLng, coord.Lng)
+		bb.MinLat = math.Min(bb.MinLat, coord.Lat)
+		bb.MinLng = math.Min(bb.MinLng, coord.Lng)
+		bb.MaxLat = math.Max(bb.MaxLat, coord.Lat)
+		bb.MaxLng = math.Max(bb.MaxLng, coord.Lng)
 	}
 	return
 }
 
 // Function to check if a point is inside a bounding box
-func isPointInsideBoundingBox(point model.Coordinate, bb BoundingBox) bool {
-	return point.Lat >= bb.minLat &&
-		point.Lat <= bb.maxLat &&
-		point.Lng >= bb.minLng &&
-		point.Lng <= bb.maxLng
+func isPointInsideBoundingBox(point model.Coordinate, bb model.BoundingBox) bool {
+	return point.Lat >= bb.MinLat &&
+		point.Lat <= bb.MaxLat &&
+		point.Lng >= bb.MinLng &&
+		point.Lng <= bb.MaxLng
 }
 
 // Function to find overlapping grid points between two grids and return index pointers
-func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (pointIndxsG1, pointIndxsG2 [][]int, overlapping bool) {
+func FindOverlappingGridPoints(cell1, cell2 *model.Cell) (pointIndxsG1, pointIndxsG2 [][]int, overlapping bool) {
 
 	pointIndxsG1 = make([][]int, 0)
 	pointIndxsG2 = make([][]int, 0)
-	bb := findBoundingBox(gridPoints2)
 	overlapping = false
 
-	for _, p1 := range gridPoints1 {
-		if isPointInsideBoundingBox(p1, bb) {
+	for _, p1 := range cell1.GridPoints {
+		if isPointInsideBoundingBox(p1, cell2.BoundingBox) {
 			overlapping = true
-			rowG1, colG1 := FindGridCell(p1, gridPoints1)
-			rowG2, colG2 := FindGridCell(p1, gridPoints2)
+			rowG1, colG1 := FindGridCell(p1, cell1.GridPoints)
+			rowG2, colG2 := FindGridCell(p1, cell2.GridPoints)
 			pointIndxsG1 = append(pointIndxsG1, []int{rowG1, colG1})
 			pointIndxsG2 = append(pointIndxsG2, []int{rowG2, colG2})
 		}
@@ -206,14 +179,16 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 		return
 	}
 	log.Infof("NCGI: %v: len(rpBoundaryPoints): %d", cell.NCGI, len(rpBoundaryPoints))
-	cell.GridPoints = ComputeGridPoints(rpBoundaryPoints, d_c)
+	cell.BoundingBox = FindBoundingBox(rpBoundaryPoints)
+	cell.GridPoints = ComputeGridPoints(cell.BoundingBox, d_c)
+
 	log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints))
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
 	log.Infof("NCGI: %v: len(ShadowingMap): %d", cell.NCGI, len(cell.ShadowingMap))
 }
 
 func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
-	pointIndxsG1, pointIndxsG2, overlapping := FindOverlappingGridPoints(cell1.GridPoints, cell2.GridPoints)
+	pointIndxsG1, pointIndxsG2, overlapping := FindOverlappingGridPoints(cell1, cell2)
 	if overlapping && (cell1.NCGI != cell2.NCGI) {
 		for i := range pointIndxsG1 {
 			log.Debugf("%d and %d overlapping: (%v) and (%v)\n", cell1.NCGI, cell2.NCGI, pointIndxsG1[i], pointIndxsG2[i])

@@ -130,7 +130,7 @@ type Cell struct {
 	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
 	RrcIdleCount         uint32
 	RrcConnectedCount    uint32
-	ShadowMap
+	Grid
 }
 
 func (cell *Cell) ConfigEquivalent(otherCell *Cell) bool {
@@ -157,9 +157,17 @@ type Beam struct {
 	VSideLobeAttenuationDB float64 `mapstructure:"vSideLobeAttenuationDB"`
 }
 
-type ShadowMap struct {
+type Grid struct {
 	ShadowingMap []float64    `json:"shadowingMap"`
 	GridPoints   []Coordinate `json:"gridPoints"`
+	BoundingBox  BoundingBox  `json:"boundingBox"`
+}
+
+type BoundingBox struct {
+	MinLat float64 `json:"minLat"`
+	MinLng float64 `json:"minLng"`
+	MaxLat float64 `json:"maxLat"`
+	MaxLng float64 `json:"maxLng"`
 }
 
 type CoverageBoundary struct {

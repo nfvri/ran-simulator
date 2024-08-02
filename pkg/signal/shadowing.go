@@ -1,7 +1,6 @@
 package signal
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 
@@ -14,7 +13,7 @@ func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model
 
 	bb := findBoundingBox(rpBoundaryPoints)
 
-	fmt.Printf("square min point(%v, %v), max point(%v, %v)\n", bb.minLat, bb.minLng, bb.maxLat, bb.maxLng)
+	log.Debugf("square min point(%v, %v), max point(%v, %v)\n", bb.minLat, bb.minLng, bb.maxLat, bb.maxLng)
 
 	latDiff := math.Abs(bb.maxLat - bb.minLat)
 	lngDiff := math.Abs(bb.maxLng - bb.minLng)
@@ -33,10 +32,10 @@ func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model
 	}
 	maxDim := int(math.Max(float64(numLatPoints), float64(numLngPoints)))
 
-	gridPoints := make([]model.Coordinate, 0, numLatPoints*numLngPoints)
+	gridPoints := make([]model.Coordinate, 0, maxDim*maxDim)
 	for i := 0; i <= maxDim; i++ {
+		lat := bb.minLat + float64(i)*d_c_lat
 		for j := 0; j <= maxDim; j++ {
-			lat := bb.minLat + float64(i)*d_c_lat
 			lng := bb.minLng + float64(j)*d_c_lng
 			gridPoints = append(gridPoints, model.Coordinate{Lat: lat, Lng: lng})
 		}
@@ -187,7 +186,7 @@ func FindOverlappingGridPoints(gridPoints1, gridPoints2 []model.Coordinate) (poi
 }
 
 func InitShadowMap(cell *model.Cell, d_c float64) {
-	log.Info("Initializing ShadowMap")
+	log.Infof("NCGI: %v: Initializing ShadowMap", cell.NCGI)
 
 	sigma := 6.0
 	switch {
@@ -204,11 +203,11 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	if len(rpBoundaryPoints) == 0 {
 		return
 	}
-	log.Infof("len(rpBoundaryPoints): %d", len(rpBoundaryPoints))
+	log.Infof("NCGI: %v: len(rpBoundaryPoints): %d", cell.NCGI, len(rpBoundaryPoints))
 	cell.GridPoints = ComputeGridPoints(rpBoundaryPoints, d_c)
-	log.Infof("len(cell.GridPoints): %d", len(cell.GridPoints))
+	log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints))
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
-	log.Infof("len(cell.ShadowingMap): %d", len(cell.ShadowingMap))
+	log.Infof("NCGI: %v: len(ShadowingMap): %d", cell.NCGI, len(cell.ShadowingMap))
 }
 
 func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {

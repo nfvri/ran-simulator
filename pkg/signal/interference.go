@@ -147,16 +147,23 @@ func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Ce
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
 		return SinrF(ueHeight, cell, refSinr, neighborCells)
 	}
+	bb := findBoundingBox(cell.RPCoverageBoundaries[0].BoundaryPoints)
+
 	sinrPoints := []model.Coordinate{}
 
 	stop := false
-	sinrPointsCh := ComputePointsWithNewtonKrylovUEs(cfp, GetRandGuessesChanUEs(*cell, numUes*overSampling, cqi, 50), 100, &stop)
-	for sp := range sinrPointsCh {
-		if isPointInsideGrid(sp, cell.GridPoints) {
-			sinrPoints = append(sinrPoints, sp)
-			if len(sinrPoints) >= numUes {
-				stop = true
-				break
+	outerBreak := false
+
+	for !outerBreak {
+		sinrPointsCh := ComputePointsWithNewtonKrylovUEs(cfp, GetRandGuessesChanUEs(*cell, numUes*overSampling, cqi, 25), 100, &stop)
+		for sp := range sinrPointsCh {
+			if isPointInsideBoundingBox(sp, bb) {
+				sinrPoints = append(sinrPoints, sp)
+				if len(sinrPoints) >= numUes {
+					outerBreak = true
+					stop = true
+					break
+				}
 			}
 		}
 	}

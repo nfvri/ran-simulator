@@ -45,6 +45,9 @@ func ComputeGridPoints(rpBoundaryPoints []model.Coordinate, d_c float64) []model
 
 func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float64) []float64 {
 	A := func(i, j int) float64 {
+		if i == j {
+			return 1
+		}
 		return math.Exp(-utils.GetSphericalDistance(gridPoints[i], gridPoints[j]) / d_c)
 	}
 
@@ -62,15 +65,14 @@ func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float6
 			for k := 0; k < j; k++ {
 				sum += L[i][k] * L[j][k]
 			}
+
 			if i == j {
-				// Compute L_ii
-				L[i][i] = math.Sqrt(A(i, i) - sum)
-				shadowing[i] += L[i][i] * rand.NormFloat64() * sigma
+				L[i][j] = math.Sqrt(A(i, j) - sum)
 			} else {
-				// Compute L_ij
 				L[i][j] = (A(i, j) - sum) / L[j][j]
-				shadowing[i] += L[i][j] * rand.NormFloat64() * sigma
 			}
+
+			shadowing[i] += L[i][j] * rand.NormFloat64() * sigma
 		}
 	}
 

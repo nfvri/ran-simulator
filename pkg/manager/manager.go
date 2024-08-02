@@ -163,7 +163,7 @@ func (m *Manager) initModelStores() {
 	refSignalStrength := -87.0
 	dc := m.model.DecorrelationDistance
 
-	signal.ΙnitCoverageAndShadowMaps(cellList, m.redisStore, ueHeight, refSignalStrength, dc)
+	signal.InitCoverageAndShadowMaps(cellList, m.redisStore, ueHeight, refSignalStrength, dc)
 }
 
 func (m *Manager) initMetricStore() {

@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ΙnitCoverageAndShadowMaps(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHeight, refSignalStrength, dc float64) {
+func InitCoverageAndShadowMaps(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHeight, refSignalStrength, dc float64) {
 
 	ctx := context.Background()
 

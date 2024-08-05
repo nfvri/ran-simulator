@@ -3,6 +3,7 @@ package signal
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
@@ -11,38 +12,51 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitCoverageAndShadowMaps(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHeight, refSignalStrength, dc float64) {
+func UpdateCellList(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHeight, refSignalStrength, d_c float64, snapshotId string) {
 
 	ctx := context.Background()
-
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	newSnapshot := false
 
-	for i, cell := range cellList {
-		cachedCell, err := redisStore.Get(ctx, cell.NCGI)
-
-		if err != nil || !cell.ConfigEquivalent(cachedCell) {
-
+	cachedCellGroup, err := redisStore.GetCellGroup(ctx, snapshotId)
+	if err != nil {
+		if snapshotId != "" {
+			// Add cellGroup in redis only if a new snapshot is created
+			// Don't add cellGroup in redis if InitCoverageAndShadowMaps is called in visualize liveSnapshot
+			newSnapshot = true
+		}
+		for _, cell := range cellList {
 			wg.Add(1)
 			go func(cell *model.Cell) {
 				defer wg.Done()
-				if err := updateCellParams(ueHeight, cell, refSignalStrength, dc); err != nil {
+				if err := updateCellParams(ueHeight, cell, refSignalStrength, d_c); err != nil {
 					return
 				}
 
-				ctx := context.Background()
-				mu.Lock()
-				redisStore.Add(ctx, cell)
-				mu.Unlock()
-
 			}(cell)
-
-		} else {
-			mu.Lock()
-			cellList[i] = cachedCell
-			mu.Unlock()
 		}
+	} else {
 
+		for i, cell := range cellList {
+			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
+			cachedCell, ok := cachedCellGroup[ncgi]
+			if !ok || !cell.ConfigEquivalent(&cachedCell) {
+				wg.Add(1)
+				go func(cell *model.Cell) {
+					defer wg.Done()
+					if err := updateCellParams(ueHeight, cell, refSignalStrength, d_c); err != nil {
+						return
+					}
+				}(cell)
+
+			} else {
+				mu.Lock()
+				cellList[i] = &cachedCell
+				mu.Unlock()
+			}
+
+		}
 	}
 
 	wg.Wait()
@@ -51,6 +65,14 @@ func InitCoverageAndShadowMaps(cellList []*model.Cell, redisStore redisLib.Redis
 		for j := len(cellList) - 1; j > i; j-- {
 			replaceOverlappingShadowMapValues(cellList[i], cellList[j])
 		}
+	}
+	if newSnapshot {
+		cellGroup := make(map[string]model.Cell)
+		for _, cell := range cellList {
+			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
+			cellGroup[ncgi] = *cell
+		}
+		redisStore.AddCellGroup(ctx, snapshotId, cellGroup)
 	}
 	log.Infof("--- Updated Cells ---")
 

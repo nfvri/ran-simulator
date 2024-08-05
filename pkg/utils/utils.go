@@ -159,12 +159,12 @@ func GetEnv(key string, defaultVal string) string {
 	return defaultVal
 }
 
-func GetCell(ncgi types.NCGI, simModel *model.Model) *model.Cell {
+func GetCell(ncgi types.NCGI, cells map[string]model.Cell) *model.Cell {
 
 	NCGI := types.NCGI(ncgi)
 	var foundCell *model.Cell
 
-	for _, cell := range simModel.Cells {
+	for _, cell := range cells {
 		if cell.NCGI == NCGI {
 			foundCell = &cell
 			break

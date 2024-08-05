@@ -34,7 +34,7 @@ func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, max
 				StepSize: 1e-4,
 
 				// Tolerance for the solution
-				Tol: 1e-6,
+				Tol: 5e-5,
 
 				// Stencil for Jacobian
 				// Stencil: 8,
@@ -125,10 +125,10 @@ func GetRandGuessesChanUEs(cell model.Cell, numGuesses, cqi, stepMeters int) <-c
 	go func() {
 		defer close(rgChan)
 		for j := 0; j < 5; j++ {
-			for i := 0; i < numGuesses/5; i++ {
+			for i := 0.0; i < float64(numGuesses)/5.0; i++ {
 
-				offsetLat := math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
-				offsetLng := math.Min((float64(i))*step*rand.Float64(), cutOffDistance)
+				offsetLat := math.Min(i*step*rand.Float64(), cutOffDistance)
+				offsetLng := math.Min(i*step*rand.Float64(), cutOffDistance)
 
 				repositionLat := (rand.Float64() - 0.5) * 2 * latScalingFactor / float64(cqi)
 				repositionLng := (rand.Float64() - 0.5) * 2 * lngScalingFactor / float64(cqi)

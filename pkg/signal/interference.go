@@ -45,17 +45,19 @@ func GetSINR(cqi int) float64 {
 	return sinr
 }
 
-func CalculateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight float64, simModel *model.Model) []model.Coordinate {
+func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, d_c float64, simModelCells map[string]model.Cell) []model.Coordinate {
 
-	cell := utils.GetCell(types.NCGI(ncgi), simModel)
+	cell := utils.GetCell(types.NCGI(ncgi), simModelCells)
 
 	neighborCells := []*model.Cell{}
 	for _, ncgi := range cell.Neighbors {
-		nCell := utils.GetCell(ncgi, simModel)
-		neighborCells = append(neighborCells, nCell)
+		nCell := utils.GetCell(ncgi, simModelCells)
+		if nCell.Channel.SSBFrequency == cell.Channel.SSBFrequency {
+			neighborCells = append(neighborCells, nCell)
+		}
 	}
 
-	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, simModel.DecorrelationDistance, numUes, cqi)
+	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, d_c, numUes, cqi)
 
 	return ueLocations
 }
@@ -107,6 +109,10 @@ func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {
 }
 
 func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborCells []*model.Cell) float64 {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
+		return math.Inf(-1)
+	}
+
 	bandwidth := 10e6 // 20 MHz bandwidth
 	noise := CalculateNoisePower(bandwidth, types.CellType_MACRO)
 

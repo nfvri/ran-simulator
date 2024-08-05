@@ -10,7 +10,9 @@ import (
 	"math/rand"
 	"sync"
 
+	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
+	log "github.com/sirupsen/logrus"
 
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
@@ -23,15 +25,12 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
-	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 )
 
 const (
 	MinIMSI = 1000000
 	MaxIMSI = 9999999
 )
-
-var log = liblog.GetLogger()
 
 // Store tracks inventory of user-equipment for the simulation
 type Store interface {
@@ -110,7 +109,7 @@ type store struct {
 
 // NewUERegistry creates a new user-equipment registry primed with the specified number of UEs to start.
 // UEs will be semi-randomly distributed between the specified cells
-func NewUERegistry(m model.Model, cellStore cells.Store, initialRrcState string) Store {
+func NewUERegistry(m model.Model, cellStore cells.Store, redisStore redisLib.RedisStore, initialRrcState string) Store {
 	watchers := watcher.NewWatchers()
 	store := &store{
 		mu:              sync.RWMutex{},
@@ -121,10 +120,17 @@ func NewUERegistry(m model.Model, cellStore cells.Store, initialRrcState string)
 		initialRrcState: initialRrcState,
 	}
 	ctx := context.Background()
-	store.CreateUEs(ctx, m)
-	if m.UECount > 0 {
-		store.CreateRandomUEs(ctx, m.UECount)
+	log.Infof(" m.SnapshotId: %v", m.SnapshotId)
+	ueList, err := redisStore.GetUEGroup(ctx, m.SnapshotId)
+	if err != nil {
+		log.Errorf("failed to get ue list from redis:%v", err)
+		return store
 	}
+	m.UEList = ueList
+	store.CreateUEs(ctx, m)
+	// if m.UECount > 0 {
+	// 	store.CreateRandomUEs(ctx, m.UECount)
+	// }
 	log.Infof("Created registry primed with %d UEs", len(store.ues))
 
 	return store

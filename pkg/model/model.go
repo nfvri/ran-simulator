@@ -30,6 +30,7 @@ type Model struct {
 	APIKey                  string                  `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
 	Guami                   Guami                   `mapstructure:"guami" yaml:"guami"`
 	DecorrelationDistance   float64                 `mapstructure:"decorrelationdistance"`
+	SnapshotId              string                  `mapstructure:"snapshotID"` //used to retrieve snapshot Cell Group and UE Group
 }
 
 // Coordinate represents a geographical location

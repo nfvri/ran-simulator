@@ -101,11 +101,14 @@ func (m *Manager) Start() error {
 		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
 		redisPort := utils.GetEnv("REDIS_PORT", "6379")
 		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
+		redisUECache := utils.GetEnv("REDIS_UE_CACHE_DB", "2")
 		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
 		redisPass := utils.GetEnv("REDIS_PASSWORD", "")
-		rdbClient := redisLib.InitClient(redisHost, redisPort, redisCellCache, redisUsername, redisPass)
+		cellClient := redisLib.InitClient(redisHost, redisPort, redisCellCache, redisUsername, redisPass)
+		ueClient := redisLib.InitClient(redisHost, redisPort, redisUECache, redisUsername, redisPass)
 		m.redisStore = redisLib.RedisStore{
-			Rdb: rdbClient,
+			CellDB: cellClient,
+			UeDB:   ueClient,
 		}
 	}
 
@@ -124,7 +127,7 @@ func (m *Manager) Start() error {
 	if err != nil {
 		return err
 	}
-
+	// TODO: ADD mobilityDriver
 	m.initmobilityDriver()
 
 	// Start E2 agents
@@ -152,8 +155,7 @@ func (m *Manager) initModelStores() {
 	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
 
 	// Create the UE registry primed with the specified number of UEs
-	m.ueStore = ues.NewUERegistry(*m.model, m.cellStore, m.model.InitialRrcState)
-
+	m.ueStore = ues.NewUERegistry(*m.model, m.cellStore, m.redisStore, m.model.InitialRrcState)
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
 
@@ -161,9 +163,10 @@ func (m *Manager) initModelStores() {
 
 	ueHeight := 1.5
 	refSignalStrength := -87.0
-	dc := m.model.DecorrelationDistance
 
-	signal.InitCoverageAndShadowMaps(cellList, m.redisStore, ueHeight, refSignalStrength, dc)
+	// UpdateCellList initializes and recalculates Cells params based on PATCH RAN Request
+	signal.UpdateCellList(cellList, m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
+
 }
 
 func (m *Manager) initMetricStore() {

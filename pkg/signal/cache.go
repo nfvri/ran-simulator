@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func UpdateCellList(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHeight, refSignalStrength, d_c float64, snapshotId string) {
+func UpdateCells(cellList []*model.Cell, redisStore *redisLib.RedisStore, ueHeight, refSignalStrength, dc float64, snapshotId string) {
 
 	ctx := context.Background()
 	var wg sync.WaitGroup
@@ -30,7 +30,7 @@ func UpdateCellList(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHe
 			wg.Add(1)
 			go func(cell *model.Cell) {
 				defer wg.Done()
-				if err := updateCellParams(ueHeight, cell, refSignalStrength, d_c); err != nil {
+				if err := updateCellParams(ueHeight, cell, refSignalStrength, dc); err != nil {
 					return
 				}
 
@@ -45,7 +45,7 @@ func UpdateCellList(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHe
 				wg.Add(1)
 				go func(cell *model.Cell) {
 					defer wg.Done()
-					if err := updateCellParams(ueHeight, cell, refSignalStrength, d_c); err != nil {
+					if err := updateCellParams(ueHeight, cell, refSignalStrength, dc); err != nil {
 						return
 					}
 				}(cell)
@@ -73,12 +73,13 @@ func UpdateCellList(cellList []*model.Cell, redisStore redisLib.RedisStore, ueHe
 			cellGroup[ncgi] = *cell
 		}
 		redisStore.AddCellGroup(ctx, snapshotId, cellGroup)
+		log.Infof("---------- Added CellGroup in Cache ----------")
 	}
-	log.Infof("--- Updated Cells ---")
+	log.Infof("---------------- Updated Cells ---------------")
 
 }
 
-func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, d_c float64) error {
+func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc float64) error {
 	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, cell, refSignalStrength)
 	if len(rpBoundaryPoints) == 0 {
 		return fmt.Errorf("failed to update cell")
@@ -89,7 +90,7 @@ func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, d_c
 			BoundaryPoints:    rpBoundaryPoints,
 		},
 	}
-	InitShadowMap(cell, d_c)
+	InitShadowMap(cell, dc)
 	covBoundaryPoints := GetCovBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
 
 	if len(covBoundaryPoints) == 0 {

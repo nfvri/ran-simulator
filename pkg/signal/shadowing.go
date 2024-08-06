@@ -6,10 +6,11 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
 )
 
-func ComputeGridPoints(bb model.BoundingBox, d_c float64) []model.Coordinate {
+func ComputeGridPoints(bb model.BoundingBox, d_c float64, ncgi types.NCGI) []model.Coordinate {
 
 	log.Debugf("square min point(%v, %v), max point(%v, %v)\n", bb.MinLat, bb.MinLng, bb.MaxLat, bb.MaxLng)
 
@@ -26,7 +27,7 @@ func ComputeGridPoints(bb model.BoundingBox, d_c float64) []model.Coordinate {
 	numLngPoints := int(math.Ceil(lngDiff / d_c_lng))
 
 	if numLatPoints != numLngPoints {
-		log.Warnf("grid dimensions unequal %v, %v", numLatPoints, numLngPoints)
+		log.Warnf("NCGI: %v: grid dimensions unequal: lat:%v, lng:%v", ncgi, numLatPoints, numLngPoints)
 	}
 	maxDim := int(math.Max(float64(numLatPoints), float64(numLngPoints)))
 
@@ -161,7 +162,6 @@ func FindOverlappingGridPoints(cell1, cell2 *model.Cell) (pointIndxsG1, pointInd
 }
 
 func InitShadowMap(cell *model.Cell, d_c float64) {
-	log.Infof("NCGI: %v: Initializing ShadowMap", cell.NCGI)
 
 	sigma := 6.0
 	switch {
@@ -180,7 +180,7 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	}
 	log.Infof("NCGI: %v: len(rpBoundaryPoints): %d", cell.NCGI, len(rpBoundaryPoints))
 	cell.BoundingBox = FindBoundingBox(rpBoundaryPoints)
-	cell.GridPoints = ComputeGridPoints(cell.BoundingBox, d_c)
+	cell.GridPoints = ComputeGridPoints(cell.BoundingBox, d_c, cell.NCGI)
 
 	log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints))
 	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)

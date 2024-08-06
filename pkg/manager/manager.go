@@ -165,7 +165,7 @@ func (m *Manager) initModelStores() {
 	refSignalStrength := -87.0
 
 	// UpdateCellList initializes and recalculates Cells params based on PATCH RAN Request
-	signal.UpdateCellList(cellList, m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
+	signal.UpdateCells(cellList, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
 
 }
 

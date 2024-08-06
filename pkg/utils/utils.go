@@ -159,14 +159,14 @@ func GetEnv(key string, defaultVal string) string {
 	return defaultVal
 }
 
-func GetCell(ncgi types.NCGI, cells map[string]model.Cell) *model.Cell {
+func GetCell(ncgi types.NCGI, cells []*model.Cell) *model.Cell {
 
 	NCGI := types.NCGI(ncgi)
 	var foundCell *model.Cell
 
 	for _, cell := range cells {
 		if cell.NCGI == NCGI {
-			foundCell = &cell
+			foundCell = cell
 			break
 		}
 	}
@@ -188,4 +188,16 @@ func MwToDbm(mw float64) float64 {
 
 func DbmToMw(dbm float64) float64 {
 	return 10 * math.Log10(dbm)
+}
+
+func GetNeighborCells(cell *model.Cell, simModelCells []*model.Cell) []*model.Cell {
+
+	neighborCells := []*model.Cell{}
+	for _, ncgi := range cell.Neighbors {
+		nCell := GetCell(ncgi, simModelCells)
+		if nCell.Channel.SSBFrequency == cell.Channel.SSBFrequency {
+			neighborCells = append(neighborCells, nCell)
+		}
+	}
+	return neighborCells
 }

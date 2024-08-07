@@ -17,6 +17,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
+	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ func TestDriver(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(*m, cs, "random")
+	us := ues.NewUERegistry(*m, cs, redisLib.RedisStore{}, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()
@@ -77,7 +78,7 @@ func TestRouteGeneration(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(*m, cs, "random")
+	us := ues.NewUERegistry(*m, cs, redisLib.RedisStore{}, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()

@@ -182,12 +182,16 @@ func GetServedUEs(cell *model.Cell, ues []model.UE) (servedUEs []model.UE) {
 	return
 }
 
+func DbwToDbm(dbw float64) float64 {
+	return 10 * math.Log10(dbw)
+}
+
 func MwToDbm(mw float64) float64 {
-	return math.Pow(10, mw/10)
+	return 10 * math.Log10(mw)
 }
 
 func DbmToMw(dbm float64) float64 {
-	return 10 * math.Log10(dbm)
+	return math.Pow(10, dbm/10)
 }
 
 func GetNeighborCells(cell *model.Cell, simModelCells []*model.Cell) []*model.Cell {

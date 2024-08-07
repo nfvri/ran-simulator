@@ -222,7 +222,7 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 	stepSizeKrylof := (2 * cutOffDistance) / maxIter
 	initOffset := cutOffDistance / 5
 	stepsize := (20 * cutOffDistance) / numGeusses
-	log.Infof("cutOffDistance:%v --initOffset: %v -- stepsize: %v-- stepSizeKrylof: %v", cutOffDistance, initOffset, stepsize, stepSizeKrylof)
+	log.Infof("cutOffDistance: %v -- initOffset: %v -- stepsize: %v -- stepSizeKrylof: %v", cutOffDistance, initOffset, stepsize, stepSizeKrylof)
 	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(*cell, numGeusses, stepsize, initOffset, cutOffDistance), int(maxIter), stepSizeKrylof, 0.01)
 	rpBoundaryPoints := make([]model.Coordinate, 0)
 	for rpBp := range rpBoundaryPointsCh {

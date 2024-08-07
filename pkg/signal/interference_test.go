@@ -8,48 +8,23 @@ import (
 )
 
 func TestSinrAtLocationNewtonKrylov(t *testing.T) {
-
-	cell := model.Cell{
-		NCGI:      17660905553922,
-		TxPowerDB: 40,
-		CellType:  types.CellType_FEMTO,
-		Sector: model.Sector{
-			Center:  model.Coordinate{Lat: 38.024973, Lng: 23.767187},
-			Azimuth: 150,
-			Arc:     90,
-			Tilt:    20,
-			Height:  0,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          true,
-			SSBFrequency: 3425,
-		},
-		Beam: model.Beam{
-			H3dBAngle:              90,
-			V3dBAngle:              65,
-			MaxGain:                8,
-			MaxAttenuationDB:       40,
-			VSideLobeAttenuationDB: 40,
-		},
-		Neighbors: []types.NCGI{17660905537537, 17660905570307},
-	}
+	// cell grid Points shoulf be initialized
 	cell1 := model.Cell{
 		NCGI:      17660905537537,
 		TxPowerDB: 40,
-		CellType:  types.CellType_FEMTO,
+		CellType:  types.CellType_MACRO,
 		Sector: model.Sector{
 			Center:  model.Coordinate{Lat: 37.981629, Lng: 23.743353},
 			Azimuth: 90,
 			Arc:     90,
 			Tilt:    20,
-			Height:  0,
+			Height:  25,
 		},
-		Neighbors: []types.NCGI{17660905570307, cell.NCGI},
+		Neighbors: []types.NCGI{17660905570307},
 		Channel: model.Channel{
 			Environment:  "urban",
 			LOS:          true,
-			SSBFrequency: 3425,
+			SSBFrequency: 3200,
 		},
 		Beam: model.Beam{
 			H3dBAngle:              90,
@@ -62,20 +37,20 @@ func TestSinrAtLocationNewtonKrylov(t *testing.T) {
 
 	cell2 := model.Cell{
 		NCGI:      17660905570307,
-		TxPowerDB: 40,
-		CellType:  types.CellType_FEMTO,
+		TxPowerDB: 30,
+		CellType:  types.CellType_MACRO,
 		Sector: model.Sector{
 			Center:  model.Coordinate{Lat: 37.969502, Lng: 23.796955},
 			Azimuth: 0,
 			Arc:     120,
 			Tilt:    20,
-			Height:  0,
+			Height:  25,
 		},
-		Neighbors: []types.NCGI{cell1.NCGI, cell.NCGI},
+		Neighbors: []types.NCGI{17660905537537},
 		Channel: model.Channel{
 			Environment:  "urban",
 			LOS:          true,
-			SSBFrequency: 900,
+			SSBFrequency: 3200,
 		},
 		Beam: model.Beam{
 			H3dBAngle:              120,
@@ -86,7 +61,7 @@ func TestSinrAtLocationNewtonKrylov(t *testing.T) {
 		},
 	}
 	ueHeight := 1.5
-	sinr := Sinr(model.Coordinate{Lat: 38.031206366546336, Lng: 23.76793681488556}, ueHeight, &cell, []*model.Cell{&cell1, &cell2})
+	sinr := Sinr(model.Coordinate{Lat: 37.981659, Lng: 23.743323}, ueHeight, &cell1, []*model.Cell{&cell2})
 	t.Logf("[%f], \n", sinr)
 
 	// Output:
@@ -95,9 +70,20 @@ func TestSinrAtLocationNewtonKrylov(t *testing.T) {
 	// Function value: (-0.00, 0.00)
 }
 
-func TestCalculateNoisePower(t *testing.T) {
-	bandwidth := 10e6 // 4.096e6 // 20e6 // 20 MHz bandwidth
-	noise := CalculateNoisePower(bandwidth, types.CellType_ENTERPRISE)
+func TestCalculateRSRQ(t *testing.T) {
+	numPRBs := 24
+	rsrpDbm := -10.0
+	sinrDbm := -5.0
 
-	t.Logf("noise: %f \n", noise)
+	rssiDbm := RSSI(rsrpDbm, sinrDbm)
+
+	sinrCalc := SINR(rsrpDbm, rssiDbm)
+
+	rsrq := RSRQ(rsrpDbm, sinrDbm, numPRBs)
+	rsrq1 := RSRQ1(sinrDbm, numPRBs)
+	rsrq1Calc := RSRQ1(sinrCalc, numPRBs)
+
+	t.Logf("rssiDbm: %f sinrCalc:%v\n", rsrq, sinrCalc)
+	t.Logf("rsrq: %f rsrq1:%v  rsrq1Calc: %v \n", rsrq, rsrq1, rsrq1Calc)
+
 }

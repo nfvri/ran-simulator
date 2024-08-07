@@ -10,10 +10,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
+	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func cellStore(t *testing.T) cells.Store {
 func TestUERegistry(t *testing.T) {
 	m := model.Model{}
 	ctx := context.Background()
-	ues := NewUERegistry(m, cellStore(t), "random")
+	ues := NewUERegistry(m, cellStore(t), redisLib.RedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	assert.Equal(t, 16, ues.Len(ctx))
 
@@ -47,7 +48,7 @@ func TestMoveUEsToCell(t *testing.T) {
 	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(m, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, redisLib.RedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	// Get a cell NCGI
 	cell1, err := cellStore.GetRandomCell()
@@ -81,7 +82,7 @@ func TestMoveUEToCell(t *testing.T) {
 	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(m, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, redisLib.RedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	ue := ues.ListAllUEs(ctx)[0]
 	err := ues.MoveToCell(ctx, ue.IMSI, types.NCGI(321), 11.0)
@@ -104,7 +105,7 @@ func TestMoveUEToCoord(t *testing.T) {
 	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(m, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, redisLib.RedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 
 	ue := ues.ListAllUEs(ctx)[0]
@@ -122,7 +123,7 @@ func TestUpdateCells(t *testing.T) {
 	m := model.Model{}
 	ctx := context.Background()
 	cellStore := cellStore(t)
-	ues := NewUERegistry(m, cellStore, "random")
+	ues := NewUERegistry(m, cellStore, redisLib.RedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 
 	ue := ues.ListAllUEs(ctx)[0]

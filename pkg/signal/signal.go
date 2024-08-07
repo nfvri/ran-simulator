@@ -55,6 +55,33 @@ func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) f
 
 }
 
+func RSSI(rsrpDbm, sinrDbm float64) float64 {
+	rsrpMw := utils.DbmToMw(rsrpDbm)
+	sinrMw := utils.DbmToMw(sinrDbm)
+	rssiMw := rsrpMw + rsrpMw/sinrMw
+	return utils.MwToDbm(rssiMw)
+}
+
+func SINR(rsrpDbm, rssiDbm float64) float64 {
+	rsrpMw := utils.DbmToMw(rsrpDbm)
+	rssiMw := utils.DbmToMw(rssiDbm)
+
+	sinrMw := rsrpMw / (rssiMw - rsrpMw)
+
+	return utils.MwToDbm(sinrMw)
+}
+
+func RSRQ(rsrpDbm, sinrDbm float64, numPRBs int) float64 {
+	rssiDbm := RSSI(rsrpDbm, sinrDbm)
+	rsrqDbm := (rsrpDbm - rssiDbm) + 10*math.Log10(float64(numPRBs))
+	return rsrqDbm
+}
+
+func RSRQ1(sinrDbm float64, numPRBs int) float64 {
+	rsrqMw := float64(numPRBs) / (1.0 + (1.0 / utils.DbmToMw(sinrDbm)))
+	return utils.MwToDbm(rsrqMw)
+}
+
 // distanceAttenuation is the antenna Gain as a function of the dist
 // a very rough approximation to take in to account the width of
 // the antenna beam. A 120° wide beam with 30° height will span ≅ 2x0.5 = 1 steradians
@@ -66,7 +93,7 @@ func DistanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 	realLngDist := (coord.Lng - cell.Sector.Center.Lng) / utils.AspectRatio(cell.Sector.Center.Lat)
 	r := math.Hypot(latDist, realLngDist)
 	gain := 120.0 / float64(cell.Sector.Arc)
-	return utils.DbmToMw(gain * math.Sqrt(powerFactor/r))
+	return utils.MwToDbm(gain * math.Sqrt(powerFactor/r))
 }
 
 // angleAttenuation is the attenuation of power reaching a UE due to its

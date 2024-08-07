@@ -39,7 +39,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, &cell, refSignalStrength)
 	}
-	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(cell, 30000, 50), 10)
+	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(cell, 3000, 10, 200, 1000), 100, 10, 0.01)
 
 	for rpBoundaryPoint := range rpBoundaryPointsCh {
 		t.Logf("[%f, %f], \n", rpBoundaryPoint.Lat, rpBoundaryPoint.Lng)

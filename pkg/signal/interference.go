@@ -56,7 +56,7 @@ func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, dc float
 	return ueLocations
 }
 
-func CreateSimulationUE(ncgi uint64, counter, cqi int, sinr, rsrp float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
+func CreateSimulationUE(ncgi uint64, counter, cqi int, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
 
 	imsi := types.IMSI(rand.Int63n(ues.MaxIMSI-ues.MinIMSI) + ues.MinIMSI)
 	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
@@ -66,6 +66,7 @@ func CreateSimulationUE(ncgi uint64, counter, cqi int, sinr, rsrp float64, locat
 	servingCell := &model.UECell{
 		ID:   types.GnbID(ncgi),
 		NCGI: types.NCGI(ncgi),
+		Rsrq: rsrq,
 		Rsrp: rsrp,
 		Sinr: sinr,
 	}
@@ -95,11 +96,16 @@ func GetUeNeighbors(point model.Coordinate, sCellNCGI uint64, simModelCells []*m
 		if isPointInsideBoundingBox(point, nCell.BoundingBox) {
 			mpf := RiceanFading(GetRiceanK(nCell))
 			nCellNeigh := utils.GetNeighborCells(nCell, simModelCells)
+			rsrp := Strength(point, ueHeight, mpf, *nCell)
+			sinr := Sinr(point, ueHeight, nCell, nCellNeigh)
+			rsrq := RSRQ1(sinr, 24)
+
 			ueCell := &model.UECell{
 				ID:   types.GnbID(nCell.NCGI),
 				NCGI: nCell.NCGI,
-				Rsrp: Strength(point, ueHeight, mpf, *nCell),
-				Sinr: Sinr(point, ueHeight, nCell, nCellNeigh),
+				Rsrp: rsrp,
+				Rsrq: rsrq,
+				Sinr: sinr,
 			}
 			ueNeighbors = append(ueNeighbors, ueCell)
 		}
@@ -109,16 +115,16 @@ func GetUeNeighbors(point model.Coordinate, sCellNCGI uint64, simModelCells []*m
 
 func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {
 
-	rsrpServingMw := utils.MwToDbm(rsrpServingDbm)
-	noiseMw := utils.MwToDbm(noiseDbm)
+	rsrpServingMw := utils.DbmToMw(rsrpServingDbm)
+	noiseMw := utils.DbmToMw(noiseDbm)
 
 	sinrMw := rsrpServingMw / noiseMw
 	if rsrpNeighSumDbm != 0.0 {
-		interferenceMw := utils.MwToDbm(rsrpNeighSumDbm)
+		interferenceMw := utils.DbmToMw(rsrpNeighSumDbm)
 		sinrMw = rsrpServingMw / (interferenceMw + noiseMw)
 	}
 
-	sinrDbm := utils.DbmToMw(sinrMw)
+	sinrDbm := utils.MwToDbm(sinrMw)
 
 	return sinrDbm
 }
@@ -196,11 +202,11 @@ func calculateNoisePower(bandwidthHz float64, cellType types.CellType) float64 {
 	)
 
 	thermalNoisePower := Boltzmann * Temperature * bandwidthHz // noise power in watts
-	thermalNoiseDbm := utils.DbmToMw(thermalNoisePower / 1e-3) // convert to dBm
+	thermalNoiseDbm := utils.MwToDbm(thermalNoisePower / 1e-3) // convert to dBm
 
-	noiseFigureDb := getNoiseFigure(bandwidthHz, cellType)
+	noiseFigureDbm := getNoiseFigure(bandwidthHz, cellType)
 
-	totalNoiseDbm := thermalNoiseDbm + noiseFigureDb
+	totalNoiseDbm := thermalNoiseDbm + noiseFigureDbm
 	return totalNoiseDbm
 }
 

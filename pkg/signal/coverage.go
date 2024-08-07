@@ -15,7 +15,7 @@ import (
 type FProvider func(x0 []float64) (f func(out, x []float64))
 
 // Runs Newton Krylov solver to compute the signal coverage points
-func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, maxIter int) <-chan model.Coordinate {
+func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, maxIter int, stepMeters, tolerance float64) <-chan model.Coordinate {
 
 	pointsChannel := make(chan model.Coordinate)
 	var wg sync.WaitGroup
@@ -31,10 +31,10 @@ func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, max
 				Maxiter: maxIter,
 
 				// Stepsize used to approximate jacobian with finite differences
-				StepSize: 1e-4,
+				StepSize: utils.MetersToLatDegrees(stepMeters),
 
 				// Tolerance for the solution
-				Tol: 5e-5,
+				Tol: tolerance,
 
 				// Stencil for Jacobian
 				// Stencil: 8,
@@ -79,7 +79,7 @@ func ComputePointsWithNewtonKrylovUEs(fp FProvider, guessChan <-chan []float64, 
 
 			solver := nonlin.NewtonKrylov{
 				Maxiter:  maxIter,
-				StepSize: 5e-5,
+				StepSize: utils.MetersToLatDegrees(10),
 				Tol:      0.5,
 			}
 
@@ -145,28 +145,30 @@ func GetRandGuessesChanUEs(cell model.Cell, numGuesses, cqi, stepMeters int) <-c
 	return rgChan
 }
 
-func GetRandGuessesChanCells(cell model.Cell, numGuesses, stepMeters int) <-chan []float64 {
+func GetRandGuessesChanCells(cell model.Cell, numGuesses, stepSizeMeters, initOffsetMeters, cutOffDistanceMeters float64) <-chan []float64 {
 	rgChan := make(chan []float64)
 
-	step := utils.MetersToLatDegrees(float64(stepMeters))
-	initOffset := utils.MetersToLatDegrees(50)
-	cutOffDistance := utils.MetersToLatDegrees(5000)
+	stepSize := utils.MetersToLatDegrees(float64(stepSizeMeters))
+	initOffset := utils.MetersToLatDegrees(initOffsetMeters)
+	cutOffDistance := utils.MetersToLatDegrees(cutOffDistanceMeters)
 
 	go func() {
 		defer close(rgChan)
-		for i := 0; i < numGuesses; i++ {
+		for j := 0; j < 3; j++ {
+			for i := 0.0; i < numGuesses/3.0; i++ {
 
-			offsetLat := initOffset + math.Min(float64(i)*step*rand.Float64(), cutOffDistance)
-			offsetLong := initOffset + math.Min(float64(i)*step*rand.Float64(), cutOffDistance)
+				offsetLat := math.Min(i*stepSize*rand.Float64(), cutOffDistance)
+				offsetLong := math.Min(i*stepSize*rand.Float64(), cutOffDistance)
 
-			latSign := (rand.Float64() - 0.5) * 2
-			longSign := (rand.Float64() - 0.5) * 2
+				latSign := (rand.Float64() - 0.5) * 2
+				longSign := (rand.Float64() - 0.5) * 2
 
-			guess := []float64{cell.Sector.Center.Lat + (latSign * offsetLat), cell.Sector.Center.Lng + (longSign * offsetLong)}
-			select {
-			case rgChan <- guess:
-			default:
-				time.Sleep(1 * time.Millisecond)
+				guess := []float64{cell.Sector.Center.Lat + (latSign * (initOffset + offsetLat)), cell.Sector.Center.Lng + (longSign * (initOffset + offsetLong))}
+				select {
+				case rgChan <- guess:
+				default:
+					time.Sleep(1 * time.Millisecond)
+				}
 			}
 		}
 	}()
@@ -211,7 +213,17 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, cell, refSignalStrength)
 	}
-	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(*cell, 3000, 50), 60)
+
+	// TODO: add cell.Channel.SSBFrequency in equation
+	// maxIter * stepSizeKrylof >= cutOffDistance + initOffset
+	numGeusses := 5000.0
+	maxIter := 300.0
+	cutOffDistance := -136*refSignalStrength - 11000
+	stepSizeKrylof := (2 * cutOffDistance) / maxIter
+	initOffset := cutOffDistance / 5
+	stepsize := (20 * cutOffDistance) / numGeusses
+	log.Infof("cutOffDistance:%v --initOffset: %v -- stepsize: %v-- stepSizeKrylof: %v", cutOffDistance, initOffset, stepsize, stepSizeKrylof)
+	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(*cell, numGeusses, stepsize, initOffset, cutOffDistance), int(maxIter), stepSizeKrylof, 0.01)
 	rpBoundaryPoints := make([]model.Coordinate, 0)
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)
@@ -225,7 +237,7 @@ func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength 
 		mpf := RiceanFading(GetRiceanK(cell))
 		return CoverageF(ueHeight, cell, refSignalStrength, mpf, rpBoundaryPoints)
 	}
-	covBoundaryPointsCh := ComputePointsWithNewtonKrylov(cfp, GetGuessesChan(rpBoundaryPoints), 100)
+	covBoundaryPointsCh := ComputePointsWithNewtonKrylov(cfp, GetGuessesChan(rpBoundaryPoints), 200, 10, 0.1)
 	covBoundaryPoints := make([]model.Coordinate, 0)
 	for cbp := range covBoundaryPointsCh {
 		covBoundaryPoints = append(covBoundaryPoints, cbp)

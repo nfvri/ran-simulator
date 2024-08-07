@@ -84,6 +84,7 @@ func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc 
 	if len(rpBoundaryPoints) == 0 {
 		return fmt.Errorf("failed to update cell")
 	}
+
 	cell.RPCoverageBoundaries = []model.CoverageBoundary{
 		{
 			RefSignalStrength: refSignalStrength,
@@ -96,6 +97,7 @@ func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc 
 	if len(covBoundaryPoints) == 0 {
 		return fmt.Errorf("failed to update cell")
 	}
+	log.Infof("NCGI: %v: len(covBoundaryPoints): %d", cell.NCGI, len(covBoundaryPoints))
 	cell.CoverageBoundaries = []model.CoverageBoundary{
 		{
 			RefSignalStrength: refSignalStrength,

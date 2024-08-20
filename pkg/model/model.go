@@ -106,11 +106,14 @@ type Guami struct {
 
 // Channel represents a sl sector operational frequency range
 type Channel struct {
-	SSBFrequency uint32 `mapstructure:"ssbfrequency"`
-	ArfcnDL      uint32 `mapstructure:"arfcndl"`
-	ArfcnUL      uint32 `mapstructure:"arfcnul"`
-	Environment  string `mapstructure:"environment" validate:"oneof=urban rural"`
-	LOS          bool   `mapstructure:"LOS"`
+	SSBFrequency   uint32 `mapstructure:"ssbfrequency"`
+	ArfcnDL        uint32 `mapstructure:"arfcndl"`
+	ArfcnUL        uint32 `mapstructure:"arfcnul"`
+	Environment    string `mapstructure:"environment" validate:"oneof=urban rural"`
+	BsChannelBwDL  uint32 `json:"bSChannelBwDL"`
+	BsChannelBwUL  uint32 `json:"bSChannelBwUL"`
+	BsChannelBwSUL uint32 `json:"bSChannelBwSUL"`
+	LOS            bool   `mapstructure:"LOS"`
 }
 
 // Cell represents a section of coverage
@@ -186,6 +189,11 @@ type UECell struct {
 	Rsrp float64     `mapstructure:"rsrp"`
 	Rsrq float64     `mapstructure:"rsrq"`
 	Sinr float64     `mapstructure:"sinr"`
+	Bwps []Bwp       `mapstructure:"bwps"`
+}
+
+type Bwp struct {
+	NumberOfRBs int `mapstructure:"numberOfRBs"`
 }
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.

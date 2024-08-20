@@ -14,7 +14,7 @@ import (
 
 type FProvider func(x0 []float64) (f func(out, x []float64))
 
-// Runs Newton Krylov solver to compute the signal coverage points
+// Runs Newton Krylov solver to solve the function provided by fp
 func ComputePoints(fp FProvider, guessChan <-chan []float64, nonLinSolver nonlin.NewtonKrylov) <-chan model.Coordinate {
 
 	pointsChannel := make(chan model.Coordinate)

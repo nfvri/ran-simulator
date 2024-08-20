@@ -15,7 +15,7 @@ import (
 type FProvider func(x0 []float64) (f func(out, x []float64))
 
 // Runs Newton Krylov solver to compute the signal coverage points
-func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, maxIter int, stepMeters, tolerance float64) <-chan model.Coordinate {
+func ComputePoints(fp FProvider, guessChan <-chan []float64, nonLinSolver nonlin.NewtonKrylov) <-chan model.Coordinate {
 
 	pointsChannel := make(chan model.Coordinate)
 	var wg sync.WaitGroup
@@ -26,19 +26,7 @@ func ComputePointsWithNewtonKrylov(fp FProvider, guessChan <-chan []float64, max
 		go func() {
 			defer wg.Done()
 
-			solver := nonlin.NewtonKrylov{
-				// Maximum number of Newton iterations
-				Maxiter: maxIter,
-
-				// Stepsize used to approximate jacobian with finite differences
-				StepSize: utils.MetersToLatDegrees(stepMeters),
-
-				// Tolerance for the solution
-				Tol: tolerance,
-
-				// Stencil for Jacobian
-				// Stencil: 8,
-			}
+			solver := nonLinSolver
 
 			for x0 := range guessChan {
 				problem := nonlin.Problem{
@@ -216,14 +204,28 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 
 	// TODO: add cell.Channel.SSBFrequency in equation
 	// maxIter * stepSizeKrylof >= cutOffDistance + initOffset
-	numGeusses := 5000.0
-	maxIter := 300.0
+	numGuesses := 5000.0
+	maxIter := 300
 	cutOffDistance := -136*refSignalStrength - 11000
-	stepSizeKrylof := (2 * cutOffDistance) / maxIter
+	stepSizeMeters := (2 * cutOffDistance) / float64(maxIter)
 	initOffset := cutOffDistance / 5
-	stepsize := (20 * cutOffDistance) / numGeusses
-	log.Infof("cutOffDistance: %v -- initOffset: %v -- stepsize: %v -- stepSizeKrylof: %v", cutOffDistance, initOffset, stepsize, stepSizeKrylof)
-	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(*cell, numGeusses, stepsize, initOffset, cutOffDistance), int(maxIter), stepSizeKrylof, 0.01)
+	stepsize := (20 * cutOffDistance) / numGuesses
+	log.Infof("cutOffDistance: %v -- initOffset: %v -- stepsize: %v -- stepSizeKrylof: %v", cutOffDistance, initOffset, stepsize, stepSizeMeters)
+	guessChan := GetRandGuessesChanCells(*cell, numGuesses, stepsize, initOffset, cutOffDistance)
+	newtonKrylovSolver := nonlin.NewtonKrylov{
+		// Maximum number of Newton iterations
+		Maxiter: maxIter,
+
+		// Stepsize used to approximate jacobian with finite differences
+		StepSize: utils.MetersToLatDegrees(stepSizeMeters),
+
+		// Tolerance for the solution
+		Tol: 1e-6,
+
+		// Stencil for Jacobian
+		// Stencil: 8,
+	}
+	rpBoundaryPointsCh := ComputePoints(rpFp, guessChan, newtonKrylovSolver)
 	rpBoundaryPoints := make([]model.Coordinate, 0)
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)
@@ -237,7 +239,23 @@ func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength 
 		mpf := RiceanFading(GetRiceanK(cell))
 		return CoverageF(ueHeight, cell, refSignalStrength, mpf, rpBoundaryPoints)
 	}
-	covBoundaryPointsCh := ComputePointsWithNewtonKrylov(cfp, GetGuessesChan(rpBoundaryPoints), 200, 10, 0.1)
+	maxIter := 200
+	stepSizeMeters := 10.0
+	tolerance := 0.1
+	newtonKrylovSolver := nonlin.NewtonKrylov{
+		// Maximum number of Newton iterations
+		Maxiter: maxIter,
+
+		// Stepsize used to approximate jacobian with finite differences
+		StepSize: utils.MetersToLatDegrees(stepSizeMeters),
+
+		// Tolerance for the solution
+		Tol: tolerance,
+
+		// Stencil for Jacobian
+		// Stencil: 8,
+	}
+	covBoundaryPointsCh := ComputePoints(cfp, GetGuessesChan(rpBoundaryPoints), newtonKrylovSolver)
 	covBoundaryPoints := make([]model.Coordinate, 0)
 	for cbp := range covBoundaryPointsCh {
 		covBoundaryPoints = append(covBoundaryPoints, cbp)

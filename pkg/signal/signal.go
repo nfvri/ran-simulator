@@ -22,11 +22,8 @@ const (
 
 // Strength returns the signal strength at location relative to the specified cell.
 func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) float64 {
-	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || !isPointInsideBoundingBox(coord, cell.BoundingBox) {
 		return math.Inf(-1)
-	}
-	if !isPointInsideBoundingBox(coord, cell.BoundingBox) {
-		return -math.Pow(utils.GetSphericalDistance(coord, cell.Sector.Center), 4)
 	}
 
 	latIdx, lngIdx := FindGridCell(coord, cell.GridPoints)

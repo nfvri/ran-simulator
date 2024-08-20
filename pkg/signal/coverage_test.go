@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
@@ -39,7 +40,20 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, &cell, refSignalStrength)
 	}
-	rpBoundaryPointsCh := ComputePointsWithNewtonKrylov(rpFp, GetRandGuessesChanCells(cell, 3000, 10, 200, 1000), 100, 10, 0.01)
+	newtonKrylovSolver := nonlin.NewtonKrylov{
+		// Maximum number of Newton iterations
+		Maxiter: 100,
+
+		// Stepsize used to approximate jacobian with finite differences
+		StepSize: 10,
+
+		// Tolerance for the solution
+		Tol: 1e-6,
+
+		// Stencil for Jacobian
+		// Stencil: 8,
+	}
+	rpBoundaryPointsCh := ComputePoints(rpFp, GetRandGuessesChanCells(cell, 3000, 10, 200, 1000), newtonKrylovSolver)
 
 	for rpBoundaryPoint := range rpBoundaryPointsCh {
 		t.Logf("[%f, %f], \n", rpBoundaryPoint.Lat, rpBoundaryPoint.Lng)

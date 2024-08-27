@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 
+	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 
@@ -98,7 +99,7 @@ func GetUeNeighbors(point model.Coordinate, sCellNCGI uint64, simModelCells []*m
 			nCellNeigh := utils.GetNeighborCells(nCell, simModelCells)
 			rsrp := Strength(point, ueHeight, mpf, *nCell)
 			sinr := Sinr(point, ueHeight, nCell, nCellNeigh)
-			rsrq := RSRQ1(sinr, 24)
+			rsrq := RSRQ(sinr, 24)
 
 			ueCell := &model.UECell{
 				ID:   types.GnbID(nCell.NCGI),
@@ -170,17 +171,26 @@ func SinrF(ueHeight float64, cell *model.Cell, refSinr float64, neighborCells []
 
 func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Cell, refSinr, dc float64, numUes, cqi int) []model.Coordinate {
 
-	const overSampling = 100
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
 		return SinrF(ueHeight, cell, refSinr, neighborCells)
 	}
 
 	sinrPoints := []model.Coordinate{}
+	stepSizeMeters := 10.0
+	overSampling := 100
+	maxIter := 300
 	stop := false
+
+	newtonKrylovSolver := nonlin.NewtonKrylov{
+		Maxiter:  maxIter,
+		StepSize: utils.MetersToLatDegrees(stepSizeMeters),
+		Tol:      0.5,
+	}
 
 SINR_POINTS_LOOP:
 	for {
-		sinrPointsCh := ComputePointsWithNewtonKrylovUEs(cfp, GetRandGuessesChanUEs(*cell, numUes*overSampling, cqi, 25), 100, &stop)
+
+		sinrPointsCh := ComputePoints(cfp, GetRandGuessesChanUEs(*cell, numUes*overSampling, cqi, 25), newtonKrylovSolver, &stop)
 		for sp := range sinrPointsCh {
 			if isPointInsideBoundingBox(sp, cell.BoundingBox) {
 				sinrPoints = append(sinrPoints, sp)

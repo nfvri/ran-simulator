@@ -5,6 +5,7 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSinrAtLocationNewtonKrylov(t *testing.T) {
@@ -72,18 +73,21 @@ func TestSinrAtLocationNewtonKrylov(t *testing.T) {
 
 func TestCalculateRSRQ(t *testing.T) {
 	numPRBs := 24
-	rsrpDbm := -10.0
-	sinrDbm := -5.0
+	rsrpDbm := -90.0
+	sinrDbm := -3.0
 
 	rssiDbm := RSSI(rsrpDbm, sinrDbm)
 
 	sinrCalc := SINR(rsrpDbm, rssiDbm)
 
-	rsrq := RSRQ(rsrpDbm, sinrDbm, numPRBs)
-	rsrq1 := RSRQ1(sinrDbm, numPRBs)
-	rsrq1Calc := RSRQ1(sinrCalc, numPRBs)
+	rsrq := RSRQ(sinrDbm, numPRBs)
+	rsrq1 := RSRQ1(rsrpDbm, sinrDbm, numPRBs)
+	rsrqCalc := RSRQ(sinrCalc, numPRBs)
+
+	assert.Equal(t, rsrq, rsrq1)
+	assert.Equal(t, rsrq, rsrqCalc)
 
 	t.Logf("rssiDbm: %f sinrCalc:%v\n", rsrq, sinrCalc)
-	t.Logf("rsrq: %f rsrq1:%v  rsrq1Calc: %v \n", rsrq, rsrq1, rsrq1Calc)
+	t.Logf("rsrq: %f rsrq1:%v  rsrq1Calc: %v \n", rsrq, rsrq1, rsrqCalc)
 
 }

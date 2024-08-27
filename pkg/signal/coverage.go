@@ -15,46 +15,7 @@ import (
 type FProvider func(x0 []float64) (f func(out, x []float64))
 
 // Runs Newton Krylov solver to solve the function provided by fp
-func ComputePoints(fp FProvider, guessChan <-chan []float64, nonLinSolver nonlin.NewtonKrylov) <-chan model.Coordinate {
-
-	pointsChannel := make(chan model.Coordinate)
-	var wg sync.WaitGroup
-	numWorkers := 15
-
-	for i := 1; i <= numWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			solver := nonLinSolver
-
-			for x0 := range guessChan {
-				problem := nonlin.Problem{
-					F: fp(x0),
-				}
-				res, err := solver.Solve(problem, x0)
-				if err != nil {
-					continue
-				}
-				xInDomain := res.X[0] > 0 && res.X[1] > 0 && math.Abs(res.X[0]) <= 90 && math.Abs(res.X[1]) <= 180
-				if res.Converged && xInDomain {
-					pointsChannel <- model.Coordinate{Lat: res.X[0], Lng: res.X[1]}
-				}
-			}
-
-		}()
-	}
-
-	go func() {
-		defer close(pointsChannel)
-		wg.Wait()
-	}()
-
-	return pointsChannel
-}
-
-// Runs Newton Krylov solver to compute the signal coverage points
-func ComputePointsWithNewtonKrylovUEs(fp FProvider, guessChan <-chan []float64, maxIter int, stop *bool) <-chan model.Coordinate {
+func ComputePoints(fp FProvider, guessChan <-chan []float64, nonLinSolver nonlin.NewtonKrylov, stop *bool) <-chan model.Coordinate {
 
 	pointsChannel := make(chan model.Coordinate)
 	var wg sync.WaitGroup
@@ -65,11 +26,7 @@ func ComputePointsWithNewtonKrylovUEs(fp FProvider, guessChan <-chan []float64, 
 		go func() {
 			defer wg.Done()
 
-			solver := nonlin.NewtonKrylov{
-				Maxiter:  maxIter,
-				StepSize: utils.MetersToLatDegrees(10),
-				Tol:      0.5,
-			}
+			solver := nonLinSolver
 
 			for x0 := range guessChan {
 				if *stop {
@@ -220,12 +177,13 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 		StepSize: utils.MetersToLatDegrees(stepSizeMeters),
 
 		// Tolerance for the solution
-		Tol: 1e-6,
+		Tol: 0.01,
 
 		// Stencil for Jacobian
 		// Stencil: 8,
 	}
-	rpBoundaryPointsCh := ComputePoints(rpFp, guessChan, newtonKrylovSolver)
+	stop := false
+	rpBoundaryPointsCh := ComputePoints(rpFp, guessChan, newtonKrylovSolver, &stop)
 	rpBoundaryPoints := make([]model.Coordinate, 0)
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)
@@ -241,7 +199,6 @@ func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength 
 	}
 	maxIter := 200
 	stepSizeMeters := 10.0
-	tolerance := 0.1
 	newtonKrylovSolver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
 		Maxiter: maxIter,
@@ -250,12 +207,13 @@ func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength 
 		StepSize: utils.MetersToLatDegrees(stepSizeMeters),
 
 		// Tolerance for the solution
-		Tol: tolerance,
+		Tol: 0.1,
 
 		// Stencil for Jacobian
 		// Stencil: 8,
 	}
-	covBoundaryPointsCh := ComputePoints(cfp, GetGuessesChan(rpBoundaryPoints), newtonKrylovSolver)
+	stop := false
+	covBoundaryPointsCh := ComputePoints(cfp, GetGuessesChan(rpBoundaryPoints), newtonKrylovSolver, &stop)
 	covBoundaryPoints := make([]model.Coordinate, 0)
 	for cbp := range covBoundaryPointsCh {
 		covBoundaryPoints = append(covBoundaryPoints, cbp)

@@ -53,7 +53,8 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		// Stencil for Jacobian
 		// Stencil: 8,
 	}
-	rpBoundaryPointsCh := ComputePoints(rpFp, GetRandGuessesChanCells(cell, 3000, 10, 200, 1000), newtonKrylovSolver)
+	stop := false
+	rpBoundaryPointsCh := ComputePoints(rpFp, GetRandGuessesChanCells(cell, 3000, 10, 200, 1000), newtonKrylovSolver, &stop)
 
 	for rpBoundaryPoint := range rpBoundaryPointsCh {
 		t.Logf("[%f, %f], \n", rpBoundaryPoint.Lat, rpBoundaryPoint.Lng)

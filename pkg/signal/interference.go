@@ -135,7 +135,7 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 		return math.Inf(-1)
 	}
 
-	bandwidth := 10e6 // 20 MHz bandwidth
+	bandwidth := 10e6 // 10 MHz bandwidth
 	noise := calculateNoisePower(bandwidth, types.CellType_MACRO)
 
 	mpf := RiceanFading(GetRiceanK(sCell))

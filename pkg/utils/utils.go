@@ -195,9 +195,16 @@ func DbmToMw(dbm float64) float64 {
 }
 
 // RoundFloat rounds a float64 to four decimal places
-func RoundFloat(value float64) float64 {
-	factor := math.Pow(10, 4)
+func RoundFloat(value float64, precision int) float64 {
+	factor := math.Pow(10, float64(precision))
 	return math.Round(value*factor) / factor
+}
+
+func If[T any](cond bool, vtrue, vfalse T) T {
+	if cond {
+		return vtrue
+	}
+	return vfalse
 }
 
 func GetNeighborCells(cell *model.Cell, simModelCells []*model.Cell) []*model.Cell {

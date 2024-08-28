@@ -57,7 +57,7 @@ func RSSI(rsrpDbm, sinrDbm float64) float64 {
 	sinrMw := utils.DbmToMw(sinrDbm)
 	rssiMw := rsrpMw + rsrpMw/sinrMw
 	rssiDbm := utils.MwToDbm(rssiMw)
-	return utils.RoundFloat(rssiDbm)
+	return utils.RoundFloat(rssiDbm, 4)
 }
 
 func SINR(rsrpDbm, rssiDbm float64) float64 {
@@ -66,19 +66,19 @@ func SINR(rsrpDbm, rssiDbm float64) float64 {
 
 	sinrMw := rsrpMw / (rssiMw - rsrpMw)
 	sinrDbm := utils.MwToDbm(sinrMw)
-	return utils.RoundFloat(sinrDbm)
+	return utils.RoundFloat(sinrDbm, 4)
 }
 
 func RSRQ(sinrDbm float64, numPRBs int) float64 {
 	rsrqMw := float64(numPRBs) / (1.0 + (1.0 / utils.DbmToMw(sinrDbm)))
 	rsrqDbm := utils.MwToDbm(rsrqMw)
-	return utils.RoundFloat(rsrqDbm)
+	return utils.RoundFloat(rsrqDbm, 4)
 }
 
 func RSRQ1(rsrpDbm, sinrDbm float64, numPRBs int) float64 {
 	rssiDbm := RSSI(rsrpDbm, sinrDbm)
 	rsrqDbm := (rsrpDbm - rssiDbm) + 10*math.Log10(float64(numPRBs))
-	return utils.RoundFloat(rsrqDbm)
+	return utils.RoundFloat(rsrqDbm, 4)
 }
 
 // distanceAttenuation is the antenna Gain as a function of the dist

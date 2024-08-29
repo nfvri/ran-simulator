@@ -158,6 +158,7 @@ type Cell struct {
 	Beam                 Beam               `mapstructure:"beam"`
 	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
 	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
+	Bwps                 map[string]Bwp     `mapstructure:"bwps"`
 	RrcIdleCount         uint32
 	RrcConnectedCount    uint32
 	Grid
@@ -210,16 +211,18 @@ type UEType string
 
 // UECell represents UE-cell relationship
 type UECell struct {
-	ID   types.GnbID `mapstructure:"id"`
-	NCGI types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
-	Rsrp float64     `mapstructure:"rsrp"`
-	Rsrq float64     `mapstructure:"rsrq"`
-	Sinr float64     `mapstructure:"sinr"`
-	Bwps []Bwp       `mapstructure:"bwps"`
+	ID      types.GnbID `mapstructure:"id"`
+	NCGI    types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
+	Rsrp    float64     `mapstructure:"rsrp"`
+	Rsrq    float64     `mapstructure:"rsrq"`
+	Sinr    float64     `mapstructure:"sinr"`
+	BwpRefs []string    `mapstructure:"bwpRefs"`
 }
 
 type Bwp struct {
-	NumberOfRBs int `mapstructure:"numberOfRBs"`
+	ID          string `mapstructure:"id"`
+	Scs         int    `mapstructure:"scs"`
+	NumberOfRBs int    `mapstructure:"numberOfRBs"`
 }
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.

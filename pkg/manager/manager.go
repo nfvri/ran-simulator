@@ -30,6 +30,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
+	e2smmho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 )
@@ -187,19 +188,27 @@ func (m *Manager) computeCellStatistics() {
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 		prbsTotalDl := 0
 		prbsTotalUl := 0
+		activeUEs := 0
+		measDuration := 1.0
 
 		for _, ue := range servedUEs {
-			for _, bwp := range ue.Cell.Bwps {
+			if ue.RrcState == e2smmho.Rrcstatus_RRCSTATUS_CONNECTED {
+				activeUEs++
+			}
+			for _, bwpID := range ue.Cell.BwpRefs {
+				// TODO: better define split
 				// Split randomly for UL, DL usage
+				bwp := cell.Bwps[bwpID]
 				prbsTotalUl = rand.Intn(bwp.NumberOfRBs)
 				prbsTotalDl += bwp.NumberOfRBs - prbsTotalUl
 			}
 		}
 
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpDl", statistics.UEThpDl(prbsTotalDl, 1.0))
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalDl, 1.0))
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotDl", prbsTotalDl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotUl", prbsTotalUl)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeDl", activeUEs)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpDl", statistics.UEThpDl(prbsTotalDl, measDuration))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalUl, measDuration))
 
 	}
 

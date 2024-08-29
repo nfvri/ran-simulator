@@ -38,12 +38,12 @@ cells:
     ncgi: 17660905570307
     sector:
       center:
-        lat: 37.969502
-        lng: 23.796955
+        lat: 37.976548
+        lng: 23.757677
       azimuth: 0
-      arc: 120
+      arc: 90
       tilt: 20
-      height: 0
+      height: 25
     color: ""
     maxues: 0
     neighbors:
@@ -63,23 +63,32 @@ cells:
     earfcn: 0
     celltype: 0
     channel:
-      ssbfrequency: 900
+      ssbfrequency: 3400
       arfcndl: 180000
       arfcnul: 180000
       environment: urban
-      los: true
+      bschannelbwdl: 20
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
     beam:
-      h3dbangle: 120
+      h3dbangle: 90
       v3dbangle: 65
       maxgain: 8
       maxattenuationdb: 40
       vsidelobeattenuationdb: 40
+    rpcoverageboundaries: []
     coverageboundaries: []
     rrcidlecount: 0
     rrcconnectedcount: 0
-    shadowmap:
+    grid:
       shadowingmap: []
       gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
   ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2:
     ncgi: 17660905553922
     sector:
@@ -89,7 +98,7 @@ cells:
       azimuth: 150
       arc: 90
       tilt: 20
-      height: 0
+      height: 25
     color: ""
     maxues: 0
     neighbors:
@@ -109,10 +118,13 @@ cells:
     earfcn: 0
     celltype: 0
     channel:
-      ssbfrequency: 3425
+      ssbfrequency: 3000
       arfcndl: 628333
       arfcnul: 628333
       environment: urban
+      bschannelbwdl: 20
+      bschannelbwul: 0
+      bschannelbwsul: 0
       los: false
     beam:
       h3dbangle: 90
@@ -120,12 +132,18 @@ cells:
       maxgain: 8
       maxattenuationdb: 40
       vsidelobeattenuationdb: 40
+    rpcoverageboundaries: []
     coverageboundaries: []
     rrcidlecount: 0
     rrcconnectedcount: 0
-    shadowmap:
+    grid:
       shadowingmap: []
       gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
   ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1:
     ncgi: 17660905537537
     sector:
@@ -135,7 +153,7 @@ cells:
       azimuth: 90
       arc: 90
       tilt: 20
-      height: 0
+      height: 25
     color: ""
     maxues: 0
     neighbors:
@@ -155,10 +173,13 @@ cells:
     earfcn: 0
     celltype: 0
     channel:
-      ssbfrequency: 900
+      ssbfrequency: 3400
       arfcndl: 628333
       arfcnul: 628333
       environment: urban
+      bschannelbwdl: 20
+      bschannelbwul: 0
+      bschannelbwsul: 0
       los: false
     beam:
       h3dbangle: 90
@@ -166,12 +187,18 @@ cells:
       maxgain: 8
       maxattenuationdb: 40
       vsidelobeattenuationdb: 40
+    rpcoverageboundaries: []
     coverageboundaries: []
     rrcidlecount: 0
     rrcconnectedcount: 0
-    shadowmap:
+    grid:
       shadowingmap: []
       gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
 controllers: {}
 servicemodels: {}
 RrcStateChangesDisabled: false

@@ -135,8 +135,10 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 		return math.Inf(-1)
 	}
 
-	bandwidth := 10e6 // 10 MHz bandwidth
-	noise := calculateNoisePower(bandwidth, types.CellType_MACRO)
+	bandwidthHz := float64(sCell.Channel.BsChannelBwDL) * 1e6
+	utils.If(bandwidthHz == 0, 50e6, bandwidthHz)
+
+	noise := calculateNoisePower(bandwidthHz, types.CellType_MACRO)
 
 	mpf := RiceanFading(GetRiceanK(sCell))
 	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)

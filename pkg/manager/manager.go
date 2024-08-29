@@ -6,10 +6,13 @@ package manager
 
 import (
 	"context"
+	"math/rand"
+
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/signal"
+	"github.com/nfvri/ran-simulator/pkg/statistics"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 
@@ -159,19 +162,47 @@ func (m *Manager) initModelStores() {
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
 
-	cellList, _ := m.cellStore.List(context.Background())
-
-	ueHeight := 1.5
-	refSignalStrength := -87.0
-
-	// UpdateCellList initializes and recalculates Cells params based on PATCH RAN Request
-	signal.UpdateCells(cellList, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
-
 }
 
 func (m *Manager) initMetricStore() {
 	// Create store for tracking arbitrary metrics and attributes for nodes, cells and UEs
 	m.metricsStore = metrics.NewMetricsStore()
+}
+
+func (m *Manager) computeCellAttributes() {
+
+	cellList, _ := m.cellStore.List(context.Background())
+
+	ueHeight := 1.5
+	refSignalStrength := -87.0
+
+	signal.UpdateCells(cellList, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
+
+}
+
+func (m *Manager) computeCellStatistics() {
+	ctx := context.Background()
+
+	for _, cell := range m.model.Cells {
+		servedUEs := m.model.GetServedUEs(cell.NCGI)
+		prbsTotalDl := 0
+		prbsTotalUl := 0
+
+		for _, ue := range servedUEs {
+			for _, bwp := range ue.Cell.Bwps {
+				// Split randomly for UL, DL usage
+				prbsTotalUl = rand.Intn(bwp.NumberOfRBs)
+				prbsTotalDl += bwp.NumberOfRBs - prbsTotalUl
+			}
+		}
+
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpDl", statistics.UEThpDl(prbsTotalDl, 1.0))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalDl, 1.0))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotDl", prbsTotalDl)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotUl", prbsTotalUl)
+
+	}
+
 }
 
 // startSouthboundServer starts the northbound gRPC server
@@ -248,6 +279,7 @@ func (m *Manager) LoadModel(ctx context.Context, data []byte) error {
 		return err
 	}
 	m.initModelStores()
+
 	return nil
 }
 
@@ -268,4 +300,10 @@ func (m *Manager) Resume(ctx context.Context) {
 	}()
 	// _ = m.startE2Agents()
 	m.initmobilityDriver()
+	// TODO:
+	// 1. Recalculate cell attributes (radiation pattern, coverage, shadowing, etc) & store in cache
+	// 2. Recalculate metrics (volume PRBs, throughput, etc) & store in metric store
+	m.computeCellAttributes()
+	m.computeCellStatistics()
+
 }

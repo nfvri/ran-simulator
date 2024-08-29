@@ -5,6 +5,8 @@
 package model
 
 import (
+	"strconv"
+
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
@@ -31,6 +33,30 @@ type Model struct {
 	Guami                   Guami                   `mapstructure:"guami" yaml:"guami"`
 	DecorrelationDistance   float64                 `mapstructure:"decorrelationdistance"`
 	SnapshotId              string                  `mapstructure:"snapshotID"` //used to retrieve snapshot Cell Group and UE Group
+	ServiceMappings
+}
+
+func (m *Model) GetServedUEs(ncgi types.NCGI) []UE {
+	servedUEs := []UE{}
+	for _, imsi := range m.CellToUEs[ncgi] {
+		imsiStr := strconv.Itoa(int(imsi))
+		servedUEs = append(servedUEs, m.UEList[imsiStr])
+	}
+	return servedUEs
+}
+
+func (m *Model) GetServingCells(imsi types.IMSI) []Cell {
+	servingCells := []Cell{}
+	for _, ncgi := range m.UEToServingCells[imsi] {
+		ncgiStr := strconv.Itoa(int(ncgi))
+		servingCells = append(servingCells, m.Cells[ncgiStr])
+	}
+	return servingCells
+}
+
+type ServiceMappings struct {
+	CellToUEs        map[types.NCGI][]types.IMSI
+	UEToServingCells map[types.IMSI][]types.NCGI
 }
 
 // Coordinate represents a geographical location

@@ -44,24 +44,6 @@ func UEThpDlQOS(totalDataDlQOS map[int]int, duration float64, cqi int) float64 {
 	return float64(data) / duration
 }
 
-// RRU.PrbTotDl calculates the total PRBs in downlink.
-func PrbTotDl(prbs []int) int {
-	sum := 0
-	for _, prb := range prbs {
-		sum += prb
-	}
-	return sum
-}
-
-// RRU.PrbTotUl calculates the total PRBs in uplink.
-func PrbTotUl(prbs []int) int {
-	sum := 0
-	for _, prb := range prbs {
-		sum += prb
-	}
-	return sum
-}
-
 // RRU.PrbUsedDl.QOS calculates the PRBs used in downlink with a certain QoS class.
 func PrbUsedDlQOS(prbs map[int]int, cqi int) int {
 	prb, exists := prbs[cqi]

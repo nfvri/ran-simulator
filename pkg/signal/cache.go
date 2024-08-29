@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func UpdateCells(cellList []*model.Cell, redisStore *redisLib.RedisStore, ueHeight, refSignalStrength, dc float64, snapshotId string) {
+func UpdateCells(cellList []*model.Cell, redisStore redisLib.Store, ueHeight, refSignalStrength, dc float64, snapshotId string) {
 
 	ctx := context.Background()
 	var wg sync.WaitGroup

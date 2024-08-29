@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 
@@ -32,11 +32,11 @@ func TestCells(t *testing.T) {
 	ch := make(chan event.Event)
 	err = cellStore.Watch(ctx, ch, WatchOptions{Replay: false, Monitor: false})
 	assert.NoError(t, err)
-	cell, err := cellStore.Get(ctx, 84325717505)
+	cell, err := cellStore.Get(ctx, 17660905570307)
 	assert.NoError(t, err)
-	assert.Equal(t, types.NCGI(84325717505), cell.NCGI)
+	assert.Equal(t, types.NCGI(17660905570307), cell.NCGI)
 
-	ecgi1 := types.NCGI(84325717507)
+	ecgi1 := types.NCGI(17660905570308)
 	cell1 := &model.Cell{
 		NCGI:   ecgi1,
 		Sector: model.Sector{Center: model.Coordinate{Lat: 46, Lng: 29}, Azimuth: 180, Arc: 180, Height: 30, Tilt: -10},

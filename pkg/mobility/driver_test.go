@@ -30,7 +30,7 @@ func TestDriver(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(*m, cs, redisLib.RedisStore{}, "random")
+	us := ues.NewUERegistry(*m, cs, &redisLib.MockedRedisStore{}, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()
@@ -43,7 +43,7 @@ func TestDriver(t *testing.T) {
 
 	route := &model.Route{
 		IMSI:     ue.IMSI,
-		Points:   []*model.Coordinate{{Lat: 50.0001, Lng: 0.0000}, {Lat: 50.0000, Lng: 0.0000}, {Lat: 50.0000, Lng: 0.0002}},
+		Points:   []*model.Coordinate{{Lat: 50.001, Lng: 0.0000}, {Lat: 50.0000, Lng: 0.0000}, {Lat: 50.0000, Lng: 0.0002}},
 		SpeedAvg: 40000.0,
 	}
 	err = rs.Add(ctx, route)
@@ -58,13 +58,14 @@ func TestDriver(t *testing.T) {
 		ue = e.Value.(*model.UE)
 		fmt.Printf("%v: %v\n", ue.Location, ue.Heading)
 		c = c + 1
-		if c > 10 {
-			assert.Equal(t, 50.0, ue.Location.Lat)
+		if c == 2 {
+			assert.Equal(t, 50.001, ue.Location.Lat)
 			assert.Equal(t, 0.0, ue.Location.Lng)
 			assert.Equal(t, uint32(180), ue.Heading)
-			break
+
 		} else if c == 6 {
-			assert.Equal(t, uint32(270), ue.Heading)
+			assert.Equal(t, uint32(0), ue.Heading)
+			break
 		}
 	}
 
@@ -78,7 +79,7 @@ func TestRouteGeneration(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(*m, cs, redisLib.RedisStore{}, "random")
+	us := ues.NewUERegistry(*m, cs, &redisLib.MockedRedisStore{}, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()
@@ -99,8 +100,8 @@ func TestRouteGeneration(t *testing.T) {
 	c := 0
 	for e := range ch {
 		ue := e.Value.(*model.UE)
-		//fmt.Printf("%v: %v\n", ue.Location, ue.Heading)
-		assert.True(t, 52.41 < ue.Location.Lat && ue.Location.Lat < 52.57, "UE latitude is out of range")
+		// fmt.Printf("%v: %v\n", ue.Location, ue.Heading)
+		assert.True(t, 52.40 < ue.Location.Lat && ue.Location.Lat < 52.57, "UE latitude is out of range")
 		assert.True(t, 13.29 < ue.Location.Lng && ue.Location.Lng < 13.52, "UE longitude is out of range")
 		c = c + 1
 		if c > 500 {

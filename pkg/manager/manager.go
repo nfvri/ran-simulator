@@ -159,7 +159,7 @@ func (m *Manager) initModelStores() {
 	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
 
 	// Create the UE registry primed with the specified number of UEs
-	m.ueStore = ues.NewUERegistry(*m.model, m.cellStore, m.redisStore, m.model.InitialRrcState)
+	m.ueStore = ues.NewUERegistry(*m.model, m.cellStore, &m.redisStore, m.model.InitialRrcState)
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
 

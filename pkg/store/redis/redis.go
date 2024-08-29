@@ -4,13 +4,60 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 )
+
+type Store interface {
+	AddCellGroup(ctx context.Context, snapshotId string, cellGroup map[string]model.Cell) error
+	GetCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error)
+	DeleteCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error)
+	AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]model.UE) error
+	GetUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error)
+	DeleteUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error)
+}
+
+type MockedRedisStore struct{}
+
+func (s *MockedRedisStore) AddCellGroup(ctx context.Context, snapshotId string, cellGroup map[string]model.Cell) error {
+	return nil
+}
+func (s *MockedRedisStore) GetCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error) {
+
+	path, _ := os.Getwd()
+	idx := strings.Index(path, "ran-simulator")
+	path = path[:idx]
+
+	byteValue, err := os.ReadFile(path + "ran-simulator/pkg/testdata/cells_test.json")
+	if err != nil {
+		log.Fatalf("Failed to open JSON file: %s", err)
+	}
+
+	var cellGroup map[string]model.Cell
+	if err := json.Unmarshal(byteValue, &cellGroup); err != nil {
+		log.Fatalf("Failed to unmarshal JSON: %s", err)
+	}
+
+	return cellGroup, nil
+}
+func (s *MockedRedisStore) DeleteCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error) {
+	return make(map[string]model.Cell), nil
+}
+func (s *MockedRedisStore) AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]model.UE) error {
+	return nil
+}
+func (s *MockedRedisStore) GetUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error) {
+	return make(map[string]model.UE), nil
+}
+func (s *MockedRedisStore) DeleteUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error) {
+	return make(map[string]model.UE), nil
+}
 
 type RedisStore struct {
 	CellDB *redis.Client
@@ -58,7 +105,13 @@ func (s *RedisStore) GetCellGroup(ctx context.Context, snapshotId string) (map[s
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal cell group: %v ", err)
 	}
-
+	for ncgi, cell := range cellGroup {
+		cell.RPCoverageBoundaries = []model.CoverageBoundary{}
+		cell.CoverageBoundaries = []model.CoverageBoundary{}
+		cell.Grid = model.Grid{}
+		cellGroup[ncgi] = cell
+	}
+	log.Infof("%+v", cellGroup)
 	return cellGroup, nil
 }
 

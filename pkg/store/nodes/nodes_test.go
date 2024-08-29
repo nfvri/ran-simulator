@@ -8,9 +8,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ func TestNodes(t *testing.T) {
 	node2GnbID := types.GnbID(144473)
 	numNodes, err := nodeStore.Len(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, numNodes)
+	assert.Equal(t, 3, numNodes)
 
 	ch := make(chan event.Event)
 	err = nodeStore.Watch(ctx, ch)

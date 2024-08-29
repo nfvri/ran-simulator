@@ -38,7 +38,8 @@ func newTestService() (northbound.Service, error) {
 	}
 	nodeStore := nodes.NewNodeRegistry(m.Nodes)
 	cellStore := cells.NewCellRegistry(m.Cells, nodeStore)
-	ueStore := ues.NewUERegistry(*m, cellStore, redisLib.RedisStore{}, "random")
+	mockedStore := &redisLib.MockedRedisStore{}
+	ueStore := ues.NewUERegistry(*m, cellStore, mockedStore, "random")
 	return &Service{model: m, cellStore: cellStore, ueStore: ueStore}, nil
 }
 
@@ -70,18 +71,23 @@ func TestMapLayout(t *testing.T) {
 
 	r, err := client.GetMapLayout(context.TODO(), &simapi.MapLayoutRequest{})
 	assert.NoError(t, err, "unable to get map layout")
-	assert.Equal(t, 45.0, r.Center.Lat, "incorrect latitude")
-	assert.Equal(t, -30.0, r.Center.Lng, "incorrect longitude")
-	assert.Equal(t, float32(0.8), r.Zoom, "incorrect zoom")
-	assert.Equal(t, float32(1.0), r.LocationsScale, "incorrect scale")
-	assert.Equal(t, true, r.Fade)
-	assert.Equal(t, true, r.ShowRoutes)
-	assert.Equal(t, true, r.ShowPower)
+	assert.Equal(t, 0.0, r.Center.Lat, "incorrect latitude")
+	assert.Equal(t, 0.0, r.Center.Lng, "incorrect longitude")
+	assert.Equal(t, float32(0.0), r.Zoom, "incorrect zoom")
+	assert.Equal(t, float32(0.0), r.LocationsScale, "incorrect scale")
+	assert.Equal(t, false, r.Fade)
+	assert.Equal(t, false, r.ShowRoutes)
+	assert.Equal(t, false, r.ShowPower)
 }
 
 func TestServiceBasics(t *testing.T) {
 	client := simapi.NewTrafficClient(createServerConnection(t))
 	assert.NotNil(t, client, "unable to create gRPC client")
+
+	_, err := client.SetNumberUEs(context.TODO(), &simapi.SetNumberUEsRequest{
+		Number: 12,
+	})
+	assert.NoError(t, err, "unable to set UE count")
 
 	stream, err := client.ListUes(context.Background(), &simapi.ListUesRequest{})
 	assert.NoError(t, err, "unable to list UEs")

@@ -1,0 +1,162 @@
+{
+    "17660905537537": {
+      "NCGI": 17660905537537,
+      "Sector": {
+        "Center": {
+          "Lat": 37.981629,
+          "Lng": 23.743353
+        },
+        "Azimuth": 90,
+        "Arc": 90,
+        "Tilt": 20,
+        "Height": 25
+      },
+      "Color": "",
+      "MaxUEs": 0,
+      "Neighbors": [17660905570307, 17660905553922],
+      "TxPowerDB": 40,
+      "MeasurementParams": {
+        "TimeToTrigger": 0,
+        "FrequencyOffset": 0,
+        "PCellIndividualOffset": 0,
+        "NCellIndividualOffsets": {},
+        "Hysteresis": 0,
+        "EventA3Params": {
+          "A3Offset": 0,
+          "ReportOnLeave": false
+        }
+      },
+      "PCI": 1,
+      "Earfcn": 0,
+      "CellType": 3,
+      "Channel": {
+        "SSBFrequency": 3400,
+        "ArfcnDL": 628333,
+        "ArfcnUL": 628333,
+        "Environment": "urban",
+        "BsChannelBwDL": 20,
+        "BsChannelBwUL": 0,
+        "BsChannelBwSUL": 0,
+        "LOS": false
+      },
+      "Beam": {
+        "H3dBAngle": 90,
+        "V3dBAngle": 65,
+        "MaxGain": 8,
+        "MaxAttenuationDB": 40,
+        "VSideLobeAttenuationDB": 40
+      },
+      "RPCoverageBoundaries": [],
+      "CoverageBoundaries": [],
+      "RrcIdleCount": 0,
+      "RrcConnectedCount": 0,
+      "Grid": {}
+    },
+    "17660905553922": {
+      "NCGI": 17660905553922,
+      "Sector": {
+        "Center": {
+          "Lat": 38.024973,
+          "Lng": 23.767187
+        },
+        "Azimuth": 150,
+        "Arc": 90,
+        "Tilt": 20,
+        "Height": 25
+      },
+      "Color": "",
+      "MaxUEs": 0,
+      "Neighbors": [17660905570307, 17660905537537],
+      "TxPowerDB": 40,
+      "MeasurementParams": {
+        "TimeToTrigger": 0,
+        "FrequencyOffset": 0,
+        "PCellIndividualOffset": 0,
+        "NCellIndividualOffsets": {},
+        "Hysteresis": 0,
+        "EventA3Params": {
+          "A3Offset": 0,
+          "ReportOnLeave": false
+        }
+      },
+      "PCI": 2,
+      "Earfcn": 0,
+      "CellType": 3,
+      "Channel": {
+        "SSBFrequency": 3000,
+        "ArfcnDL": 628333,
+        "ArfcnUL": 628333,
+        "Environment": "urban",
+        "BsChannelBwDL": 20,
+        "BsChannelBwUL": 0,
+        "BsChannelBwSUL": 0,
+        "LOS": false
+      },
+      "Beam": {
+        "H3dBAngle": 90,
+        "V3dBAngle": 65,
+        "MaxGain": 8,
+        "MaxAttenuationDB": 40,
+        "VSideLobeAttenuationDB": 40
+      },
+      "RPCoverageBoundaries": [],
+      "CoverageBoundaries": [],
+      "RrcIdleCount": 0,
+      "RrcConnectedCount": 0,
+      "Grid": {}
+    },
+    "17660905570307": {
+      "NCGI": 17660905570307,
+      "Sector": {
+        "Center": {
+          "Lat": 37.976548,
+          "Lng": 23.757677
+        },
+        "Azimuth": 0,
+        "Arc": 90,
+        "Tilt": 20,
+        "Height": 25
+      },
+      "Color": "",
+      "MaxUEs": 0,
+      "Neighbors": [17660905537537, 17660905553922],
+      "TxPowerDB": 40,
+      "MeasurementParams": {
+        "TimeToTrigger": 0,
+        "FrequencyOffset": 0,
+        "PCellIndividualOffset": 0,
+        "NCellIndividualOffsets": {},
+        "Hysteresis": 0,
+        "EventA3Params": {
+          "A3Offset": 0,
+          "ReportOnLeave": false
+        }
+      },
+      "PCI": 3,
+      "Earfcn": 0,
+      "CellType": 3,
+      "Channel": {
+        "SSBFrequency": 3400,
+        "ArfcnDL": 180000,
+        "ArfcnUL": 180000,
+        "Environment": "urban",
+        "BsChannelBwDL": 20,
+        "BsChannelBwUL": 0,
+        "BsChannelBwSUL": 0,
+        "LOS": false
+      },
+      "Beam": {
+        "H3dBAngle": 90,
+        "V3dBAngle": 65,
+        "MaxGain": 8,
+        "MaxAttenuationDB": 40,
+        "VSideLobeAttenuationDB": 40
+      },
+      "RPCoverageBoundaries": [],
+      "CoverageBoundaries": [],
+      "RrcIdleCount": 0,
+      "RrcConnectedCount": 0,
+      "Grid": {}
+    }
+  }
+  

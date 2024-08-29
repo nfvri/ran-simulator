@@ -1,0 +1,1909 @@
+layout:
+  center:
+    lat: 52.52
+    lng: 13.405
+  zoom: 0
+  locationsscale: 1.25
+  fademap: false
+  showroutes: false
+  showpower: false
+routeEndPoints: []
+wayPointRoute: false
+directRoute: false
+nodes:
+  node1:
+    gnbid: 20819
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884431361
+    - 221910583884431362
+    - 221910583884431363
+    status: stopped
+  node2:
+    gnbid: 20820
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884447745
+    - 221910583884447746
+    - 221910583884447747
+    status: stopped
+  node3:
+    gnbid: 20821
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884464129
+    - 221910583884464130
+    - 221910583884464131
+    status: stopped
+  node4:
+    gnbid: 20822
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884480513
+    - 221910583884480514
+    - 221910583884480515
+    status: stopped
+  node5:
+    gnbid: 20823
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884496897
+    - 221910583884496898
+    - 221910583884496899
+    status: stopped
+  node6:
+    gnbid: 20824
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884513281
+    - 221910583884513282
+    - 221910583884513283
+    status: stopped
+  node7:
+    gnbid: 20825
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884529665
+    - 221910583884529666
+    - 221910583884529667
+    status: stopped
+  node8:
+    gnbid: 20826
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884546049
+    - 221910583884546050
+    - 221910583884546051
+    status: stopped
+  node9:
+    gnbid: 20827
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884562433
+    - 221910583884562434
+    - 221910583884562435
+    status: stopped
+  node10:
+    gnbid: 20828
+    controllers:
+    - e2t-1
+    servicemodels:
+    - rcpre2
+    - kpm2
+    - mho
+    - kpm
+    cells:
+    - 221910583884578817
+    - 221910583884578818
+    - 221910583884578819
+    status: stopped
+cells:
+  cell1:
+    ncgi: 221910583884431361
+    sector:
+      center:
+        lat: 52.4494288343265
+        lng: 13.403839451079797
+      azimuth: 0
+      arc: 120
+      tilt: -8
+      height: 43
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884447745
+    - 221910583884431363
+    - 221910583884496897
+    - 221910583884480513
+    - 221910583884431362
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 417
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 42
+      arfcnul: 42
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell2:
+    ncgi: 221910583884431362
+    sector:
+      center:
+        lat: 52.4494288343265
+        lng: 13.403839451079797
+      azimuth: 120
+      arc: 120
+      tilt: -4
+      height: 44
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884496898
+    - 221910583884431363
+    - 221910583884431361
+    - 221910583884447746
+    - 221910583884480514
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 210
+    earfcn: 0
+    celltype: 3
+    channel:
+      ssbfrequency: 0
+      arfcndl: 43
+      arfcnul: 43
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell3:
+    ncgi: 221910583884431363
+    sector:
+      center:
+        lat: 52.4494288343265
+        lng: 13.403839451079797
+      azimuth: 240
+      arc: 120
+      tilt: 8
+      height: 31
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884431361
+    - 221910583884447747
+    - 221910583884496899
+    - 221910583884431362
+    - 221910583884480515
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 372
+    earfcn: 0
+    celltype: 0
+    channel:
+      ssbfrequency: 0
+      arfcndl: 44
+      arfcnul: 44
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell4:
+    ncgi: 221910583884447745
+    sector:
+      center:
+        lat: 52.46608757478802
+        lng: 13.451846644131816
+      azimuth: 0
+      arc: 120
+      tilt: -12
+      height: 36
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884447746
+    - 221910583884496897
+    - 221910583884431361
+    - 221910583884447747
+    - 221910583884513281
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 216
+    earfcn: 0
+    celltype: 0
+    channel:
+      ssbfrequency: 0
+      arfcndl: 45
+      arfcnul: 45
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell5:
+    ncgi: 221910583884447746
+    sector:
+      center:
+        lat: 52.46608757478802
+        lng: 13.451846644131816
+      azimuth: 120
+      arc: 120
+      tilt: -8
+      height: 48
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884447747
+    - 221910583884513282
+    - 221910583884431362
+    - 221910583884447745
+    - 221910583884496898
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 92
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 46
+      arfcnul: 46
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell6:
+    ncgi: 221910583884447747
+    sector:
+      center:
+        lat: 52.46608757478802
+        lng: 13.451846644131816
+      azimuth: 240
+      arc: 120
+      tilt: -2
+      height: 44
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884447745
+    - 221910583884431363
+    - 221910583884447746
+    - 221910583884513283
+    - 221910583884496899
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 384
+    earfcn: 0
+    celltype: 0
+    channel:
+      ssbfrequency: 0
+      arfcndl: 47
+      arfcnul: 47
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell7:
+    ncgi: 221910583884464129
+    sector:
+      center:
+        lat: 52.48995743235846
+        lng: 13.504892239262903
+      azimuth: 0
+      arc: 120
+      tilt: -8
+      height: 46
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884464130
+    - 221910583884513281
+    - 221910583884529665
+    - 221910583884464131
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 251
+    earfcn: 0
+    celltype: 3
+    channel:
+      ssbfrequency: 0
+      arfcndl: 48
+      arfcnul: 48
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell8:
+    ncgi: 221910583884464130
+    sector:
+      center:
+        lat: 52.48995743235846
+        lng: 13.504892239262903
+      azimuth: 120
+      arc: 120
+      tilt: 10
+      height: 22
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884513282
+    - 221910583884529666
+    - 221910583884464129
+    - 221910583884464131
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 466
+    earfcn: 0
+    celltype: 3
+    channel:
+      ssbfrequency: 0
+      arfcndl: 49
+      arfcnul: 49
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell9:
+    ncgi: 221910583884464131
+    sector:
+      center:
+        lat: 52.48995743235846
+        lng: 13.504892239262903
+      azimuth: 240
+      arc: 120
+      tilt: -12
+      height: 45
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884464130
+    - 221910583884562433
+    - 221910583884513283
+    - 221910583884464129
+    - 221910583884529667
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 2
+    earfcn: 0
+    celltype: 3
+    channel:
+      ssbfrequency: 0
+      arfcndl: 50
+      arfcnul: 50
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell10:
+    ncgi: 221910583884480513
+    sector:
+      center:
+        lat: 52.46432455889399
+        lng: 13.355273597062176
+      azimuth: 0
+      arc: 120
+      tilt: -14
+      height: 38
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884480515
+    - 221910583884496897
+    - 221910583884562433
+    - 221910583884431361
+    - 221910583884480514
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 82
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 51
+      arfcnul: 51
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell11:
+    ncgi: 221910583884480514
+    sector:
+      center:
+        lat: 52.46432455889399
+        lng: 13.355273597062176
+      azimuth: 120
+      arc: 120
+      tilt: -15
+      height: 26
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884562434
+    - 221910583884431362
+    - 221910583884480515
+    - 221910583884496898
+    - 221910583884480513
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 476
+    earfcn: 0
+    celltype: 3
+    channel:
+      ssbfrequency: 0
+      arfcndl: 52
+      arfcnul: 52
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell12:
+    ncgi: 221910583884480515
+    sector:
+      center:
+        lat: 52.46432455889399
+        lng: 13.355273597062176
+      azimuth: 240
+      arc: 120
+      tilt: 9
+      height: 31
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884480514
+    - 221910583884496899
+    - 221910583884562435
+    - 221910583884431363
+    - 221910583884480513
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 62
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 53
+      arfcnul: 53
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell13:
+    ncgi: 221910583884496897
+    sector:
+      center:
+        lat: 52.481358559981054
+        lng: 13.406951671271797
+      azimuth: 0
+      arc: 120
+      tilt: -8
+      height: 25
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884496899
+    - 221910583884513281
+    - 221910583884447745
+    - 221910583884496898
+    - 221910583884431361
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 120
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 54
+      arfcnul: 54
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell14:
+    ncgi: 221910583884496898
+    sector:
+      center:
+        lat: 52.481358559981054
+        lng: 13.406951671271797
+      azimuth: 120
+      arc: 120
+      tilt: -2
+      height: 41
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884447746
+    - 221910583884496897
+    - 221910583884480514
+    - 221910583884496899
+    - 221910583884513282
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 251
+    earfcn: 0
+    celltype: 0
+    channel:
+      ssbfrequency: 0
+      arfcndl: 55
+      arfcnul: 55
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell15:
+    ncgi: 221910583884496899
+    sector:
+      center:
+        lat: 52.481358559981054
+        lng: 13.406951671271797
+      azimuth: 240
+      arc: 120
+      tilt: 11
+      height: 25
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884480515
+    - 221910583884496898
+    - 221910583884431363
+    - 221910583884496897
+    - 221910583884513283
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 189
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 56
+      arfcnul: 56
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell16:
+    ncgi: 221910583884513281
+    sector:
+      center:
+        lat: 52.49999389155084
+        lng: 13.454114338289987
+      azimuth: 0
+      arc: 120
+      tilt: 5
+      height: 25
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884513282
+    - 221910583884464129
+    - 221910583884447745
+    - 221910583884496897
+    - 221910583884513283
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 137
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 57
+      arfcnul: 57
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell17:
+    ncgi: 221910583884513282
+    sector:
+      center:
+        lat: 52.49999389155084
+        lng: 13.454114338289987
+      azimuth: 120
+      arc: 120
+      tilt: -2
+      height: 42
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884513281
+    - 221910583884496898
+    - 221910583884464130
+    - 221910583884447746
+    - 221910583884513283
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 2
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 58
+      arfcnul: 58
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell18:
+    ncgi: 221910583884513283
+    sector:
+      center:
+        lat: 52.49999389155084
+        lng: 13.454114338289987
+      azimuth: 240
+      arc: 120
+      tilt: 0
+      height: 32
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884447747
+    - 221910583884496899
+    - 221910583884513281
+    - 221910583884513282
+    - 221910583884464131
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 330
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 59
+      arfcnul: 59
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell19:
+    ncgi: 221910583884529665
+    sector:
+      center:
+        lat: 52.51763442124184
+        lng: 13.510346486535058
+      azimuth: 0
+      arc: 120
+      tilt: -3
+      height: 28
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884464129
+    - 221910583884529666
+    - 221910583884529667
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 37
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 60
+      arfcnul: 60
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell20:
+    ncgi: 221910583884529666
+    sector:
+      center:
+        lat: 52.51763442124184
+        lng: 13.510346486535058
+      azimuth: 120
+      arc: 120
+      tilt: -15
+      height: 39
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884529665
+    - 221910583884529667
+    - 221910583884464130
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 364
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 61
+      arfcnul: 61
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell21:
+    ncgi: 221910583884529667
+    sector:
+      center:
+        lat: 52.51763442124184
+        lng: 13.510346486535058
+      azimuth: 240
+      arc: 120
+      tilt: 14
+      height: 22
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884529665
+    - 221910583884464131
+    - 221910583884546049
+    - 221910583884562433
+    - 221910583884529666
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 310
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 62
+      arfcnul: 62
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell22:
+    ncgi: 221910583884546049
+    sector:
+      center:
+        lat: 52.48797672168392
+        lng: 13.30618940874611
+      azimuth: 0
+      arc: 120
+      tilt: -6
+      height: 32
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884529667
+    - 221910583884464131
+    - 221910583884562433
+    - 221910583884546050
+    - 221910583884546051
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 37
+    earfcn: 0
+    celltype: 3
+    channel:
+      ssbfrequency: 0
+      arfcndl: 63
+      arfcnul: 63
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell23:
+    ncgi: 221910583884546050
+    sector:
+      center:
+        lat: 52.48797672168392
+        lng: 13.30618940874611
+      azimuth: 120
+      arc: 120
+      tilt: -8
+      height: 25
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884546051
+    - 221910583884562434
+    - 221910583884546049
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 120
+    earfcn: 0
+    celltype: 3
+    channel:
+      ssbfrequency: 0
+      arfcndl: 64
+      arfcnul: 64
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell24:
+    ncgi: 221910583884546051
+    sector:
+      center:
+        lat: 52.48797672168392
+        lng: 13.30618940874611
+      azimuth: 240
+      arc: 120
+      tilt: 15
+      height: 41
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884546050
+    - 221910583884546049
+    - 221910583884562435
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 82
+    earfcn: 0
+    celltype: 0
+    channel:
+      ssbfrequency: 0
+      arfcndl: 65
+      arfcnul: 65
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell25:
+    ncgi: 221910583884562433
+    sector:
+      center:
+        lat: 52.5001088871172
+        lng: 13.350453964894024
+      azimuth: 0
+      arc: 120
+      tilt: -11
+      height: 22
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884480513
+    - 221910583884562434
+    - 221910583884529667
+    - 221910583884546049
+    - 221910583884562435
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 384
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 66
+      arfcnul: 66
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell26:
+    ncgi: 221910583884562434
+    sector:
+      center:
+        lat: 52.5001088871172
+        lng: 13.350453964894024
+      azimuth: 120
+      arc: 120
+      tilt: 14
+      height: 28
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884562435
+    - 221910583884562433
+    - 221910583884546050
+    - 221910583884480514
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 77
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 67
+      arfcnul: 67
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell27:
+    ncgi: 221910583884562435
+    sector:
+      center:
+        lat: 52.5001088871172
+        lng: 13.350453964894024
+      azimuth: 240
+      arc: 120
+      tilt: -1
+      height: 44
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884562433
+    - 221910583884546051
+    - 221910583884562434
+    - 221910583884480515
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 395
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 68
+      arfcnul: 68
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell28:
+    ncgi: 221910583884578817
+    sector:
+      center:
+        lat: 52.52219409408899
+        lng: 13.404278168621579
+      azimuth: 0
+      arc: 120
+      tilt: 0
+      height: 32
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884578819
+    - 221910583884578818
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 172
+    earfcn: 0
+    celltype: 0
+    channel:
+      ssbfrequency: 0
+      arfcndl: 69
+      arfcnul: 69
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell29:
+    ncgi: 221910583884578818
+    sector:
+      center:
+        lat: 52.52219409408899
+        lng: 13.404278168621579
+      azimuth: 120
+      arc: 120
+      tilt: 5
+      height: 49
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884578817
+    - 221910583884578819
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 364
+    earfcn: 0
+    celltype: 1
+    channel:
+      ssbfrequency: 0
+      arfcndl: 70
+      arfcnul: 70
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+  cell30:
+    ncgi: 221910583884578819
+    sector:
+      center:
+        lat: 52.52219409408899
+        lng: 13.404278168621579
+      azimuth: 240
+      arc: 120
+      tilt: -5
+      height: 36
+    color: green
+    maxues: 99999
+    neighbors:
+    - 221910583884578818
+    - 221910583884578817
+    txpowerdb: 11
+    measurementparams:
+      timetotrigger: 0
+      frequencyoffset: 0
+      pcellindividualoffset: 0
+      ncellindividualoffsets: {}
+      hysteresis: 0
+      eventa3params:
+        a3offset: 0
+        reportonleave: false
+    pci: 137
+    earfcn: 0
+    celltype: 2
+    channel:
+      ssbfrequency: 0
+      arfcndl: 71
+      arfcnul: 71
+      environment: ""
+      bschannelbwdl: 0
+      bschannelbwul: 0
+      bschannelbwsul: 0
+      los: false
+    beam:
+      h3dbangle: 0
+      v3dbangle: 0
+      maxgain: 0
+      maxattenuationdb: 0
+      vsidelobeattenuationdb: 0
+    rpcoverageboundaries: []
+    coverageboundaries: []
+    rrcidlecount: 0
+    rrcconnectedcount: 0
+    grid:
+      shadowingmap: []
+      gridpoints: []
+      boundingbox:
+        minlat: 0
+        minlng: 0
+        maxlat: 0
+        maxlng: 0
+controllers:
+  e2t-1:
+    id: e2t-1
+    address: onos-e2t
+    port: 36421
+servicemodels:
+  kpm:
+    id: 1
+    description: kpm service model
+    version: 1.0.0
+  kpm2:
+    id: 4
+    description: kpm2 service model
+    version: 1.0.0
+  mho:
+    id: 5
+    description: mho service model
+    version: 1.0.0
+  rcpre2:
+    id: 3
+    description: rcpre2 service model
+    version: 1.0.0
+RrcStateChangesDisabled: false
+initialRrcState: ""
+ueCount: 0
+ueCountPerCell: 15
+ues: {}
+plmnID: "314628"
+plmnNumber: 3229224
+apiKey: ""
+guami:
+  amfregionid: 0
+  amfsetid: 0
+  amfpointer: 0
+decorrelationdistance: 0
+snapshotid: ""

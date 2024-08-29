@@ -109,7 +109,7 @@ type store struct {
 
 // NewUERegistry creates a new user-equipment registry primed with the specified number of UEs to start.
 // UEs will be semi-randomly distributed between the specified cells
-func NewUERegistry(m model.Model, cellStore cells.Store, redisStore redisLib.RedisStore, initialRrcState string) Store {
+func NewUERegistry(m model.Model, cellStore cells.Store, redisStore redisLib.Store, initialRrcState string) Store {
 	watchers := watcher.NewWatchers()
 	store := &store{
 		mu:              sync.RWMutex{},
@@ -128,9 +128,10 @@ func NewUERegistry(m model.Model, cellStore cells.Store, redisStore redisLib.Red
 	}
 	m.UEList = ueList
 	store.CreateUEs(ctx, m)
-	// if m.UECount > 0 {
-	// 	store.CreateRandomUEs(ctx, m.UECount)
-	// }
+	log.Infof("m.UECount: %v", m.UECount)
+	if m.UECount > 0 {
+		store.CreateRandomUEs(ctx, m.UECount)
+	}
 	log.Infof("Created registry primed with %d UEs", len(store.ues))
 
 	return store

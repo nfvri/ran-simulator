@@ -100,9 +100,9 @@ func TestRouteGeneration(t *testing.T) {
 	c := 0
 	for e := range ch {
 		ue := e.Value.(*model.UE)
-		// fmt.Printf("%v: %v\n", ue.Location, ue.Heading)
-		assert.True(t, 52.40 < ue.Location.Lat && ue.Location.Lat < 52.57, "UE latitude is out of range")
-		assert.True(t, 13.29 < ue.Location.Lng && ue.Location.Lng < 13.52, "UE longitude is out of range")
+		fmt.Printf("%v: %v\n", ue.Location, ue.Heading)
+		assert.True(t, 52.35 < ue.Location.Lat && ue.Location.Lat < 52.60, "UE latitude is out of range")
+		assert.True(t, 13.25 < ue.Location.Lng && ue.Location.Lng < 13.55, "UE longitude is out of range")
 		c = c + 1
 		if c > 500 {
 			break

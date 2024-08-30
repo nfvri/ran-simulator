@@ -6,6 +6,7 @@
 package utils
 
 import (
+	"bytes"
 	"math"
 	"testing"
 
@@ -63,11 +64,18 @@ func Test_RandomColor(t *testing.T) {
 }
 
 func Test_GetRandomLngLat(t *testing.T) {
-	const scale = 0.2
+	const radius = 0.2
 	for i := 0; i < 100; i++ {
-		pt := RandomLatLng(0.0, 0.0, scale, 1)
-		assert.Assert(t, pt.GetLat() < scale, "Expecting position %f to be within scale", pt.GetLat())
+		pt := RandomLatLng(0.0, 0.0, radius, 1)
+		assert.Assert(t, pt.GetLat() < radius, "Expecting position %f to be within radius", pt.GetLat())
 	}
+}
+
+func Test_RoundToDecimal(t *testing.T) {
+	floatValue := 1.123456789
+	roundedValue := RoundToDecimal(floatValue, 4)
+	assert.Equal(t, roundedValue, 1.1235)
+
 }
 
 func Test_AzimuthToRads(t *testing.T) {
@@ -81,4 +89,55 @@ func Test_AzimuthToRads(t *testing.T) {
 func Test_AspectRatio(t *testing.T) {
 	ar := AspectRatio(52.52)
 	assert.Equal(t, 608, int(math.Round(ar*1e3)))
+}
+
+func Test_ImsiGenerator(t *testing.T) {
+	imsi := ImsiGenerator(50)
+	assert.Equal(t, imsi, types.IMSI(315010999900051))
+}
+
+func Test_Uint64ToBitString(t *testing.T) {
+	tests := []struct {
+		value    uint64
+		bitCount int
+		expected []byte
+	}{
+		{value: 0xFF, bitCount: 8, expected: []byte{0x0, 0xFF}},
+		{value: 0x1234, bitCount: 16, expected: []byte{0x0, 0x12, 0x34}},
+		{value: 0x1234, bitCount: 12, expected: []byte{0x23, 0x40}},
+		{value: 0x123456, bitCount: 24, expected: []byte{0x0, 0x12, 0x34, 0x56}},
+		{value: 0x123456789ABCDEF, bitCount: 60, expected: []byte{0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0}},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			actual := Uint64ToBitString(tt.value, tt.bitCount)
+			if !bytes.Equal(actual, tt.expected) {
+				t.Errorf("Uint64ToBitString(%v, %v) = %v; want %v", tt.value, tt.bitCount, actual, tt.expected)
+			}
+		})
+	}
+}
+
+func Test_BitStringToUint64(t *testing.T) {
+	tests := []struct {
+		bitString []byte
+		bitCount  int
+		expected  uint64
+	}{
+		{bitString: []byte{0xFF}, bitCount: 8, expected: 0xFF},
+		{bitString: []byte{0x12, 0x34}, bitCount: 16, expected: 0x1234},
+		{bitString: []byte{0x12, 0x30}, bitCount: 12, expected: 0x123},
+		{bitString: []byte{0x12, 0x34, 0x56}, bitCount: 24, expected: 0x123456},
+		{bitString: []byte{0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0}, bitCount: 60, expected: 0x123456789ABCDEF},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			actual := BitStringToUint64(tt.bitString, tt.bitCount)
+			if actual != tt.expected {
+				t.Errorf("BitStringToUint64(%v, %v) = %v; want %v", tt.bitString, tt.bitCount, actual, tt.expected)
+			}
+		})
+	}
 }

@@ -49,8 +49,8 @@ func RandomLatLng(mapCenterLat float64, mapCenterLng float64, radius float64, as
 	x1 := w * math.Cos(t) / aspectRatio
 	y1 := w * math.Sin(t)
 
-	newY := roundToDecimal(y0+y1, 6)
-	newX := roundToDecimal(x0+x1, 6)
+	newY := RoundToDecimal(y0+y1, 6)
+	newX := RoundToDecimal(x0+x1, 6)
 	return types.Point{
 		Lat: newY,
 		Lng: newX,
@@ -60,7 +60,7 @@ func RandomLatLng(mapCenterLat float64, mapCenterLng float64, radius float64, as
 /**
  * Rounds number to decimals
  */
-func roundToDecimal(value float64, decimals int) float64 {
+func RoundToDecimal(value float64, decimals int) float64 {
 	intValue := value * math.Pow10(decimals)
 	return math.Round(intValue) / math.Pow10(decimals)
 }
@@ -96,7 +96,6 @@ func RandomColor() string {
 		"#424949",
 		"#1B2631",
 		"#17202A",
-
 		"#C0392B",
 		"#E74C3C",
 		"#9B59B6",
@@ -192,12 +191,6 @@ func MwToDbm(mw float64) float64 {
 
 func DbmToMw(dbm float64) float64 {
 	return math.Pow(10, dbm/10)
-}
-
-// RoundFloat rounds a float64 to four decimal places
-func RoundFloat(value float64, precision int) float64 {
-	factor := math.Pow(10, float64(precision))
-	return math.Round(value*factor) / factor
 }
 
 func If[T any](cond bool, vtrue, vfalse T) T {

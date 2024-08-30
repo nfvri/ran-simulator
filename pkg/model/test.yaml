@@ -61,7 +61,7 @@ cells:
         reportonleave: false
     pci: 3
     earfcn: 0
-    celltype: 0
+    celltype: 3
     channel:
       ssbfrequency: 3400
       arfcndl: 180000
@@ -116,7 +116,7 @@ cells:
         reportonleave: false
     pci: 2
     earfcn: 0
-    celltype: 0
+    celltype: 3
     channel:
       ssbfrequency: 3000
       arfcndl: 628333
@@ -171,7 +171,7 @@ cells:
         reportonleave: false
     pci: 1
     earfcn: 0
-    celltype: 0
+    celltype: 3
     channel:
       ssbfrequency: 3400
       arfcndl: 628333

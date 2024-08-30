@@ -23,28 +23,45 @@ type Store interface {
 	DeleteUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error)
 }
 
-type MockedRedisStore struct{}
+type MockedRedisStore struct {
+	cache map[string]map[string]model.Cell
+}
 
 func (s *MockedRedisStore) AddCellGroup(ctx context.Context, snapshotId string, cellGroup map[string]model.Cell) error {
+	if len(s.cache) == 0 {
+		s.cache = map[string]map[string]model.Cell{}
+	}
+	if snapshotId != "" {
+		s.cache[snapshotId] = cellGroup
+	}
 	return nil
 }
 func (s *MockedRedisStore) GetCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error) {
+	if snapshotId == "test" {
+		path, _ := os.Getwd()
+		idx := strings.Index(path, "ran-simulator")
+		path = path[:idx]
 
-	path, _ := os.Getwd()
-	idx := strings.Index(path, "ran-simulator")
-	path = path[:idx]
+		byteValue, err := os.ReadFile(path + "ran-simulator/pkg/testdata/cells_test.json")
+		if err != nil {
+			log.Fatalf("Failed to open JSON file: %s", err)
+		}
 
-	byteValue, err := os.ReadFile(path + "ran-simulator/pkg/testdata/cells_test.json")
-	if err != nil {
-		log.Fatalf("Failed to open JSON file: %s", err)
+		var cellGroup map[string]model.Cell
+		if err := json.Unmarshal(byteValue, &cellGroup); err != nil {
+			log.Fatalf("Failed to unmarshal JSON: %s", err)
+		}
+		return cellGroup, nil
+	} else if snapshotId != "" {
+		cellGroup, ok := s.cache[snapshotId]
+
+		if ok {
+			return cellGroup, nil
+		}
+
 	}
+	return nil, fmt.Errorf("no entry exists in cache")
 
-	var cellGroup map[string]model.Cell
-	if err := json.Unmarshal(byteValue, &cellGroup); err != nil {
-		log.Fatalf("Failed to unmarshal JSON: %s", err)
-	}
-
-	return cellGroup, nil
 }
 func (s *MockedRedisStore) DeleteCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error) {
 	return make(map[string]model.Cell), nil

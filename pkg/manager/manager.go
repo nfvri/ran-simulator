@@ -288,13 +288,15 @@ func (m *Manager) LoadModel(ctx context.Context, data []byte) error {
 		return err
 	}
 	m.initModelStores()
-
+	m.LoadMetrics()
 	return nil
 }
 
 // LoadMetrics loads new metrics into the simulator
-func (m *Manager) LoadMetrics(ctx context.Context, name string, data []byte) error {
-	// TODO: Deprecated; remove this
+func (m *Manager) LoadMetrics() error {
+	for _, metric := range m.model.CellMeasurements {
+		m.metricsStore.Set(metric)
+	}
 	return nil
 }
 

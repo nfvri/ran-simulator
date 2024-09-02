@@ -66,14 +66,8 @@ func (s *Server) Load(ctx context.Context, request *modelapi.LoadRequest) (*mode
 
 	// Load all new data sets
 	for _, ds := range request.DataSet {
-		if ds.Type == "model" {
-			if err := s.delegate.LoadModel(ctx, ds.Data); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := s.delegate.LoadMetrics(ctx, ds.Type, ds.Data); err != nil {
-				return nil, err
-			}
+		if err := s.delegate.LoadModel(ctx, ds.Data); err != nil {
+			return nil, err
 		}
 	}
 

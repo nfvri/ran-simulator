@@ -7,6 +7,7 @@ package model
 import (
 	"strconv"
 
+	metrics_ransim "github.com/onosproject/onos-api/go/onos/ransim/metrics"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
@@ -14,25 +15,26 @@ import (
 
 // Model simulation model
 type Model struct {
-	MapLayout               MapLayout               `mapstructure:"layout" yaml:"layout"`
-	RouteEndPoints          []RouteEndPoint         `mapstructure:"routeEndPoints" yaml:"routeEndPoints"`
-	WayPointRoute           bool                    `mapstructure:"wayPointRoute" yaml:"wayPointRoute"`
-	DirectRoute             bool                    `mapstructure:"directRoute" yaml:"directRoute"`
-	Nodes                   map[string]Node         `mapstructure:"nodes" yaml:"nodes"`
-	Cells                   map[string]Cell         `mapstructure:"cells" yaml:"cells"`
-	Controllers             map[string]Controller   `mapstructure:"controllers" yaml:"controllers"`
-	ServiceModels           map[string]ServiceModel `mapstructure:"servicemodels" yaml:"servicemodels"`
-	RrcStateChangesDisabled bool                    `mapstructure:"RrcStateChangesDisabled" yaml:"RrcStateChangesDisabled"`
-	InitialRrcState         string                  `mapstructure:"initialRrcState" yaml:"initialRrcState"`
-	UECount                 uint                    `mapstructure:"ueCount" yaml:"ueCount"`
-	UECountPerCell          uint                    `mapstructure:"ueCountPerCell" yaml:"ueCountPerCell"`
-	UEList                  map[string]UE           `mapstructure:"ues" yaml:"ues"`
-	Plmn                    string                  `mapstructure:"plmnID" yaml:"plmnID"`
-	PlmnID                  types.PlmnID            `mapstructure:"plmnNumber" yaml:"plmnNumber"` // overridden and derived post-load from "Plmn" field
-	APIKey                  string                  `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
-	Guami                   Guami                   `mapstructure:"guami" yaml:"guami"`
-	DecorrelationDistance   float64                 `mapstructure:"decorrelationdistance"`
-	SnapshotId              string                  `mapstructure:"snapshotID"` //used to retrieve snapshot Cell Group and UE Group
+	MapLayout               MapLayout                `mapstructure:"layout" yaml:"layout"`
+	RouteEndPoints          []RouteEndPoint          `mapstructure:"routeEndPoints" yaml:"routeEndPoints"`
+	WayPointRoute           bool                     `mapstructure:"wayPointRoute" yaml:"wayPointRoute"`
+	DirectRoute             bool                     `mapstructure:"directRoute" yaml:"directRoute"`
+	Nodes                   map[string]Node          `mapstructure:"nodes" yaml:"nodes"`
+	Cells                   map[string]Cell          `mapstructure:"cells" yaml:"cells"`
+	Controllers             map[string]Controller    `mapstructure:"controllers" yaml:"controllers"`
+	ServiceModels           map[string]ServiceModel  `mapstructure:"servicemodels" yaml:"servicemodels"`
+	RrcStateChangesDisabled bool                     `mapstructure:"RrcStateChangesDisabled" yaml:"RrcStateChangesDisabled"`
+	InitialRrcState         string                   `mapstructure:"initialRrcState" yaml:"initialRrcState"`
+	UECount                 uint                     `mapstructure:"ueCount" yaml:"ueCount"`
+	UECountPerCell          uint                     `mapstructure:"ueCountPerCell" yaml:"ueCountPerCell"`
+	UEList                  map[string]UE            `mapstructure:"ues" yaml:"ues"`
+	Plmn                    string                   `mapstructure:"plmnID" yaml:"plmnID"`
+	PlmnID                  types.PlmnID             `mapstructure:"plmnNumber" yaml:"plmnNumber"` // overridden and derived post-load from "Plmn" field
+	APIKey                  string                   `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
+	Guami                   Guami                    `mapstructure:"guami" yaml:"guami"`
+	DecorrelationDistance   float64                  `mapstructure:"decorrelationdistance"`
+	SnapshotId              string                   `mapstructure:"snapshotID"` //used to retrieve snapshot Cell Group and UE Group
+	CellMeasurements        []*metrics_ransim.Metric `json:"cellMeasurements"`
 	ServiceMappings
 }
 

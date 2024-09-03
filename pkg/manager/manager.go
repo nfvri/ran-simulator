@@ -189,7 +189,7 @@ func (m *Manager) computeCellStatistics() {
 		prbsTotalDl := 0
 		prbsTotalUl := 0
 		activeUEs := 0
-		measDuration := 1.0
+		measDuration := 1.0 //TODO: initialize
 
 		for _, ue := range servedUEs {
 			if ue.RrcState == e2smmho.Rrcstatus_RRCSTATUS_CONNECTED {
@@ -288,14 +288,14 @@ func (m *Manager) LoadModel(ctx context.Context, data []byte) error {
 		return err
 	}
 	m.initModelStores()
-	m.LoadMetrics()
+	m.LoadMetrics(ctx)
 	return nil
 }
 
 // LoadMetrics loads new metrics into the simulator
-func (m *Manager) LoadMetrics() error {
+func (m *Manager) LoadMetrics(ctx context.Context) error {
 	for _, metric := range m.model.CellMeasurements {
-		m.metricsStore.Set(metric)
+		m.metricsStore.Set(ctx, metric.EntityID, metric.Key, metric.Value)
 	}
 	return nil
 }

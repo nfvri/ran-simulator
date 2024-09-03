@@ -25,7 +25,7 @@ type ManagementDelegate interface {
 	LoadModel(ctx context.Context, modelData []byte) error
 
 	// LoadMetrics loads new metrics into the simulator
-	LoadMetrics(ctx context.Context, name string, metricsData []byte) error
+	LoadMetrics(ctx context.Context) error
 
 	// Resume resume the simulation
 	Resume(ctx context.Context)

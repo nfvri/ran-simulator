@@ -11,7 +11,6 @@ import (
 
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
-	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
@@ -59,7 +58,7 @@ func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, dc float
 
 func CreateSimulationUE(ncgi uint64, counter, cqi int, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
 
-	imsi := types.IMSI(rand.Int63n(ues.MaxIMSI-ues.MinIMSI) + ues.MinIMSI)
+	imsi := utils.ImsiGenerator(counter)
 	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
 
 	rrcState := mho.Rrcstatus_RRCSTATUS_CONNECTED

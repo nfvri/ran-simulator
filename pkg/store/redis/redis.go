@@ -70,7 +70,7 @@ func (s *MockedRedisStore) AddUEGroup(ctx context.Context, snapshotId string, ue
 	return nil
 }
 func (s *MockedRedisStore) GetUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error) {
-	return make(map[string]model.UE), nil
+	return nil, fmt.Errorf("no entry exists in cache")
 }
 func (s *MockedRedisStore) DeleteUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error) {
 	return make(map[string]model.UE), nil
@@ -128,7 +128,7 @@ func (s *RedisStore) GetCellGroup(ctx context.Context, snapshotId string) (map[s
 		cell.Grid = model.Grid{}
 		cellGroup[ncgi] = cell
 	}
-	log.Infof("%+v", cellGroup)
+
 	return cellGroup, nil
 }
 

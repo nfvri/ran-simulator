@@ -12,7 +12,7 @@ import (
 
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
-	log "github.com/sirupsen/logrus"
+	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 
@@ -31,6 +31,8 @@ const (
 	MinIMSI = 1000000
 	MaxIMSI = 9999999
 )
+
+var log = liblog.GetLogger()
 
 // Store tracks inventory of user-equipment for the simulation
 type Store interface {
@@ -119,22 +121,33 @@ func NewUERegistry(m model.Model, cellStore cells.Store, redisStore redisLib.Sto
 		watchers:        watchers,
 		initialRrcState: initialRrcState,
 	}
+
+	initUEs(m, redisStore, store)
+	log.Infof("Created registry primed with %d UEs", len(store.ues))
+	return store
+}
+
+func initUEs(m model.Model, redisStore redisLib.Store, store *store) {
 	ctx := context.Background()
-	log.Infof(" m.SnapshotId: %v", m.SnapshotId)
-	ueList, err := redisStore.GetUEGroup(ctx, m.SnapshotId)
-	if err != nil {
-		log.Errorf("failed to get ue list from redis:%v", err)
-		return store
-	}
-	m.UEList = ueList
-	store.CreateUEs(ctx, m)
+
 	log.Infof("m.UECount: %v", m.UECount)
 	if m.UECount > 0 {
 		store.CreateRandomUEs(ctx, m.UECount)
 	}
-	log.Infof("Created registry primed with %d UEs", len(store.ues))
 
-	return store
+	if m.SnapshotId == "" {
+		return
+	}
+
+	ueList, err := redisStore.GetUEGroup(ctx, m.SnapshotId)
+	if err != nil {
+		log.Errorf("failed to get ue list from redis:%v", err)
+		return
+	}
+
+	m.UEList = ueList
+	log.Infof("len(m.UEList): %v", len(m.UEList))
+	store.CreateUEs(ctx, m)
 }
 
 func (s *store) SetUECount(ctx context.Context, count uint) {
@@ -291,7 +304,7 @@ func (s *store) CreateUEs(ctx context.Context, m model.Model) {
 			Cells:       ue.Cells,
 			IsAdmitted:  ue.IsAdmitted,
 		}
-		fmt.Printf("ue: %v\n", new_ue)
+
 		s.ues[ue.IMSI] = new_ue
 	}
 	s.mu.Unlock()

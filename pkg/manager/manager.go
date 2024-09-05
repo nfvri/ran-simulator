@@ -7,7 +7,6 @@ package manager
 import (
 	"context"
 	"math/rand"
-
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
@@ -175,7 +174,7 @@ func (m *Manager) computeCellAttributes() {
 	cellList, _ := m.cellStore.List(context.Background())
 
 	ueHeight := 1.5
-	refSignalStrength := -87.0
+	refSignalStrength := -107.0
 
 	signal.UpdateCells(cellList, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
 
@@ -303,18 +302,18 @@ func (m *Manager) LoadMetrics(ctx context.Context) error {
 // Resume resume the simulation
 func (m *Manager) Resume(ctx context.Context) {
 	log.Info("Resuming RAN simulator...")
-	go func() {
-		time.Sleep(1 * time.Second)
-		log.Info("Restarting NBI...")
-		m.stopNorthboundServer()
-		_ = m.startNorthboundServer()
-	}()
-	// _ = m.startE2Agents()
+
+	// _ = m.StartE2Agents()
 	m.initmobilityDriver()
 	// TODO:
 	// 1. Recalculate cell attributes (radiation pattern, coverage, shadowing, etc) & store in cache
 	// 2. Recalculate metrics (volume PRBs, throughput, etc) & store in metric store
 	m.computeCellAttributes()
 	m.computeCellStatistics()
-
+	go func() {
+		time.Sleep(1 * time.Second)
+		log.Info("Restarting NBI...")
+		m.stopNorthboundServer()
+		_ = m.startNorthboundServer()
+	}()
 }

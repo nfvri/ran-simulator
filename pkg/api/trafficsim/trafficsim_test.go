@@ -39,7 +39,7 @@ func newTestService() (northbound.Service, error) {
 	nodeStore := nodes.NewNodeRegistry(m.Nodes)
 	cellStore := cells.NewCellRegistry(m.Cells, nodeStore)
 	mockedStore := &redisLib.MockedRedisStore{}
-	ueStore := ues.NewUERegistry(*m, cellStore, mockedStore, "random")
+	ueStore := ues.NewUERegistry(m, cellStore, mockedStore, "random")
 	return &Service{model: m, cellStore: cellStore, ueStore: ueStore}, nil
 }
 

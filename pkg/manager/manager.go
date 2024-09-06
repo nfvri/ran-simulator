@@ -7,6 +7,7 @@ package manager
 import (
 	"context"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/mobility"
@@ -102,7 +103,7 @@ func (m *Manager) Start() error {
 
 	if m.config.RedisEnabled {
 		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
-		redisPort := utils.GetEnv("REDIS_PORT", "6379")
+		redisPort := utils.GetEnv("REDIS_PORT", "6398")
 		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
 		redisUECache := utils.GetEnv("REDIS_UE_CACHE_DB", "2")
 		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
@@ -158,7 +159,7 @@ func (m *Manager) initModelStores() {
 	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
 
 	// Create the UE registry primed with the specified number of UEs
-	m.ueStore = ues.NewUERegistry(*m.model, m.cellStore, &m.redisStore, m.model.InitialRrcState)
+	m.ueStore = ues.NewUERegistry(m.model, m.cellStore, &m.redisStore, m.model.InitialRrcState)
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
 
@@ -177,7 +178,12 @@ func (m *Manager) computeCellAttributes() {
 	refSignalStrength := -107.0
 
 	signal.UpdateCells(cellList, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
-
+	cellGroup := make(map[string]model.Cell)
+	for _, cell := range cellList {
+		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
+		cellGroup[ncgi] = *cell
+	}
+	m.model.Cells = cellGroup
 }
 
 func (m *Manager) computeCellStatistics() {
@@ -191,13 +197,18 @@ func (m *Manager) computeCellStatistics() {
 		measDuration := 1.0 //TODO: initialize
 
 		for _, ue := range servedUEs {
+			log.Infof("ue: %+v", ue)
 			if ue.RrcState == e2smmho.Rrcstatus_RRCSTATUS_CONNECTED {
 				activeUEs++
 			}
+
+			log.Infof("bwpREfs: %+v", ue.Cell.BwpRefs)
+			log.Infof("cellBwps: %+v", cell.Bwps)
 			for _, bwpID := range ue.Cell.BwpRefs {
 				// TODO: better define split
 				// Split randomly for UL, DL usage
 				bwp := cell.Bwps[bwpID]
+				log.Infof("bwp: %+v", bwp)
 				prbsTotalUl = rand.Intn(bwp.NumberOfRBs)
 				prbsTotalDl += bwp.NumberOfRBs - prbsTotalUl
 			}

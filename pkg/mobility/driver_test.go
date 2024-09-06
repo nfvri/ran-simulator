@@ -30,7 +30,7 @@ func TestDriver(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(*m, cs, &redisLib.MockedRedisStore{}, "random")
+	us := ues.NewUERegistry(m, cs, &redisLib.MockedRedisStore{}, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()
@@ -79,7 +79,7 @@ func TestRouteGeneration(t *testing.T) {
 
 	ns := nodes.NewNodeRegistry(m.Nodes)
 	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(*m, cs, &redisLib.MockedRedisStore{}, "random")
+	us := ues.NewUERegistry(m, cs, &redisLib.MockedRedisStore{}, "random")
 	rs := routes.NewRouteRegistry()
 
 	ctx := context.TODO()

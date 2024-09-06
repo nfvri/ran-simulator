@@ -55,7 +55,7 @@ type Store interface {
 	UpdateMaxUEsPerCell(ctx context.Context)
 
 	// CreateUEs creates the UEs from the UEList of the model
-	CreateUEs(ctx context.Context, m model.Model)
+	CreateUEs(ctx context.Context, m *model.Model)
 
 	// CreateRandomUEs creates the specified number of UEs
 	CreateRandomUEs(ctx context.Context, count uint)
@@ -111,7 +111,7 @@ type store struct {
 
 // NewUERegistry creates a new user-equipment registry primed with the specified number of UEs to start.
 // UEs will be semi-randomly distributed between the specified cells
-func NewUERegistry(m model.Model, cellStore cells.Store, redisStore redisLib.Store, initialRrcState string) Store {
+func NewUERegistry(m *model.Model, cellStore cells.Store, redisStore redisLib.Store, initialRrcState string) Store {
 	watchers := watcher.NewWatchers()
 	store := &store{
 		mu:              sync.RWMutex{},
@@ -127,7 +127,7 @@ func NewUERegistry(m model.Model, cellStore cells.Store, redisStore redisLib.Sto
 	return store
 }
 
-func initUEs(m model.Model, redisStore redisLib.Store, store *store) {
+func initUEs(m *model.Model, redisStore redisLib.Store, store *store) {
 	ctx := context.Background()
 
 	log.Infof("m.UECount: %v", m.UECount)
@@ -288,7 +288,7 @@ func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 	s.UpdateMaxUEsPerCell(ctx)
 }
 
-func (s *store) CreateUEs(ctx context.Context, m model.Model) {
+func (s *store) CreateUEs(ctx context.Context, m *model.Model) {
 	s.mu.Lock()
 	for _, ue := range m.UEList {
 		new_ue := &model.UE{

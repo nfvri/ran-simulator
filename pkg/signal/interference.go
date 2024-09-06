@@ -47,8 +47,8 @@ func GetSINR(cqi int) float64 {
 
 func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, dc float64, simModelCells map[string]*model.Cell) []model.Coordinate {
 
-	cell := utils.GetCell(types.NCGI(ncgi), simModelCells)
-	if cell == nil {
+	cell, ok := simModelCells[strconv.FormatUint(ncgi, 10)]
+	if !ok {
 		return []model.Coordinate{}
 	}
 	neighborCells := utils.GetNeighborCells(cell, simModelCells)
@@ -90,9 +90,9 @@ func CreateSimulationUE(ncgi uint64, counter, cqi int, sinr, rsrp, rsrq float64,
 	return ue, ueIMSI
 }
 
-func GetUeNeighbors(point model.Coordinate, sCellNCGI uint64, simModelCells map[string]*model.Cell, ueHeight float64) []*model.UECell {
+func GetUeNeighbors(point model.Coordinate, sCell *model.Cell, simModelCells map[string]*model.Cell, ueHeight float64) []*model.UECell {
 	ueNeighbors := []*model.UECell{}
-	sCell := utils.GetCell(types.NCGI(sCellNCGI), simModelCells)
+
 	neighborCells := utils.GetNeighborCells(sCell, simModelCells)
 	for _, nCell := range neighborCells {
 		if isPointInsideBoundingBox(point, nCell.BoundingBox) {

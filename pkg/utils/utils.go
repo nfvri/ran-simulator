@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"strconv"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
@@ -158,20 +159,6 @@ func GetEnv(key string, defaultVal string) string {
 	return defaultVal
 }
 
-func GetCell(ncgi types.NCGI, cells map[string]*model.Cell) *model.Cell {
-
-	NCGI := types.NCGI(ncgi)
-	var foundCell *model.Cell
-
-	for _, cell := range cells {
-		if cell.NCGI == NCGI {
-			foundCell = cell
-			break
-		}
-	}
-	return foundCell
-}
-
 func GetServedUEs(cell *model.Cell, ues []model.UE) (servedUEs []model.UE) {
 	for _, ue := range ues {
 		if ue.Cell.NCGI == cell.NCGI {
@@ -204,7 +191,10 @@ func GetNeighborCells(cell *model.Cell, simModelCells map[string]*model.Cell) []
 
 	neighborCells := []*model.Cell{}
 	for _, ncgi := range cell.Neighbors {
-		nCell := GetCell(ncgi, simModelCells)
+		nCell, ok := simModelCells[strconv.FormatUint(uint64(ncgi), 10)]
+		if !ok {
+			continue
+		}
 		if nCell.Channel.SSBFrequency == cell.Channel.SSBFrequency {
 			neighborCells = append(neighborCells, nCell)
 		}

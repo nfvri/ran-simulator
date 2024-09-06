@@ -202,18 +202,14 @@ func (m *Manager) computeCellStatistics() {
 		measDuration := 1.0 //TODO: initialize
 
 		for _, ue := range servedUEs {
-			log.Infof("ue: %+v", ue)
 			if ue.RrcState == e2smmho.Rrcstatus_RRCSTATUS_CONNECTED {
 				activeUEs++
 			}
 
-			log.Infof("bwpREfs: %+v", ue.Cell.BwpRefs)
-			log.Infof("cellBwps: %+v", cell.Bwps)
 			for _, bwpID := range ue.Cell.BwpRefs {
 				// TODO: better define split
 				// Split randomly for UL, DL usage
 				bwp := cell.Bwps[bwpID]
-				log.Infof("bwp: %+v", bwp)
 				prbsTotalUl = rand.Intn(bwp.NumberOfRBs)
 				prbsTotalDl += bwp.NumberOfRBs - prbsTotalUl
 			}

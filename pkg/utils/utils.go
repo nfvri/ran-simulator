@@ -158,7 +158,7 @@ func GetEnv(key string, defaultVal string) string {
 	return defaultVal
 }
 
-func GetCell(ncgi types.NCGI, cells []*model.Cell) *model.Cell {
+func GetCell(ncgi types.NCGI, cells map[string]*model.Cell) *model.Cell {
 
 	NCGI := types.NCGI(ncgi)
 	var foundCell *model.Cell
@@ -200,7 +200,7 @@ func If[T any](cond bool, vtrue, vfalse T) T {
 	return vfalse
 }
 
-func GetNeighborCells(cell *model.Cell, simModelCells []*model.Cell) []*model.Cell {
+func GetNeighborCells(cell *model.Cell, simModelCells map[string]*model.Cell) []*model.Cell {
 
 	neighborCells := []*model.Cell{}
 	for _, ncgi := range cell.Neighbors {

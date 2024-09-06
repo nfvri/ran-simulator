@@ -177,13 +177,18 @@ func (m *Manager) computeCellAttributes() {
 	ueHeight := 1.5
 	refSignalStrength := -107.0
 
-	signal.UpdateCells(cellList, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
-	cellGroup := make(map[string]model.Cell)
+	cellGroup := make(map[string]*model.Cell)
 	for _, cell := range cellList {
 		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
-		cellGroup[ncgi] = *cell
+		cellGroup[ncgi] = cell
 	}
-	m.model.Cells = cellGroup
+
+	signal.UpdateCells(cellGroup, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
+	cells := make(map[string]model.Cell)
+	for ncgi, cell := range cellGroup {
+		cells[ncgi] = *cell
+	}
+	m.model.Cells = cells
 }
 
 func (m *Manager) computeCellStatistics() {

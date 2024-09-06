@@ -15,7 +15,7 @@ import (
 )
 
 type Store interface {
-	AddCellGroup(ctx context.Context, snapshotId string, cellGroup map[string]model.Cell) error
+	AddCellGroup(ctx context.Context, snapshotId string, cellGroupPtr map[string]*model.Cell) error
 	GetCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error)
 	DeleteCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error)
 	AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]model.UE) error
@@ -27,11 +27,15 @@ type MockedRedisStore struct {
 	cache map[string]map[string]model.Cell
 }
 
-func (s *MockedRedisStore) AddCellGroup(ctx context.Context, snapshotId string, cellGroup map[string]model.Cell) error {
+func (s *MockedRedisStore) AddCellGroup(ctx context.Context, snapshotId string, cellGroupPtr map[string]*model.Cell) error {
 	if len(s.cache) == 0 {
-		s.cache = map[string]map[string]model.Cell{}
+		s.cache = make(map[string]map[string]model.Cell)
 	}
 	if snapshotId != "" {
+		cellGroup := make(map[string]model.Cell)
+		for ncgi, cell := range cellGroupPtr {
+			cellGroup[ncgi] = *cell
+		}
 		s.cache[snapshotId] = cellGroup
 	}
 	return nil
@@ -96,9 +100,14 @@ func InitClient(redisHost, redisPort, db, username, password string) *redis.Clie
 	})
 }
 
-func (s *RedisStore) AddCellGroup(ctx context.Context, snapshotId string, cellGroup map[string]model.Cell) error {
+func (s *RedisStore) AddCellGroup(ctx context.Context, snapshotId string, cellGroup map[string]*model.Cell) error {
 
-	cellGroupBytes, err := json.Marshal(cellGroup)
+	CellGroup := make(map[string]model.Cell)
+	for ncgi, cell := range cellGroup {
+		CellGroup[ncgi] = *cell
+	}
+
+	cellGroupBytes, err := json.Marshal(CellGroup)
 	if err != nil {
 		return fmt.Errorf("failed to marshal cell group: %v ", err)
 	}
@@ -121,12 +130,6 @@ func (s *RedisStore) GetCellGroup(ctx context.Context, snapshotId string) (map[s
 	err = json.Unmarshal([]byte(cellGroupBytes), &cellGroup)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal cell group: %v ", err)
-	}
-	for ncgi, cell := range cellGroup {
-		cell.RPCoverageBoundaries = []model.CoverageBoundary{}
-		cell.CoverageBoundaries = []model.CoverageBoundary{}
-		cell.Grid = model.Grid{}
-		cellGroup[ncgi] = cell
 	}
 
 	return cellGroup, nil

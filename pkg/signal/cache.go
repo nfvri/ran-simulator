@@ -12,21 +12,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func UpdateCells(cellList []*model.Cell, redisStore redisLib.Store, ueHeight, refSignalStrength, dc float64, snapshotId string) {
+func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ueHeight, refSignalStrength, dc float64, snapshotId string) bool {
 
 	ctx := context.Background()
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	newSnapshot := false
+	storeInCache := false
 
 	cachedCellGroup, err := redisStore.GetCellGroup(ctx, snapshotId)
 	if err != nil {
 		if snapshotId != "" {
 			// Add cellGroup in redis only if a new snapshot is created
 			// Don't add cellGroup in redis if InitCoverageAndShadowMaps is called in visualize liveSnapshot
-			newSnapshot = true
+			storeInCache = true
 		}
-		for _, cell := range cellList {
+		for _, cell := range cellGroup {
 			wg.Add(1)
 			go func(cell *model.Cell) {
 				defer wg.Done()
@@ -38,7 +38,7 @@ func UpdateCells(cellList []*model.Cell, redisStore redisLib.Store, ueHeight, re
 		}
 	} else {
 
-		for i, cell := range cellList {
+		for _, cell := range cellGroup {
 			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
 			cachedCell, ok := cachedCellGroup[ncgi]
 			if !ok || !cell.ConfigEquivalent(&cachedCell) {
@@ -52,7 +52,7 @@ func UpdateCells(cellList []*model.Cell, redisStore redisLib.Store, ueHeight, re
 
 			} else {
 				mu.Lock()
-				cellList[i] = &cachedCell
+				cellGroup[ncgi] = &cachedCell
 				mu.Unlock()
 			}
 
@@ -61,22 +61,19 @@ func UpdateCells(cellList []*model.Cell, redisStore redisLib.Store, ueHeight, re
 
 	wg.Wait()
 
+	cellList := []*model.Cell{}
+	for _, cell := range cellGroup {
+		cellList = append(cellList, cell)
+	}
+
 	for i := 0; i < len(cellList); i++ {
 		for j := len(cellList) - 1; j > i; j-- {
 			replaceOverlappingShadowMapValues(cellList[i], cellList[j])
 		}
 	}
-	if newSnapshot {
-		cellGroup := make(map[string]model.Cell)
-		for _, cell := range cellList {
-			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
-			cellGroup[ncgi] = *cell
-		}
-		redisStore.AddCellGroup(ctx, snapshotId, cellGroup)
-		log.Infof("---------- Added CellGroup in Cache ----------")
-	}
-	log.Infof("---------------- Updated Cells ---------------")
 
+	log.Infof("---------------- Updated Cells ---------------")
+	return storeInCache
 }
 
 func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc float64) error {

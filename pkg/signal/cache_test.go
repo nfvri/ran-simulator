@@ -7,6 +7,7 @@ package signal
 
 import (
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -29,46 +30,42 @@ func loadModel(t *testing.T) model.Model {
 func Test_UpdateCellsCache(t *testing.T) {
 	m := loadModel(t)
 	ueHeight := 1.5
-	updatedCells := []*model.Cell{}
+	updatedCells := map[string]*model.Cell{}
 	for _, cell := range m.Cells {
+		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
 		cellCopy := cell
-		updatedCells = append(updatedCells, &cellCopy)
+		updatedCells[ncgi] = &cellCopy
 	}
 	assert.Equal(t, 3, len(updatedCells))
 	cache = &redisLib.MockedRedisStore{}
 	UpdateCells(updatedCells, cache, ueHeight, -87.0, 50, "1234")
 	assert.Equal(t, 3, len(updatedCells))
-	assert.Greater(t, len(updatedCells[0].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(updatedCells[1].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(updatedCells[2].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(updatedCells["17660905570307"].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(updatedCells["17660905553922"].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(updatedCells["17660905537537"].RPCoverageBoundaries[0].BoundaryPoints), 1000)
 
-	assert.Greater(t, len(updatedCells[0].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(updatedCells[1].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(updatedCells[2].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905570307"].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905553922"].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905537537"].CoverageBoundaries[0].BoundaryPoints), 100)
 
-	assert.Greater(t, len(updatedCells[0].Grid.GridPoints), 100)
-	assert.Greater(t, len(updatedCells[1].Grid.GridPoints), 100)
-	assert.Greater(t, len(updatedCells[2].Grid.GridPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905570307"].Grid.GridPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905553922"].Grid.GridPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905537537"].Grid.GridPoints), 100)
 
-	assert.Greater(t, len(updatedCells[0].Grid.ShadowingMap), 100)
-	assert.Greater(t, len(updatedCells[1].Grid.ShadowingMap), 100)
-	assert.Greater(t, len(updatedCells[2].Grid.ShadowingMap), 100)
-
-	updatedCells = []*model.Cell{}
-	for _, cell := range m.Cells {
-		cellCopy := cell
-		updatedCells = append(updatedCells, &cellCopy)
-	}
+	assert.Greater(t, len(updatedCells["17660905570307"].Grid.ShadowingMap), 100)
+	assert.Greater(t, len(updatedCells["17660905553922"].Grid.ShadowingMap), 100)
+	assert.Greater(t, len(updatedCells["17660905537537"].Grid.ShadowingMap), 100)
 
 }
 
 func Test_GenerateUEsLocations(t *testing.T) {
 	m := loadModel(t)
 	ueHeight := 1.5
-	updatedCells := []*model.Cell{}
+	updatedCells := map[string]*model.Cell{}
 	for _, cell := range m.Cells {
+		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
 		cellCopy := cell
-		updatedCells = append(updatedCells, &cellCopy)
+		updatedCells[ncgi] = &cellCopy
 	}
 	assert.Equal(t, 3, len(updatedCells))
 

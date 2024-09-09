@@ -79,6 +79,7 @@ cells:
       vsidelobeattenuationdb: 40
     rpcoverageboundaries: []
     coverageboundaries: []
+    bwps: {}
     rrcidlecount: 0
     rrcconnectedcount: 0
     grid:
@@ -134,6 +135,7 @@ cells:
       vsidelobeattenuationdb: 40
     rpcoverageboundaries: []
     coverageboundaries: []
+    bwps: {}
     rrcidlecount: 0
     rrcconnectedcount: 0
     grid:
@@ -189,6 +191,7 @@ cells:
       vsidelobeattenuationdb: 40
     rpcoverageboundaries: []
     coverageboundaries: []
+    bwps: {}
     rrcidlecount: 0
     rrcconnectedcount: 0
     grid:
@@ -214,3 +217,6 @@ guami:
   amfsetid: 0
   amfpointer: 0
 decorrelationdistance: 50
+servicemappings:
+  celltoues: {}
+  uetoservingcells: {}

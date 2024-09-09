@@ -100,4 +100,9 @@ redis:
   enabled: true
   port: 6379
   host: ""
+  username: ""
+  password: ""
+  cache: 
+    cellDB: 1
+    ueDB: 2
   

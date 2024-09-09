@@ -21,6 +21,11 @@ data:
   {{- end }}
   REDIS_CONTAINER_NAME: {{ include "ran-simulator.redisHost" . }}
   REDIS_CONTAINER_PORT: {{ .Values.redis.port | quote }}
+  REDIS_USERNAME: {{ .Values.redis.username | quote }}
+  REDIS_PASSWORD: {{ .Values.redis.password | quote }}
+  REDIS_CELL_CACHE_DB: {{ .Values.redis.cache.cellDB | quote }}
+  REDIS_UE_CACHE_DB: {{ .Values.redis.cache.ueDB | quote }}
+
   logging.yaml: |-
 {{ toYaml .Values.logging | indent 4 }}
   {{- $files := .Files }}

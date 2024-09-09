@@ -68,6 +68,26 @@ spec:
                 configMapKeyRef:
                   name: {{ include "ran-simulator.fullname" . }}-config
                   key: REDIS_CONTAINER_PORT
+            - name: REDIS_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ran-simulator.fullname" . }}-config
+                  key: REDIS_USERNAME
+            - name: REDIS_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ran-simulator.fullname" . }}-config
+                  key: REDIS_PASSWORD
+            - name: REDIS_CELL_CACHE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ran-simulator.fullname" . }}-config
+                  key: REDIS_CELL_CACHE_DB
+            - name: REDIS_UE_CACHE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ran-simulator.fullname" . }}-config
+                  key: REDIS_UE_CACHE_DB
           args:
             - "-caPath=/etc/certs/ransimCA.crt"
             - "-keyPath=/etc/certs/ransim.key"
@@ -87,21 +107,21 @@ spec:
               containerPort: 40000
               protocol: TCP
             {{- end }}
-          startupProbe:
-            tcpSocket:
-              port: 5150
-            periodSeconds: 5
-            failureThreshold: 60
-          readinessProbe:
-            tcpSocket:
-              port: 5150
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          livenessProbe:
-            tcpSocket:
-              port: 5150
-            initialDelaySeconds: 10
-            periodSeconds: 10
+          # startupProbe:
+          #   tcpSocket:
+          #     port: 5150
+          #   periodSeconds: 5
+          #   failureThreshold: 60
+          # readinessProbe:
+          #   tcpSocket:
+          #     port: 5150
+          #   initialDelaySeconds: 10
+          #   periodSeconds: 10
+          # livenessProbe:
+          #   tcpSocket:
+          #     port: 5150
+          #   initialDelaySeconds: 10
+          #   periodSeconds: 10
           volumeMounts:
             - name: secret
               mountPath: /etc/certs

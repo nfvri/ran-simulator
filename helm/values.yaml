@@ -53,8 +53,8 @@ fullnameOverride: ""
 
 service:
   type: NodePort
-  nodePort:
-    trafficsim: 30150
+  port: 5150
+  nodePort: 30150
 
 pci:
   modelName: "model"

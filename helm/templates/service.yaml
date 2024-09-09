@@ -21,10 +21,10 @@ spec:
     resource: {{ template "ran-simulator.fullname" . }}
     {{- include "ran-simulator.selectorLabels" . | nindent 4 }}
   ports:
-    - name: trafficsim
-      port: 5150
-      {{- if .Values.service.nodePort.trafficsim }}
-      nodePort: {{ .Values.service.nodePort.trafficsim }}
+    - port: {{ .Values.service.port }}
+      name: grpc
+      {{ if eq .Values.service.type "NodePort" }}
+      nodePort: {{ .Values.service.nodePort }}
       {{- end }}
     - name: exporter
       port: 9090

@@ -89,6 +89,7 @@ spec:
                   name: {{ include "ran-simulator.fullname" . }}-config
                   key: REDIS_UE_CACHE_DB
           args:
+            - "-grpcPort={{ .Values.service.port }}"
             - "-caPath=/etc/certs/ransimCA.crt"
             - "-keyPath=/etc/certs/ransim.key"
             - "-certPath=/etc/certs/ransim.crt"
@@ -101,27 +102,27 @@ spec:
               {{- end }}
           ports:
             - name: grpc
-              containerPort: 5150
+              containerPort: {{ .Values.service.port }}
             {{- if .Values.debug }}
             - name: debug
               containerPort: 40000
               protocol: TCP
             {{- end }}
-          # startupProbe:
-          #   tcpSocket:
-          #     port: 5150
-          #   periodSeconds: 5
-          #   failureThreshold: 60
-          # readinessProbe:
-          #   tcpSocket:
-          #     port: 5150
-          #   initialDelaySeconds: 10
-          #   periodSeconds: 10
-          # livenessProbe:
-          #   tcpSocket:
-          #     port: 5150
-          #   initialDelaySeconds: 10
-          #   periodSeconds: 10
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
           volumeMounts:
             - name: secret
               mountPath: /etc/certs

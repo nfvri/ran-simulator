@@ -20,12 +20,11 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	storeInCache := false
 
 	cachedCellGroup, err := redisStore.GetCellGroup(ctx, snapshotId)
+	// Add cellGroup in redis only if a new snapshot is created
+	// Don't add cellGroup in redis if UpdateCells is called in visualize liveSnapshot
+	storeInCache = (snapshotId != "") && (err != nil)
 	if err != nil {
-		if snapshotId != "" {
-			// Add cellGroup in redis only if a new snapshot is created
-			// Don't add cellGroup in redis if InitCoverageAndShadowMaps is called in visualize liveSnapshot
-			storeInCache = true
-		}
+
 		for _, cell := range cellGroup {
 			wg.Add(1)
 			go func(cell *model.Cell) {
@@ -41,7 +40,9 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 		for _, cell := range cellGroup {
 			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
 			cachedCell, ok := cachedCellGroup[ncgi]
+			//TODO: calculate BWPs from CellMeasurements
 			if !ok || !cell.ConfigEquivalent(&cachedCell) {
+				cell.Bwps = cachedCell.Bwps
 				wg.Add(1)
 				go func(cell *model.Cell) {
 					defer wg.Done()

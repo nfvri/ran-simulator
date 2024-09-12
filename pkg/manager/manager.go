@@ -6,7 +6,6 @@ package manager
 
 import (
 	"context"
-	"math/rand"
 	"strconv"
 	"time"
 
@@ -29,7 +28,8 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/metrics"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
-	"github.com/nfvri/ran-simulator/pkg/store/ues"
+	uesstore "github.com/nfvri/ran-simulator/pkg/store/ues"
+	ues "github.com/nfvri/ran-simulator/pkg/ues"
 	e2smmho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
@@ -72,7 +72,7 @@ type Manager struct {
 	nodeStore      nodes.Store
 	cellStore      cells.Store
 	redisStore     redisLib.RedisStore
-	ueStore        ues.Store
+	ueStore        uesstore.Store
 	routeStore     routes.Store
 	metricsStore   metrics.Store
 	mobilityDriver mobility.Driver
@@ -159,7 +159,7 @@ func (m *Manager) initModelStores() {
 	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
 
 	// Create the UE registry primed with the specified number of UEs
-	m.ueStore = ues.NewUERegistry(m.model, m.cellStore, &m.redisStore, m.model.InitialRrcState)
+	m.ueStore = uesstore.NewUERegistry(m.model, m.cellStore, &m.redisStore, m.model.InitialRrcState)
 	// Create an empty route registry
 	// m.routeStore = routes.NewRouteRegistry()
 
@@ -191,6 +191,22 @@ func (m *Manager) computeCellAttributes() {
 	m.model.Cells = cells
 }
 
+func (m *Manager) computeUEAttributes() {
+	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
+	ctx := context.Background()
+	for _, cell := range m.model.Cells {
+		servedUEs := m.model.GetServedUEs(cell.NCGI)
+		ues.InitBWPs(&cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
+		ueBWPIndexes := ues.PartitionIndexes(len(cell.Bwps), len(servedUEs), ues.Lognormally)
+		for i, ue := range servedUEs {
+			ue.Cell.BwpRefs = ues.GetBWPRefs(ueBWPIndexes[i])
+			m.ueStore.Delete(ctx, ue.IMSI)
+			m.ueStore.CreateUE(ctx, ue)
+		}
+	}
+	m.ueStore.UpdateMaxUEsPerCell(ctx)
+}
+
 func (m *Manager) computeCellStatistics() {
 	ctx := context.Background()
 
@@ -201,17 +217,21 @@ func (m *Manager) computeCellStatistics() {
 		activeUEs := 0
 		measDuration := 1.0 //TODO: initialize
 
+		if len(cell.Bwps) == 0 {
+			log.Warnf("cell %v Bwps: %v", cell.NCGI, cell.Bwps)
+		}
 		for _, ue := range servedUEs {
 			if ue.RrcState == e2smmho.Rrcstatus_RRCSTATUS_CONNECTED {
 				activeUEs++
 			}
 
 			for _, bwpID := range ue.Cell.BwpRefs {
-				// TODO: better define split
-				// Split randomly for UL, DL usage
 				bwp := cell.Bwps[bwpID]
-				prbsTotalUl = rand.Intn(bwp.NumberOfRBs)
-				prbsTotalDl += bwp.NumberOfRBs - prbsTotalUl
+				if bwp.Downlink {
+					prbsTotalDl += bwp.NumberOfRBs
+				} else {
+					prbsTotalUl += bwp.NumberOfRBs
+				}
 			}
 		}
 
@@ -321,6 +341,7 @@ func (m *Manager) Resume(ctx context.Context) {
 	// 1. Recalculate cell attributes (radiation pattern, coverage, shadowing, etc) & store in cache
 	// 2. Recalculate metrics (volume PRBs, throughput, etc) & store in metric store
 	m.computeCellAttributes()
+	m.computeUEAttributes()
 	m.computeCellStatistics()
 	go func() {
 		time.Sleep(1 * time.Second)

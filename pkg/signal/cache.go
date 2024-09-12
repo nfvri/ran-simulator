@@ -40,7 +40,6 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 		for _, cell := range cellGroup {
 			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
 			cachedCell, ok := cachedCellGroup[ncgi]
-			//TODO: calculate BWPs from CellMeasurements
 			if !ok || !cell.ConfigEquivalent(&cachedCell) {
 				cell.Bwps = cachedCell.Bwps
 				wg.Add(1)

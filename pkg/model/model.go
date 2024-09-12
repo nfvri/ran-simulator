@@ -38,20 +38,22 @@ type Model struct {
 	ServiceMappings
 }
 
-func (m *Model) GetServedUEs(ncgi types.NCGI) []UE {
-	servedUEs := []UE{}
+func (m *Model) GetServedUEs(ncgi types.NCGI) []*UE {
+	servedUEs := []*UE{}
 	for _, imsi := range m.CellToUEs[ncgi] {
 		imsiStr := strconv.Itoa(int(imsi))
-		servedUEs = append(servedUEs, m.UEList[imsiStr])
+		ue := m.UEList[imsiStr]
+		servedUEs = append(servedUEs, &ue)
 	}
 	return servedUEs
 }
 
-func (m *Model) GetServingCells(imsi types.IMSI) []Cell {
-	servingCells := []Cell{}
+func (m *Model) GetServingCells(imsi types.IMSI) []*Cell {
+	servingCells := []*Cell{}
 	for _, ncgi := range m.UEToServingCells[imsi] {
 		ncgiStr := strconv.Itoa(int(ncgi))
-		servingCells = append(servingCells, m.Cells[ncgiStr])
+		cell := m.Cells[ncgiStr]
+		servingCells = append(servingCells, &cell)
 	}
 	return servingCells
 }
@@ -225,6 +227,7 @@ type Bwp struct {
 	ID          string `mapstructure:"id"`
 	Scs         int    `mapstructure:"scs"`
 	NumberOfRBs int    `mapstructure:"numberOfRBs"`
+	Downlink    bool   `mapstructure:"downlink"`
 }
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.

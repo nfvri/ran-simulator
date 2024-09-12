@@ -54,8 +54,8 @@ type Store interface {
 	// UpdateMaxUEsPerCell updates the maximum number of active UEs for all cells
 	UpdateMaxUEsPerCell(ctx context.Context)
 
-	// CreateUEs creates the UEs from the UEList of the model
-	CreateUEs(ctx context.Context, m *model.Model)
+	// CreateUE creates the UE in store
+	CreateUE(ctx context.Context, ue *model.UE)
 
 	// CreateRandomUEs creates the specified number of UEs
 	CreateRandomUEs(ctx context.Context, count uint)
@@ -147,7 +147,12 @@ func initUEs(m *model.Model, redisStore redisLib.Store, store *store) {
 
 	m.UEList = ueList
 	log.Infof("len(m.UEList): %v", len(m.UEList))
-	store.CreateUEs(ctx, m)
+
+	for _, ue := range m.UEList {
+		store.CreateUE(ctx, &ue)
+	}
+
+	store.UpdateMaxUEsPerCell(ctx)
 }
 
 func (s *store) SetUECount(ctx context.Context, count uint) {
@@ -288,27 +293,10 @@ func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 	s.UpdateMaxUEsPerCell(ctx)
 }
 
-func (s *store) CreateUEs(ctx context.Context, m *model.Model) {
+func (s *store) CreateUE(ctx context.Context, ue *model.UE) {
 	s.mu.Lock()
-	for _, ue := range m.UEList {
-		new_ue := &model.UE{
-			IMSI:        ue.IMSI,
-			AmfUeNgapID: ue.AmfUeNgapID,
-			Type:        ue.Type,
-			RrcState:    ue.RrcState,
-			Location:    ue.Location,
-			Heading:     ue.Heading,
-			FiveQi:      ue.FiveQi,
-			Cell:        ue.Cell,
-			CRNTI:       ue.CRNTI,
-			Cells:       ue.Cells,
-			IsAdmitted:  ue.IsAdmitted,
-		}
-
-		s.ues[ue.IMSI] = new_ue
-	}
+	s.ues[ue.IMSI] = ue
 	s.mu.Unlock()
-	s.UpdateMaxUEsPerCell(ctx)
 }
 
 // Get gets a UE based on a given imsi

@@ -51,13 +51,16 @@ func InitBWPs(sCell *model_ransim.Cell, cellPrbsMap map[uint64]map[string]int, s
 		sCell.Bwps[bwp.ID] = bwp
 	}
 
-	if len(sCell.Bwps) == 0 && len(initialCellBwps) == 0 {
+	if len(sCell.Bwps) == 0 {
+		sCell.Bwps = initialCellBwps
+	}
+
+	if len(sCell.Bwps) == 0 {
 		err := fmt.Errorf("failed to initialize BWPs for simulation")
 		log.Error(err)
 		return err
 	}
 
-	sCell.Bwps = initialCellBwps
 	return nil
 
 }

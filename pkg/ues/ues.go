@@ -3,6 +3,7 @@ package ues
 import (
 	"context"
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,8 +18,8 @@ import (
 const ACTIVE_UES_METRIC = "DRB.MeanActiveUeDl."
 const TOTAL_PRBS_DL_METRIC = "RRU.PrbAvailDl"
 const TOTAL_PRBS_UL_METRIC = "RRU.PrbAvailUl"
-const USED_PRBS_DL_METRIC = "RRU.PrbUsedDl"
-const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl"
+const USED_PRBS_DL_METRIC = "RRU.PrbUsedDl.([0-9]|1[0-5])"
+const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl.([0-9]|1[0-5])"
 
 func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]*model_ransim.Cell, cacheStore redis_ransim.Store, snapshotId string, dc, ueHeight float64) (map[string]model_ransim.UE, bool) {
 
@@ -113,16 +114,26 @@ func CreateCellInfoMaps(cellMeasurements []*metrics_ransim.Metric) (map[uint64]m
 			totalPrbsUl, _ := strconv.Atoi(metric.GetValue())
 			cellPrbsMap[metric.EntityID][TOTAL_PRBS_UL_METRIC] = totalPrbsUl
 		}
-		if metric.Key == USED_PRBS_DL_METRIC {
+		if matchesPattern(metric.Key, USED_PRBS_DL_METRIC) {
 			usedPrbsDl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][USED_PRBS_DL_METRIC] = usedPrbsDl
+			m := strings.Join(strings.Split(USED_PRBS_DL_METRIC, ".")[0:1], ".")
+			cellPrbsMap[metric.EntityID][m] += usedPrbsDl
 		}
-		if metric.Key == TOTAL_PRBS_UL_METRIC {
+		if matchesPattern(metric.Key, USED_PRBS_UL_METRIC) {
 			usedPrbsUl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][USED_PRBS_UL_METRIC] = usedPrbsUl
+			m := strings.Join(strings.Split(USED_PRBS_UL_METRIC, ".")[0:1], ".")
+			cellPrbsMap[metric.EntityID][m] += usedPrbsUl
 		}
 	}
 	return cellCQIUEsMap, cellPrbsMap
+}
+
+func matchesPattern(metric, p string) bool {
+	r, err := regexp.Compile(p)
+	if err != nil {
+		return false
+	}
+	return r.MatchString(metric)
 }
 
 func GenerateUEsLocationBasedOnCQI(cellCqiUesMap map[uint64]map[int]int, simModelCells map[string]*model_ransim.Cell, ueHeight, dc float64) (map[uint64]map[int][]model_ransim.Coordinate, map[uint64]map[int]float64) {

@@ -66,17 +66,34 @@ func InitBWPs(sCell *model_ransim.Cell, cellPrbsMap map[uint64]map[string]int, s
 }
 
 func bwpsFromPRBs(sCell *model_ransim.Cell, sCellPrbs, totalUEs int, downlink bool) []model_ransim.Bwp {
+
 	bwps := make([]model_ransim.Bwp, len(sCell.Bwps))
-	if len(bwps) == 0 && sCellPrbs > 0 {
-		for bwpId := 0; bwpId < 12*sCellPrbs; bwpId++ {
+	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rbsPerUe := sCellPrbs / totalUEs
+	minPRBs := 1
+	bwpCount := 0
+	allocatedPrbs := 0
+
+	for remainingPrbs := sCellPrbs; remainingPrbs > 0; remainingPrbs -= allocatedPrbs {
+		scs := scsOptions[r.Intn(len(scsOptions))]
+		maxPRBs := int(math.Max(float64(rbsPerUe/(scs/15000)), float64(1)))
+
+		allocatedPrbs = r.Intn(maxPRBs-minPRBs+1) + minPRBs
+		if allocatedPrbs <= remainingPrbs {
 			bwps = append(bwps, model_ransim.Bwp{
-				ID:          strconv.Itoa(bwpId),
-				NumberOfRBs: 1,
-				Scs:         15_000,
+				ID:          strconv.Itoa(bwpCount),
+				NumberOfRBs: allocatedPrbs,
+				Scs:         scs,
 				Downlink:    downlink,
 			})
+			bwpCount++
+		} else {
+			allocatedPrbs = 0
 		}
 	}
+
 	return bwps
 }
 

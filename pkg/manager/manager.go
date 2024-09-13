@@ -194,9 +194,10 @@ func (m *Manager) computeCellAttributes() {
 func (m *Manager) computeUEAttributes() {
 	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
 	ctx := context.Background()
-	for _, cell := range m.model.Cells {
+	for ncgi, cell := range m.model.Cells {
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 		ues.InitBWPs(&cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
+		m.model.Cells[ncgi] = cell
 		ueBWPIndexes := ues.PartitionIndexes(len(cell.Bwps), len(servedUEs), ues.Lognormally)
 		for i, ue := range servedUEs {
 			ue.Cell.BwpRefs = ues.GetBWPRefs(ueBWPIndexes[i])
@@ -215,7 +216,7 @@ func (m *Manager) computeCellStatistics() {
 		prbsTotalDl := 0
 		prbsTotalUl := 0
 		activeUEs := 0
-		measDuration := 1.0 //TODO: initialize
+		measDuration := 5.0 //TODO: initialize
 
 		if len(cell.Bwps) == 0 {
 			log.Warnf("cell %v Bwps: %v", cell.NCGI, cell.Bwps)

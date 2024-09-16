@@ -49,7 +49,10 @@ func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]
 			for _, numUEs := range cqiMap {
 				totalUEs += numUEs
 			}
-
+			if totalUEs == 0 {
+				log.Warnf("number of generated ues for cell %v is 0", sCellNCGI)
+				continue
+			}
 			InitBWPs(sCell, cellPrbsMap, sCellNCGI, totalUEs)
 
 			ueBWPIndexes := PartitionIndexes(len(sCell.Bwps), totalUEs, Lognormally)

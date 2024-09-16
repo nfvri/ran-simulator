@@ -196,6 +196,10 @@ func (m *Manager) computeUEAttributes() {
 	ctx := context.Background()
 	for ncgi, cell := range m.model.Cells {
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
+		if len(servedUEs) == 0 {
+			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
+			continue
+		}
 		ues.InitBWPs(&cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
 		m.model.Cells[ncgi] = cell
 		ueBWPIndexes := ues.PartitionIndexes(len(cell.Bwps), len(servedUEs), ues.Lognormally)

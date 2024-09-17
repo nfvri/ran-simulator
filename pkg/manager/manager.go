@@ -32,6 +32,8 @@ import (
 	ues "github.com/nfvri/ran-simulator/pkg/ues"
 	e2smmho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"google.golang.org/grpc"
+
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 )
 
@@ -269,12 +271,21 @@ func (m *Manager) startNorthboundServer() error {
 	m.server.AddService(routeapi.NewService(m.routeStore))
 	m.server.AddService(modelapi.NewService(m))
 
+	maxMsgSize := 32 * 1024 * 1024 // 32MB
+	grpcOpts := []grpc.ServerOption{
+		grpc.MaxRecvMsgSize(maxMsgSize),
+		grpc.MaxSendMsgSize(maxMsgSize),
+	}
+
 	doneCh := make(chan error)
 	go func() {
-		err := m.server.Serve(func(started string) {
-			log.Info("Started NBI on ", started)
-			close(doneCh)
-		})
+		err := m.server.Serve(
+			func(started string) {
+				log.Info("Started NBI on ", started)
+				close(doneCh)
+			},
+			grpcOpts...,
+		)
 		if err != nil {
 			doneCh <- err
 		}

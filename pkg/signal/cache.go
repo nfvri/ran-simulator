@@ -2,11 +2,11 @@ package signal
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"sync"
 
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	log "github.com/sirupsen/logrus"
@@ -16,8 +16,8 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 	storeInCache := false
+	cachedCells := map[types.NCGI]struct{}{}
 
 	cachedCellGroup, err := redisStore.GetCellGroup(ctx, snapshotId)
 	// Add cellGroup in redis only if a new snapshot is created
@@ -29,31 +29,23 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			wg.Add(1)
 			go func(cell *model.Cell) {
 				defer wg.Done()
-				if err := updateCellParams(ueHeight, cell, refSignalStrength, dc); err != nil {
-					return
-				}
-
+				updateCellParams(ueHeight, cell, refSignalStrength, dc)
 			}(cell)
 		}
 	} else {
-
 		for _, cell := range cellGroup {
 			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
 			cachedCell, ok := cachedCellGroup[ncgi]
 			if !ok || !cell.ConfigEquivalent(&cachedCell) {
-				cell.Bwps = cachedCell.Bwps
 				wg.Add(1)
 				go func(cell *model.Cell) {
 					defer wg.Done()
-					if err := updateCellParams(ueHeight, cell, refSignalStrength, dc); err != nil {
-						return
-					}
+					updateCellParams(ueHeight, cell, refSignalStrength, dc)
 				}(cell)
 
 			} else {
-				mu.Lock()
 				cellGroup[ncgi] = &cachedCell
-				mu.Unlock()
+				cachedCells[cell.NCGI] = struct{}{}
 			}
 
 		}
@@ -67,8 +59,12 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	}
 
 	for i := 0; i < len(cellList); i++ {
+		_, isCachedcellI := cachedCells[cellList[i].NCGI]
 		for j := len(cellList) - 1; j > i; j-- {
-			replaceOverlappingShadowMapValues(cellList[i], cellList[j])
+			_, isCachedcellJ := cachedCells[cellList[j].NCGI]
+			if !isCachedcellI || !isCachedcellJ {
+				replaceOverlappingShadowMapValues(cellList[i], cellList[j])
+			}
 		}
 	}
 
@@ -76,10 +72,11 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	return storeInCache
 }
 
-func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc float64) error {
+func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc float64) {
 	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, cell, refSignalStrength)
 	if len(rpBoundaryPoints) == 0 {
-		return fmt.Errorf("failed to update cell")
+		log.Errorf("failed to update cell's: %v rpBoundaryPoints", cell.NCGI)
+		return
 	}
 
 	cell.RPCoverageBoundaries = []model.CoverageBoundary{
@@ -92,7 +89,8 @@ func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc 
 	covBoundaryPoints := GetCovBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
 
 	if len(covBoundaryPoints) == 0 {
-		return fmt.Errorf("failed to update cell")
+		log.Errorf("failed to update cell's: %v covBoundaryPoints", cell.NCGI)
+		return
 	}
 	log.Infof("NCGI: %v: len(covBoundaryPoints): %d", cell.NCGI, len(covBoundaryPoints))
 	cell.CoverageBoundaries = []model.CoverageBoundary{
@@ -101,6 +99,4 @@ func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc 
 			BoundaryPoints:    covBoundaryPoints,
 		},
 	}
-
-	return nil
 }

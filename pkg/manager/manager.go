@@ -89,7 +89,7 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) initmobilityDriver() {
-	m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
+	// m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
 	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
 	// m.mobilityDriver.Start(context.Background())
 
@@ -157,7 +157,8 @@ func (m *Manager) initModelStores() {
 	// Create the node registry primed with the pre-loaded nodes
 	m.nodeStore = nodes.NewNodeRegistry(m.model.Nodes)
 
-	// Create the cell registry primed with the pre-loaded cells
+	// Create the cell registry primed with the cells without cell params
+	// e.g RPCoverageBoundaries, CoverageBoundaries, ShadowingMap, Bwps
 	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
 
 	// Create the UE registry primed with the specified number of UEs
@@ -352,7 +353,7 @@ func (m *Manager) Resume(ctx context.Context) {
 	log.Info("Resuming RAN simulator...")
 
 	// _ = m.StartE2Agents()
-	m.initmobilityDriver()
+	// m.initmobilityDriver()
 	// TODO:
 	// 1. Recalculate cell attributes (radiation pattern, coverage, shadowing, etc) & store in cache
 	// 2. Recalculate metrics (volume PRBs, throughput, etc) & store in metric store
@@ -360,7 +361,7 @@ func (m *Manager) Resume(ctx context.Context) {
 	m.computeUEAttributes()
 	m.computeCellStatistics()
 	go func() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Millisecond)
 		log.Info("Restarting NBI...")
 		m.stopNorthboundServer()
 		_ = m.startNorthboundServer()

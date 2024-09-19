@@ -195,6 +195,9 @@ func (m *Manager) computeCellAttributes() {
 }
 
 func (m *Manager) computeUEAttributes() {
+
+	signal.InitUEs(m.model, &m.redisStore)
+
 	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
 	ctx := context.Background()
 	for ncgi, cell := range m.model.Cells {
@@ -208,7 +211,7 @@ func (m *Manager) computeUEAttributes() {
 		ueBWPIndexes := ues.PartitionIndexes(len(cell.Bwps), len(servedUEs), ues.Lognormally)
 		for i, ue := range servedUEs {
 			ue.Cell.BwpRefs = ues.GetBWPRefs(ueBWPIndexes[i])
-			m.ueStore.Delete(ctx, ue.IMSI)
+			// create UE with updated BwpRefs here and not in InitUEs
 			m.ueStore.CreateUE(ctx, ue)
 		}
 	}

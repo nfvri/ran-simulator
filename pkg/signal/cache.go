@@ -100,3 +100,20 @@ func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc 
 		},
 	}
 }
+
+func InitUEs(m *model.Model, redisStore redisLib.Store) {
+	ctx := context.Background()
+
+	if m.SnapshotId == "" {
+		return
+	}
+
+	ueList, err := redisStore.GetUEGroup(ctx, m.SnapshotId)
+	if err != nil {
+		log.Errorf("failed to get ue list from redis:%v", err)
+		return
+	}
+
+	m.UEList = ueList
+	log.Infof("len(m.UEList): %v", len(m.UEList))
+}

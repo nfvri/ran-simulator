@@ -122,37 +122,13 @@ func NewUERegistry(m *model.Model, cellStore cells.Store, redisStore redisLib.St
 		initialRrcState: initialRrcState,
 	}
 
-	initUEs(m, redisStore, store)
-	log.Infof("Created registry primed with %d UEs", len(store.ues))
-	return store
-}
-
-func initUEs(m *model.Model, redisStore redisLib.Store, store *store) {
-	ctx := context.Background()
-
 	log.Infof("m.UECount: %v", m.UECount)
 	if m.UECount > 0 {
-		store.CreateRandomUEs(ctx, m.UECount)
+		store.CreateRandomUEs(context.Background(), m.UECount)
 	}
 
-	if m.SnapshotId == "" {
-		return
-	}
-
-	ueList, err := redisStore.GetUEGroup(ctx, m.SnapshotId)
-	if err != nil {
-		log.Errorf("failed to get ue list from redis:%v", err)
-		return
-	}
-
-	m.UEList = ueList
-	log.Infof("len(m.UEList): %v", len(m.UEList))
-
-	for _, ue := range m.UEList {
-		store.CreateUE(ctx, &ue)
-	}
-
-	store.UpdateMaxUEsPerCell(ctx)
+	log.Infof("Created registry primed with %d UEs", len(store.ues))
+	return store
 }
 
 func (s *store) SetUECount(ctx context.Context, count uint) {

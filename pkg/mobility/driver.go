@@ -25,7 +25,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/rrm-son-lib/pkg/model/id"
 )
 
 var log = logging.GetLogger()
@@ -108,27 +107,27 @@ const hoType = "A3" // ToDo: should be programmable
 func (d *driver) Start(ctx context.Context) {
 	log.Info("Driver starting")
 
-	// Iterate over all routes and position the UEs at the start of their routes
-	for _, route := range d.routeStore.List(ctx) {
-		d.initializeUEPosition(ctx, route)
-	}
+	// // Iterate over all routes and position the UEs at the start of their routes
+	// for _, route := range d.routeStore.List(ctx) {
+	// 	d.initializeUEPosition(ctx, route)
+	// }
 
-	d.ueLock = make(map[types.IMSI]*sync.Mutex)
-	for _, ue := range d.ueStore.ListAllUEs(ctx) {
-		d.ueLock[ue.IMSI] = &sync.Mutex{}
-	}
+	// d.ueLock = make(map[types.IMSI]*sync.Mutex)
+	// for _, ue := range d.ueStore.ListAllUEs(ctx) {
+	// 	d.ueLock[ue.IMSI] = &sync.Mutex{}
+	// }
 
-	d.ticker = time.NewTicker(tickFrequency * tickUnit)
-	d.done = make(chan bool)
-	d.stopLocalHO = make(chan bool)
+	// d.ticker = time.NewTicker(tickFrequency * tickUnit)
+	// d.done = make(chan bool)
+	// d.stopLocalHO = make(chan bool)
 
 	// Add measController
-	d.measCtrl = measurement.NewMeasController(measType, d.cellStore, d.ueStore)
-	d.measCtrl.Start(ctx)
+	// d.measCtrl = measurement.NewMeasController(measType, d.cellStore, d.ueStore)
+	// d.measCtrl.Start(ctx)
 	d.hoCtrl = handover.NewHOController(hoType, d.cellStore, d.ueStore)
 	d.hoCtrl.Start(ctx)
 	// link measController with hoController
-	go d.linkMeasCtrlHoCtrl()
+	// go d.linkMeasCtrlHoCtrl()
 
 	// Add hoController
 	if d.hoLogic == "local" {
@@ -141,7 +140,7 @@ func (d *driver) Start(ctx context.Context) {
 		log.Warn("There is no handover logic - running measurement only")
 	}
 
-	go d.drive(ctx)
+	// go d.drive(ctx)
 }
 
 func (d *driver) Stop() {
@@ -283,9 +282,9 @@ func (d *driver) reportMeasurement(ctx context.Context, imsi types.IMSI) {
 
 func (d *driver) linkMeasCtrlHoCtrl() {
 	log.Info("Connecting measurement and handover controllers")
-	for report := range d.measCtrl.GetOutputChan() {
-		d.hoCtrl.GetInputChan() <- report
-	}
+	// for report := range d.measCtrl.GetOutputChan() {
+	// 	d.hoCtrl.GetInputChan() <- report
+	// }
 }
 
 func (d *driver) processHandoverDecision(ctx context.Context) {
@@ -294,8 +293,10 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 		select {
 		case hoDecision := <-d.hoCtrl.GetOutputChan():
 			log.Debugf("Received HO Decision: %v", hoDecision)
-			imsi := hoDecision.UE.GetID().GetID().(id.UEID).IMSI
-			tCellcgi := hoDecision.TargetCell.GetID().GetID().(id.ECGI)
+			imsi := hoDecision.UE.IMSI
+			tCellcgi := hoDecision.TargetCell.NCGI
+
+			//TODO: replace with already populated instance of cell
 			tCell := &model.UECell{
 				ID:   types.GnbID(tCellcgi),
 				NCGI: types.NCGI(tCellcgi),
@@ -358,13 +359,6 @@ func (d *driver) UpdateUESignalStrength(ctx context.Context, imsi types.IMSI) {
 		return
 	}
 
-	// update RSRP from serving cell
-	// err = d.updateUESignalStrengthServCell(ctx, ue)
-	// if err != nil {
-	// 	log.Warnf("For UE %v: %v", *ue, err)
-	// 	return
-	// }
-
 	// update RSRP from candidate serving cells
 	err = d.updateUESignalStrengthCandServCells(ctx, ue)
 	if err != nil {
@@ -393,6 +387,7 @@ func (d *driver) updateUESignalStrengthCandServCells(ctx context.Context, ue *mo
 		if ue.Cell.NCGI == cell.NCGI {
 			continue
 		}
+		//TODO:
 		ueCell := &model.UECell{
 			ID:   types.GnbID(cell.NCGI),
 			NCGI: cell.NCGI,

@@ -89,23 +89,29 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) initmobilityDriver() {
-	// m.mobilityDriver = mobility.NewMobilityDriver(m.cellStore, m.routeStore, m.ueStore, m.model.APIKey, m.config.HOLogic, m.model.UECountPerCell, m.model.RrcStateChangesDisabled, m.model.WayPointRoute)
-	// m.mobilityDriver.GenerateRoutes(context.Background(), 720000, 1080000, 20000, m.model.RouteEndPoints, m.model.DirectRoute)
-	// m.mobilityDriver.Start(context.Background())
-
-	ueList := m.ueStore.ListAllUEs(context.Background())
-	for _, ue := range ueList {
-		m.mobilityDriver.UpdateUESignalStrength(context.Background(), ue.IMSI)
+	m.mobilityDriver = mobility.NewMobilityDriver(
+		m.cellStore,
+		m.routeStore,
+		m.ueStore,
+		m.model.APIKey,
+		m.config.HOLogic,
+		m.model.UECountPerCell,
+		m.model.RrcStateChangesDisabled,
+		m.model.WayPointRoute,
+	)
+	ctx := context.Background()
+	m.mobilityDriver.Start(ctx)
+	for _, ue := range m.model.UEList {
+		m.mobilityDriver.UpdateUESignalStrength(ctx, ue.IMSI)
 	}
-
 }
 
 // Start starts the manager
 func (m *Manager) Start() error {
 
 	if m.config.RedisEnabled {
-		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
-		redisPort := utils.GetEnv("REDIS_PORT", "6398")
+		redisHost := utils.GetEnv("REDIS_HOST", "clx1")
+		redisPort := utils.GetEnv("REDIS_PORT", "30637")
 		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
 		redisUECache := utils.GetEnv("REDIS_UE_CACHE_DB", "2")
 		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
@@ -299,17 +305,17 @@ func (m *Manager) startNorthboundServer() error {
 
 func (m *Manager) StartE2Agents() error {
 	// Create the E2 agents for all simulated nodes and specified controllers
-	var err error
-	m.agents, err = agents.NewE2Agents(m.model, m.nodeStore, m.ueStore, m.cellStore, m.metricsStore, m.mobilityDriver.GetHoCtrl().GetOutputChan(), m.mobilityDriver)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	// Start the E2 agents
-	err = m.agents.Start()
-	if err != nil {
-		return err
-	}
+	// var err error
+	// m.agents, err = agents.NewE2Agents(m.model, m.nodeStore, m.ueStore, m.cellStore, m.metricsStore, m.mobilityDriver.GetHoCtrl().GetOutputChan(), m.mobilityDriver)
+	// if err != nil {
+	// 	log.Error(err)
+	// 	return err
+	// }
+	// // Start the E2 agents
+	// err = m.agents.Start()
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
@@ -356,12 +362,11 @@ func (m *Manager) Resume(ctx context.Context) {
 	log.Info("Resuming RAN simulator...")
 
 	// _ = m.StartE2Agents()
-	// m.initmobilityDriver()
-	// TODO:
-	// 1. Recalculate cell attributes (radiation pattern, coverage, shadowing, etc) & store in cache
-	// 2. Recalculate metrics (volume PRBs, throughput, etc) & store in metric store
+
 	m.computeCellAttributes()
 	m.computeUEAttributes()
+	m.initmobilityDriver()
+	m.performHandovers(ctx)
 	m.computeCellStatistics()
 	go func() {
 		time.Sleep(1 * time.Millisecond)
@@ -369,4 +374,10 @@ func (m *Manager) Resume(ctx context.Context) {
 		m.stopNorthboundServer()
 		_ = m.startNorthboundServer()
 	}()
+}
+
+func (m *Manager) performHandovers(ctx context.Context) {
+	for _, ue := range m.model.UEList {
+		m.mobilityDriver.GetHoCtrl().GetInputChan() <- ue
+	}
 }

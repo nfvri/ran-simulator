@@ -53,7 +53,7 @@ func main() {
 	caPath := flag.String("caPath", "", "path to CA certificate")
 	keyPath := flag.String("keyPath", "", "path to client private key")
 	certPath := flag.String("certPath", "", "path to client certificate")
-	grpcPort := flag.Int("grpcPort", 5188, "GRPC port for e2T server")
+	grpcPort := flag.Int("grpcPort", 5190, "GRPC port for e2T server")
 	modelName := flag.String("modelName", "model", "RANSim model file/resource name")
 	metricName := flag.String("metricName", "", "RANSim metric file/resource name")
 	hoLogic := flag.String("hoLogic", "local", "the location of handover logic {local, mho}")

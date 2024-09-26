@@ -6,11 +6,11 @@ package handover
 
 import (
 	"context"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
+
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
-	"github.com/onosproject/rrm-son-lib/pkg/handover"
-	"github.com/onosproject/rrm-son-lib/pkg/model/device"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
 
 var logHoCtrl = logging.GetLogger("handover", "controller")
@@ -21,8 +21,8 @@ func NewHOController(hoType HOType, cellStore cells.Store, ueStore ues.Store) HO
 		hoType:     hoType,
 		cellStore:  cellStore,
 		ueStore:    ueStore,
-		inputChan:  make(chan device.UE),
-		outputChan: make(chan handover.A3HandoverDecision),
+		inputChan:  make(chan model.UE),
+		outputChan: make(chan A3HandoverDecision),
 	}
 }
 
@@ -32,10 +32,10 @@ type HOController interface {
 	Start(ctx context.Context)
 
 	// GetInputChan returns input channel
-	GetInputChan() chan device.UE
+	GetInputChan() chan model.UE
 
 	// GetOutputChan returns output channel
-	GetOutputChan() chan handover.A3HandoverDecision
+	GetOutputChan() chan A3HandoverDecision
 }
 
 // HOType is the type of hanover - currently it is string
@@ -46,13 +46,14 @@ type hoController struct {
 	cellStore  cells.Store
 	ueStore    ues.Store
 	hoType     HOType
-	inputChan  chan device.UE
-	outputChan chan handover.A3HandoverDecision
+	inputChan  chan model.UE
+	outputChan chan A3HandoverDecision
 }
 
 func (h *hoController) Start(ctx context.Context) {
 	switch h.hoType {
 	case "A3":
+		// h.startA3HandoverHandler(ctx)
 		h.startA3HandoverHandler(ctx)
 	}
 }
@@ -82,10 +83,10 @@ func (h *hoController) forwardHandoverDecision(handler A3Handover) {
 	}
 }
 
-func (h *hoController) GetInputChan() chan device.UE {
+func (h *hoController) GetInputChan() chan model.UE {
 	return h.inputChan
 }
 
-func (h *hoController) GetOutputChan() chan handover.A3HandoverDecision {
+func (h *hoController) GetOutputChan() chan A3HandoverDecision {
 	return h.outputChan
 }

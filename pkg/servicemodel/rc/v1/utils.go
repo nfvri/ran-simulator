@@ -9,6 +9,17 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math"
+	"strconv"
+
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
+	indicationutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format1"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format2"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format3"
+	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format5"
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/pdubuilder"
 	e2smrc "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/servicemodel"
@@ -19,17 +30,7 @@ import (
 	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/utils"
-	indicationutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
-	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format1"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format2"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format3"
-	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format5"
 	"google.golang.org/protobuf/proto"
-	"math"
-	"strconv"
 )
 
 func getActionDefinitionMap(actionList []*e2appducontents.RicactionToBeSetupItemIes, ricActionsAccepted []*e2aptypes.RicActionID) (map[*e2aptypes.RicActionID]*e2smrcies.E2SmRcActionDefinition, error) {
@@ -570,7 +571,7 @@ func (c *Client) runHandover(ctx context.Context, controlHeader *e2smrcies.E2SmR
 				ID:   ransimtypes.GnbID(ncgi),
 				NCGI: ncgi,
 			}
-			c.mobilityDriver.Handover(ctx, ue.IMSI, tCell)
+			c.mobilityDriver.Handover(ctx, ue, tCell)
 		}
 	}
 	return nil

@@ -5,8 +5,6 @@
 package handover
 
 import (
-	"context"
-
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
@@ -16,57 +14,59 @@ import (
 var logHoCtrl = logging.GetLogger("handover", "controller")
 
 // NewHOController returns the hanover controller
-func NewHOController(hoType HOType, cellStore cells.Store, ueStore ues.Store) HOController {
+func NewHOController(hoType HOType, cellStore cells.Store, ueStore ues.Store, ho A3Handover) HOController {
 	return &hoController{
 		hoType:     hoType,
 		cellStore:  cellStore,
 		ueStore:    ueStore,
-		inputChan:  make(chan model.UE),
+		inputChan:  make(chan *model.UE),
 		outputChan: make(chan A3HandoverDecision),
+		HoHandler:  ho,
 	}
 }
 
 // HOController is an abstraction of the handover controller
 type HOController interface {
 	// Start starts handover controller
-	Start(ctx context.Context)
+	Start()
 
 	// GetInputChan returns input channel
-	GetInputChan() chan model.UE
+	GetInputChan() chan *model.UE
 
 	// GetOutputChan returns output channel
 	GetOutputChan() chan A3HandoverDecision
 }
 
-// HOType is the type of hanover - currently it is string
-// ToDo: define enumerated handover type into rrm-son-lib
+// HOType is the type of handover - currently it is string
 type HOType string
+
+const (
+	A3 HOType = "A3"
+)
 
 type hoController struct {
 	cellStore  cells.Store
 	ueStore    ues.Store
 	hoType     HOType
-	inputChan  chan model.UE
+	inputChan  chan *model.UE
 	outputChan chan A3HandoverDecision
+	HoHandler  A3Handover
 }
 
-func (h *hoController) Start(ctx context.Context) {
+func (h *hoController) Start() {
 	switch h.hoType {
-	case "A3":
-		// h.startA3HandoverHandler(ctx)
-		h.startA3HandoverHandler(ctx)
+	case A3:
+		h.startA3HandoverHandler()
 	}
 }
 
-func (h *hoController) startA3HandoverHandler(ctx context.Context) {
+func (h *hoController) startA3HandoverHandler() {
 	logHoCtrl.Info("Handover controller starting with A3HandoveHandler")
-	handler := NewA3Handover()
-
-	go handler.Start()
+	go h.HoHandler.Start()
 	// for input
-	go h.forwardReportToA3HandoverHandler(handler)
+	go h.forwardReportToA3HandoverHandler(h.HoHandler)
 	//for output
-	go h.forwardHandoverDecision(handler)
+	go h.forwardHandoverDecision(h.HoHandler)
 }
 
 func (h *hoController) forwardReportToA3HandoverHandler(handler A3Handover) {
@@ -83,7 +83,7 @@ func (h *hoController) forwardHandoverDecision(handler A3Handover) {
 	}
 }
 
-func (h *hoController) GetInputChan() chan model.UE {
+func (h *hoController) GetInputChan() chan *model.UE {
 	return h.inputChan
 }
 

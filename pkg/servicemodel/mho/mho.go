@@ -7,20 +7,11 @@ package mho
 import (
 	"context"
 
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
 	e2smmhosm "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/servicemodel"
-	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/rrm-son-lib/pkg/handover"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/pdubuilder"
-	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
-	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
-	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
-	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
-	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
@@ -33,6 +24,15 @@ import (
 	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/ranfundesc"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/pdubuilder"
+	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
+	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
+	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
+	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -377,7 +377,7 @@ func (m *Mho) RICControl(ctx context.Context, request *e2appducontents.Riccontro
 			ID:   types.GnbID(tCellNcgi),
 			NCGI: tCellNcgi,
 		}
-		m.mobilityDriver.Handover(ctx, types.IMSI(imsi), tCell)
+		m.mobilityDriver.Handover(ctx, &model.UE{IMSI: ransimtypes.IMSI(imsi)}, tCell)
 	}()
 
 	reqID, err := controlutils.GetRequesterID(request)

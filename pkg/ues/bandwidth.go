@@ -7,21 +7,21 @@ import (
 	"strconv"
 	"time"
 
-	model_ransim "github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 	log "github.com/sirupsen/logrus"
 )
 
-func InitBWPs(sCell *model_ransim.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCGI uint64, totalUEs int) error {
+func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCGI uint64, totalUEs int) error {
 
-	initialCellBwps := make(map[string]model_ransim.Bwp, len(sCell.Bwps))
+	initialCellBwps := make(map[string]model.Bwp, len(sCell.Bwps))
 	if len(sCell.Bwps) != 0 {
 		for _, bwp := range sCell.Bwps {
 			initialCellBwps[bwp.ID] = bwp
 		}
 	}
 
-	sCell.Bwps = make(map[string]model_ransim.Bwp)
-	bwps := []model_ransim.Bwp{}
+	sCell.Bwps = make(map[string]model.Bwp)
+	bwps := []model.Bwp{}
 
 	cellPrbsDl := cellPrbsMap[sCellNCGI][USED_PRBS_DL_METRIC]
 	cellPrbsUl := cellPrbsMap[sCellNCGI][USED_PRBS_UL_METRIC]
@@ -65,9 +65,9 @@ func InitBWPs(sCell *model_ransim.Cell, cellPrbsMap map[uint64]map[string]int, s
 
 }
 
-func bwpsFromPRBs(sCell *model_ransim.Cell, sCellPrbs, totalUEs int, downlink bool) []model_ransim.Bwp {
+func bwpsFromPRBs(sCell *model.Cell, sCellPrbs, totalUEs int, downlink bool) []model.Bwp {
 
-	bwps := make([]model_ransim.Bwp, len(sCell.Bwps))
+	bwps := make([]model.Bwp, len(sCell.Bwps))
 	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -82,7 +82,7 @@ func bwpsFromPRBs(sCell *model_ransim.Cell, sCellPrbs, totalUEs int, downlink bo
 
 		allocatedPrbs = r.Intn(maxPRBs-minPRBs+1) + minPRBs
 		if allocatedPrbs <= remainingPrbs {
-			bwps = append(bwps, model_ransim.Bwp{
+			bwps = append(bwps, model.Bwp{
 				ID:          strconv.Itoa(bwpCount),
 				NumberOfRBs: allocatedPrbs,
 				Scs:         scs,
@@ -97,10 +97,10 @@ func bwpsFromPRBs(sCell *model_ransim.Cell, sCellPrbs, totalUEs int, downlink bo
 	return bwps
 }
 
-func bwpsFromBW(bwMHz uint32, totalUEs int, downlink bool) []model_ransim.Bwp {
+func bwpsFromBW(bwMHz uint32, totalUEs int, downlink bool) []model.Bwp {
 
 	totalAvailableBwHz := int(bwMHz) * 1e6
-	bwps := []model_ransim.Bwp{}
+	bwps := []model.Bwp{}
 
 	// SCS options in kHz
 	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
@@ -132,7 +132,7 @@ func bwpsFromBW(bwMHz uint32, totalUEs int, downlink bool) []model_ransim.Bwp {
 			continue
 		}
 
-		bwps = append(bwps, model_ransim.Bwp{
+		bwps = append(bwps, model.Bwp{
 			ID:          strconv.Itoa(bwpCount),
 			NumberOfRBs: allocatedPrbs,
 			Scs:         scs,

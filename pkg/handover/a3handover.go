@@ -17,13 +17,13 @@ type A3Handover interface {
 	Start()
 
 	// GetInputChan returns the channel to push measurement
-	GetInputChan() chan model.UE
+	GetInputChan() chan *model.UE
 
 	// GetOutputChan returns the channel to get handover event
 	GetOutputChan() chan A3HandoverDecision
 
 	// PushMeasurementEventA3 pushes measurement to the input channel
-	PushMeasurementEventA3(model.UE)
+	PushMeasurementEventA3(*model.UE)
 }
 
 type a3Handover struct {
@@ -31,10 +31,10 @@ type a3Handover struct {
 }
 
 // NewA3Handover returns an A3 handover object
-func NewA3Handover() A3Handover {
+func NewA3Handover(handler *A3HandoverHandler) A3Handover {
 	return &a3Handover{
 		// a3HandoverHandler: handover.NewA3HandoverHandler(),
-		a3HandoverHandler: NewA3HandoverHandler(),
+		a3HandoverHandler: handler,
 	}
 }
 
@@ -43,7 +43,7 @@ func (h *a3Handover) Start() {
 	go h.a3HandoverHandler.Run()
 }
 
-func (h *a3Handover) GetInputChan() chan model.UE {
+func (h *a3Handover) GetInputChan() chan *model.UE {
 	return h.a3HandoverHandler.Chans.InputChan
 }
 
@@ -51,6 +51,6 @@ func (h *a3Handover) GetOutputChan() chan A3HandoverDecision {
 	return h.a3HandoverHandler.Chans.OutputChan
 }
 
-func (h *a3Handover) PushMeasurementEventA3(ue model.UE) {
+func (h *a3Handover) PushMeasurementEventA3(ue *model.UE) {
 	h.a3HandoverHandler.Chans.InputChan <- ue
 }

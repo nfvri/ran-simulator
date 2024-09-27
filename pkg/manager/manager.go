@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/signal"
 	"github.com/nfvri/ran-simulator/pkg/statistics"
@@ -89,6 +90,9 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) initmobilityDriver() {
+	hoHandler := handover.NewA3HandoverHandler(m.model)
+	ho := handover.NewA3Handover(hoHandler)
+	hoCtrl := handover.NewHOController(handover.A3, m.cellStore, m.ueStore, ho)
 	m.mobilityDriver = mobility.NewMobilityDriver(
 		m.cellStore,
 		m.routeStore,
@@ -98,6 +102,7 @@ func (m *Manager) initmobilityDriver() {
 		m.model.UECountPerCell,
 		m.model.RrcStateChangesDisabled,
 		m.model.WayPointRoute,
+		hoCtrl,
 	)
 	ctx := context.Background()
 	m.mobilityDriver.Start(ctx)
@@ -140,7 +145,7 @@ func (m *Manager) Start() error {
 		return err
 	}
 	// TODO: ADD mobilityDriver
-	m.initmobilityDriver()
+	// m.initmobilityDriver()
 
 	// Start E2 agents
 	// err = m.startE2Agents()
@@ -219,6 +224,7 @@ func (m *Manager) computeUEAttributes() {
 			ue.Cell.BwpRefs = ues.GetBWPRefs(ueBWPIndexes[i])
 			// create UE with updated BwpRefs here and not in InitUEs
 			m.ueStore.CreateUE(ctx, ue)
+			m.cellStore.IncrementRrcConnectedCount(ctx, ue.Cell.NCGI)
 		}
 	}
 	m.ueStore.UpdateMaxUEsPerCell(ctx)
@@ -232,7 +238,7 @@ func (m *Manager) computeCellStatistics() {
 		prbsTotalDl := 0
 		prbsTotalUl := 0
 		activeUEs := 0
-		measDuration := 5.0 //TODO: initialize
+		measDuration := 1.0
 
 		if len(cell.Bwps) == 0 {
 			log.Warnf("cell %v Bwps: %v", cell.NCGI, cell.Bwps)
@@ -378,6 +384,6 @@ func (m *Manager) Resume(ctx context.Context) {
 
 func (m *Manager) performHandovers(ctx context.Context) {
 	for _, ue := range m.model.UEList {
-		m.mobilityDriver.GetHoCtrl().GetInputChan() <- ue
+		m.mobilityDriver.GetHoCtrl().GetInputChan() <- &ue
 	}
 }

@@ -50,7 +50,7 @@ type Driver interface {
 	GetRrcCtrl() RrcCtrl
 
 	// Handover
-	Handover(ctx context.Context, imsi types.IMSI, tCell *model.UECell)
+	Handover(ctx context.Context, ue *model.UE, tCell *model.UECell)
 
 	//GetHoLogic
 	GetHoLogic() string
@@ -84,7 +84,7 @@ type driver struct {
 }
 
 // NewMobilityDriver returns a driving engine capable of "driving" UEs along pre-specified routes
-func NewMobilityDriver(cellStore cells.Store, routeStore routes.Store, ueStore ues.Store, apiKey string, hoLogic string, ueCountPerCell uint, rrcStateChangesDisabled bool, wayPointRoute bool) Driver {
+func NewMobilityDriver(cellStore cells.Store, routeStore routes.Store, ueStore ues.Store, apiKey string, hoLogic string, ueCountPerCell uint, rrcStateChangesDisabled bool, wayPointRoute bool, hoCtrl handover.HOController) Driver {
 	return &driver{
 		cellStore:               cellStore,
 		routeStore:              routeStore,
@@ -93,6 +93,7 @@ func NewMobilityDriver(cellStore cells.Store, routeStore routes.Store, ueStore u
 		rrcCtrl:                 NewRrcCtrl(ueCountPerCell),
 		rrcStateChangesDisabled: rrcStateChangesDisabled,
 		wayPointRoute:           wayPointRoute,
+		hoCtrl:                  hoCtrl,
 	}
 }
 
@@ -102,8 +103,6 @@ const tickFrequency = 1
 
 const measType = "EventA3" // ToDo: should be programmable
 
-const hoType = "A3" // ToDo: should be programmable
-
 func (d *driver) Start(ctx context.Context) {
 	log.Info("Driver starting")
 
@@ -112,10 +111,10 @@ func (d *driver) Start(ctx context.Context) {
 	// 	d.initializeUEPosition(ctx, route)
 	// }
 
-	// d.ueLock = make(map[types.IMSI]*sync.Mutex)
-	// for _, ue := range d.ueStore.ListAllUEs(ctx) {
-	// 	d.ueLock[ue.IMSI] = &sync.Mutex{}
-	// }
+	d.ueLock = make(map[types.IMSI]*sync.Mutex)
+	for _, ue := range d.ueStore.ListAllUEs(ctx) {
+		d.ueLock[ue.IMSI] = &sync.Mutex{}
+	}
 
 	// d.ticker = time.NewTicker(tickFrequency * tickUnit)
 	// d.done = make(chan bool)
@@ -124,8 +123,7 @@ func (d *driver) Start(ctx context.Context) {
 	// Add measController
 	// d.measCtrl = measurement.NewMeasController(measType, d.cellStore, d.ueStore)
 	// d.measCtrl.Start(ctx)
-	d.hoCtrl = handover.NewHOController(hoType, d.cellStore, d.ueStore)
-	d.hoCtrl.Start(ctx)
+	d.hoCtrl.Start()
 	// link measController with hoController
 	// go d.linkMeasCtrlHoCtrl()
 
@@ -293,15 +291,14 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 		select {
 		case hoDecision := <-d.hoCtrl.GetOutputChan():
 			log.Debugf("Received HO Decision: %v", hoDecision)
-			imsi := hoDecision.UE.IMSI
-			tCellcgi := hoDecision.TargetCell.NCGI
-
-			//TODO: replace with already populated instance of cell
-			tCell := &model.UECell{
-				ID:   types.GnbID(tCellcgi),
-				NCGI: types.NCGI(tCellcgi),
+			if hoDecision.Feasible {
+				d.Handover(ctx, hoDecision.UE, hoDecision.TargetCell)
+			} else {
+				log.Warn("Handover could not be executed for imsi: %v, at cell: %v",
+					hoDecision.UE.IMSI,
+					hoDecision.TargetCell.NCGI,
+				)
 			}
-			d.Handover(ctx, types.IMSI(imsi), tCell)
 		case <-d.stopLocalHO:
 			log.Info("local HO stopped")
 			return
@@ -310,45 +307,39 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 }
 
 // Handover handovers ue to target cell
-func (d *driver) Handover(ctx context.Context, imsi types.IMSI, tCell *model.UECell) {
-	log.Infof("Handover() imsi:%v, tCell:%v", imsi, tCell)
-	d.lockUE(imsi)
-	defer d.unlockUE(imsi)
+func (d *driver) Handover(ctx context.Context, ue *model.UE, tCell *model.UECell) {
+	log.Infof("Handover() imsi:%v, tCell:%v", ue.IMSI, tCell)
+	d.lockUE(ue.IMSI)
+	defer d.unlockUE(ue.IMSI)
 
 	// Update RRC state on handover
-	ue, err := d.ueStore.Get(ctx, imsi)
-	if err != nil {
-		log.Warn("Unable to find UE %d", imsi)
-		return
-	}
-
 	if ue.Cell.NCGI == tCell.NCGI {
-		log.Infof("Duplicate HO skipped imsi%d, cgi:%v", imsi, tCell.NCGI)
+		log.Infof("Duplicate HO skipped imsi%d, cgi:%v", ue.IMSI, tCell.NCGI)
 		return
 	}
 
 	if ue.RrcState != e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED {
-		//d.cellStore.DecrementRrcIdleCount(ctx, ue.Cell.NCGI)
-		//d.cellStore.IncrementRrcIdleCount(ctx, tCell.NCGI)
-		log.Warnf("HO skipped for not connected UE %d", imsi)
+		log.Warnf("HO skipped for not connected UE %d", ue.IMSI)
 		return
 	}
 
 	d.cellStore.DecrementRrcConnectedCount(ctx, ue.Cell.NCGI)
 	d.cellStore.IncrementRrcConnectedCount(ctx, tCell.NCGI)
 
-	err = d.ueStore.UpdateCell(ctx, imsi, tCell)
-	if err != nil {
-		log.Warn("Unable to update UE %d cell info", imsi)
-	}
+	//TODO:
+	// ue.Cell <- new cell
+	// append(ue.Cells, oldSCell)
+	// d.UpdateBWPRefs()
 
 	// after changing serving cell, calculate channel quality/signal strength again
-	d.UpdateUESignalStrength(ctx, imsi)
-
-	// update the maximum number of UEs
+	d.UpdateUESignalStrength(ctx, ue.IMSI)
 	d.ueStore.UpdateMaxUEsPerCell(ctx)
 
-	log.Infof("HO is done successfully: %v to %v", imsi, tCell)
+	log.Infof("HO is done successfully: %v to %v", ue.IMSI, tCell)
+}
+
+func (d *driver) UpdateBWPRefs(sCell, tCell *model.Cell, ue *model.UE) {
+	//TODO: implement
 }
 
 // UpdateUESignalStrength updates UE signal strength

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/signal"
@@ -90,7 +91,7 @@ func (m *Manager) Run() {
 	}
 }
 
-func (m *Manager) initΜobilityDriver() {
+func (m *Manager) initMobilityDriver() {
 	hoHandler := handover.NewA3HandoverHandler(m.model)
 	ho := handover.NewA3Handover(hoHandler)
 	hoCtrl := handover.NewHOController(handover.A3, ho)
@@ -137,7 +138,7 @@ func (m *Manager) Start() error {
 
 	// m.initModelStores()
 	m.initMetricStore()
-	m.initΜobilityDriver()
+	m.initMobilityDriver()
 
 	// Start gRPC server
 	err = m.startNorthboundServer()
@@ -200,11 +201,12 @@ func (m *Manager) computeUEAttributes() {
 			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
 			continue
 		}
-		ues.InitBWPs(&cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
+		bw.InitBWPs(&cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
 		m.model.Cells[ncgi] = cell
-		ueBWPIndexes := ues.PartitionIndexes(len(cell.Bwps), len(servedUEs), ues.Lognormally)
+
+		bwpPartitions := bw.PartitionBwps(cell.Bwps, len(servedUEs), bw.Lognormally)
 		for i, ue := range servedUEs {
-			ue.Cell.BwpRefs = ues.GetBWPRefs(ueBWPIndexes[i])
+			ue.Cell.BwpRefs = bwpPartitions[i]
 		}
 	}
 }
@@ -227,8 +229,7 @@ func (m *Manager) computeCellStatistics() {
 				activeUEs++
 			}
 
-			for _, bwpID := range ue.Cell.BwpRefs {
-				bwp := cell.Bwps[bwpID]
+			for _, bwp := range ue.Cell.BwpRefs {
 				if bwp.Downlink {
 					prbsTotalDl += bwp.NumberOfRBs
 				} else {
@@ -347,7 +348,7 @@ func (m *Manager) Resume() {
 
 	m.computeCellAttributes()
 	m.computeUEAttributes()
-	m.initΜobilityDriver()
+	m.initMobilityDriver()
 	m.performHandovers()
 	m.waitHandoversExecution()
 	m.computeCellStatistics()

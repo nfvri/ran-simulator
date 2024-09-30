@@ -138,6 +138,7 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 				d.Handover(ctx, hoDecision.UE, hoDecision.TargetCell)
 			} else {
 				// TODO: delete ue.BwpRefs and sCell.BWPs from cell but not transfer them and ue.Rrcstatus_RRCSTATUS_INACTIVE
+
 				logrus.Warnf("Handover infeasible for imsi: %v, at cell: %v",
 					hoDecision.UE.IMSI,
 					hoDecision.TargetCell.NCGI,
@@ -179,8 +180,11 @@ func (d *driver) Handover(ctx context.Context, ue *model.UE, tCell *model.UECell
 	log.Infof("HO is done successfully: %v to %v", ue.IMSI, tCell)
 }
 
-func (d *driver) UpdateBWPRefs(sCell, tCell *model.Cell, ue *model.UE) {
-	//TODO: implement
+func (d *driver) releaseBWPs(sCell *model.Cell, ue *model.UE) {
+	// for _, bwpRef := range ue.Cell.BwpRefs {
+	// 	// bwp := sCell.Bwps[bwpRef]
+	// 	// bwp.NumberOfRBs = 0
+	// }
 }
 
 // UpdateUESignalStrength updates UE signal strength

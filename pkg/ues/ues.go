@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	model_ransim "github.com/nfvri/ran-simulator/pkg/model"
 	signal_ransim "github.com/nfvri/ran-simulator/pkg/signal"
 	redis_ransim "github.com/nfvri/ran-simulator/pkg/store/redis"
@@ -53,10 +54,9 @@ func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]
 				log.Warnf("number of generated ues for cell %v is 0", sCellNCGI)
 				continue
 			}
-			InitBWPs(sCell, cellPrbsMap, sCellNCGI, totalUEs)
+			bw.InitBWPs(sCell, cellPrbsMap, sCellNCGI, totalUEs)
 
-			ueBWPIndexes := PartitionIndexes(len(sCell.Bwps), totalUEs, Lognormally)
-
+			bwpPartitions := bw.PartitionBwps(sCell.Bwps, totalUEs, bw.Lognormally)
 			for cqi, numUEs := range cqiMap {
 				for i := 0; i < numUEs; i++ {
 					if len(uesLocations[sCellNCGI][cqi]) <= i {
@@ -70,7 +70,7 @@ func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]
 					ueRSRQ := signal_ransim.RSRQ(ueSINR, cellPrbsMap[sCellNCGI][TOTAL_PRBS_DL_METRIC])
 
 					simUE, ueIMSI := signal_ransim.CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
-					simUE.Cell.BwpRefs = GetBWPRefs(ueBWPIndexes[i])
+					simUE.Cell.BwpRefs = bwpPartitions[i]
 					ueList[ueIMSI] = *simUE
 
 				}

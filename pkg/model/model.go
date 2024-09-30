@@ -162,7 +162,7 @@ type Cell struct {
 	Beam                 Beam               `mapstructure:"beam"`
 	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
 	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
-	Bwps                 map[string]Bwp     `mapstructure:"bwps"`
+	Bwps                 map[string]*Bwp    `mapstructure:"bwps"`
 	RrcIdleCount         uint32
 	RrcConnectedCount    uint32
 	Cached               bool
@@ -221,7 +221,7 @@ type UECell struct {
 	Rsrp    float64     `mapstructure:"rsrp"`
 	Rsrq    float64     `mapstructure:"rsrq"`
 	Sinr    float64     `mapstructure:"sinr"`
-	BwpRefs []string    `mapstructure:"bwpRefs"`
+	BwpRefs []*Bwp      `mapstructure:"bwpRefs"`
 }
 
 type Bwp struct {

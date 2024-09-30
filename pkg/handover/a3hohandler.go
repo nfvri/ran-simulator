@@ -49,15 +49,11 @@ func (h *A3HandoverHandler) isHOFeasible(tUECell *model.UECell, ue *model.UE) bo
 	tCellNcgiStr := strconv.FormatUint(uint64(tUECell.NCGI), 10)
 	tCell := h.Model.Cells[tCellNcgiStr]
 
-	sCellNcgiStr := strconv.FormatUint(uint64(ue.Cell.NCGI), 10)
-	sCell := h.Model.Cells[sCellNcgiStr]
-
 	//TODO: check if UL+DL is sufficient istead of individual checks
 	requestedBWDL := 0
 	requestedBWUL := 0
 
-	for _, bwpRef := range ue.Cell.BwpRefs {
-		bwp := sCell.Bwps[bwpRef]
+	for _, bwp := range ue.Cell.BwpRefs {
 		if bwp.Downlink {
 			requestedBWDL += bwp.Scs * 12 * bwp.NumberOfRBs
 		} else {
@@ -67,8 +63,7 @@ func (h *A3HandoverHandler) isHOFeasible(tUECell *model.UECell, ue *model.UE) bo
 
 	allocatedBWDL := 0
 	allocatedBWUL := 0
-	for _, bwpRef := range tUECell.BwpRefs {
-		bwp := tCell.Bwps[bwpRef]
+	for _, bwp := range tUECell.BwpRefs {
 		if bwp.Downlink {
 			allocatedBWDL += bwp.Scs * 12 * bwp.NumberOfRBs
 		} else {

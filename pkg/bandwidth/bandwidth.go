@@ -1,4 +1,4 @@
-package ues
+package bandwidth
 
 import (
 	"fmt"
@@ -11,16 +11,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const TOTAL_PRBS_DL_METRIC = "RRU.PrbAvailDl"
+const TOTAL_PRBS_UL_METRIC = "RRU.PrbAvailUl"
+const USED_PRBS_DL_METRIC = "RRU.PrbUsedDl"
+const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl"
+
 func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCGI uint64, totalUEs int) error {
 
-	initialCellBwps := make(map[string]model.Bwp, len(sCell.Bwps))
+	initialCellBwps := make(map[string]*model.Bwp, len(sCell.Bwps))
 	if len(sCell.Bwps) != 0 {
 		for _, bwp := range sCell.Bwps {
 			initialCellBwps[bwp.ID] = bwp
 		}
 	}
 
-	sCell.Bwps = make(map[string]model.Bwp)
+	sCell.Bwps = make(map[string]*model.Bwp)
 	bwps := []model.Bwp{}
 
 	cellPrbsDl := cellPrbsMap[sCellNCGI][USED_PRBS_DL_METRIC]
@@ -43,12 +48,12 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 	}
 
 	for _, bwp := range bwpsDl {
-		sCell.Bwps[bwp.ID] = bwp
+		sCell.Bwps[bwp.ID] = &bwp
 	}
 	for _, bwp := range bwpsUl {
 		bwpId, _ := strconv.Atoi(bwp.ID)
 		bwp.ID = strconv.Itoa(bwpId + len(bwpsDl))
-		sCell.Bwps[bwp.ID] = bwp
+		sCell.Bwps[bwp.ID] = &bwp
 	}
 
 	if len(sCell.Bwps) == 0 {
@@ -155,37 +160,29 @@ func bwpsFromBW(bwMHz uint32, totalUEs int, downlink bool) []model.Bwp {
 	return bwps
 }
 
-func GetBWPRefs(indexes []int) []string {
-	bwpRefs := make([]string, len(indexes))
-	for i, indx := range indexes {
-		bwpRefs[i] = strconv.Itoa(indx)
+func PartitionBwps(bwps map[string]*model.Bwp, k int, generateSize func(int, int) int) [][]*model.Bwp {
+	// Extract the keys from the map
+	keys := make([]string, 0, len(bwps))
+	for key := range bwps {
+		keys = append(keys, key)
 	}
-	return bwpRefs
-}
+	n := len(keys)
 
-func PartitionIndexes(n int, k int, generateSize func(int, int) int) [][]int {
-	// Create a slice of indexes from 0 to n-1
-	indexes := make([]int, n)
-	for i := 0; i < n; i++ {
-		indexes[i] = i
-	}
-
-	// Shuffle the indexes to ensure random distribution
+	// Shuffle the keys to ensure random distribution
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	r.Shuffle(n, func(i, j int) {
-		indexes[i], indexes[j] = indexes[j], indexes[i]
+		keys[i], keys[j] = keys[j], keys[i]
 	})
 
-	// Generate sizes for each part
+	// Generate sizes for each partition
 	partSizes := make([]int, k)
 	remaining := n
-
 	for i := 0; i < k; i++ {
 		if i == k-1 {
-			// Assign the remaining indexes to the last part
+			// Assign all remaining keys to the last partition
 			partSizes[i] = remaining
 		} else {
-			// Generate a size for the current part
+			// Generate size for the current partition
 			size := generateSize(remaining, k-i)
 			if size > remaining {
 				size = remaining
@@ -195,19 +192,24 @@ func PartitionIndexes(n int, k int, generateSize func(int, int) int) [][]int {
 		}
 	}
 
-	// Partition the shuffled indexes based on the generated sizes
-	parts := make([][]int, k)
+	// Partition the shuffled keys based on the generated sizes
+	partitions := make([][]*model.Bwp, k)
 	start := 0
 	for i := 0; i < k; i++ {
-		if start+partSizes[i] > len(indexes) {
-			// Ensure we don't exceed bounds
-			partSizes[i] = len(indexes) - start
+		end := start + partSizes[i]
+		if end > n {
+			end = n
 		}
-		parts[i] = indexes[start : start+partSizes[i]]
-		start += partSizes[i]
+
+		// Collect Bwp pointers for this partition
+		partitions[i] = make([]*model.Bwp, 0, partSizes[i])
+		for _, key := range keys[start:end] {
+			partitions[i] = append(partitions[i], bwps[key])
+		}
+		start = end
 	}
 
-	return parts
+	return partitions
 }
 
 func Lognormally(remaining int, partsLeft int) int {

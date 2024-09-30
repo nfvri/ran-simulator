@@ -6,19 +6,15 @@ package handover
 
 import (
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/store/cells"
-	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
 
 var logHoCtrl = logging.GetLogger("handover", "controller")
 
 // NewHOController returns the hanover controller
-func NewHOController(hoType HOType, cellStore cells.Store, ueStore ues.Store, ho A3Handover) HOController {
+func NewHOController(hoType HOType, ho A3Handover) HOController {
 	return &hoController{
 		hoType:     hoType,
-		cellStore:  cellStore,
-		ueStore:    ueStore,
 		inputChan:  make(chan *model.UE),
 		outputChan: make(chan A3HandoverDecision),
 		HoHandler:  ho,
@@ -45,8 +41,6 @@ const (
 )
 
 type hoController struct {
-	cellStore  cells.Store
-	ueStore    ues.Store
 	hoType     HOType
 	inputChan  chan *model.UE
 	outputChan chan A3HandoverDecision

@@ -79,6 +79,7 @@ type Manager struct {
 	routeStore     routes.Store
 	metricsStore   metrics.Store
 	mobilityDriver mobility.Driver
+	finishHOsChan  chan bool
 }
 
 // Run starts the manager and the associated services
@@ -92,8 +93,10 @@ func (m *Manager) Run() {
 func (m *Manager) initmobilityDriver() {
 	hoHandler := handover.NewA3HandoverHandler(m.model)
 	ho := handover.NewA3Handover(hoHandler)
-	hoCtrl := handover.NewHOController(handover.A3, m.cellStore, m.ueStore, ho)
+	hoCtrl := handover.NewHOController(handover.A3, ho)
+	m.finishHOsChan = make(chan bool)
 	m.mobilityDriver = mobility.NewMobilityDriver(
+		m.model,
 		m.cellStore,
 		m.routeStore,
 		m.ueStore,
@@ -103,11 +106,12 @@ func (m *Manager) initmobilityDriver() {
 		m.model.RrcStateChangesDisabled,
 		m.model.WayPointRoute,
 		hoCtrl,
+		m.finishHOsChan,
 	)
 	ctx := context.Background()
 	m.mobilityDriver.Start(ctx)
 	for _, ue := range m.model.UEList {
-		m.mobilityDriver.UpdateUESignalStrength(ctx, ue.IMSI)
+		m.mobilityDriver.UpdateUESignalStrength(ue.IMSI)
 	}
 }
 
@@ -364,7 +368,7 @@ func (m *Manager) LoadMetrics(ctx context.Context) error {
 }
 
 // Resume resume the simulation
-func (m *Manager) Resume(ctx context.Context) {
+func (m *Manager) Resume() {
 	log.Info("Resuming RAN simulator...")
 
 	// _ = m.StartE2Agents()
@@ -372,7 +376,9 @@ func (m *Manager) Resume(ctx context.Context) {
 	m.computeCellAttributes()
 	m.computeUEAttributes()
 	m.initmobilityDriver()
-	m.performHandovers(ctx)
+	m.performHandovers()
+	m.mobilityDriver.Stop()
+	m.waitHandoverDone()
 	m.computeCellStatistics()
 	go func() {
 		time.Sleep(1 * time.Millisecond)
@@ -382,8 +388,19 @@ func (m *Manager) Resume(ctx context.Context) {
 	}()
 }
 
-func (m *Manager) performHandovers(ctx context.Context) {
+func (m *Manager) performHandovers() {
 	for _, ue := range m.model.UEList {
 		m.mobilityDriver.GetHoCtrl().GetInputChan() <- &ue
+	}
+}
+
+func (m *Manager) waitHandoverDone() {
+	for {
+		select {
+
+		case <-m.finishHOsChan:
+			log.Info("HOs completed")
+			return
+		}
 	}
 }

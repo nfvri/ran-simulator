@@ -94,7 +94,9 @@ func (m *Manager) initΜobilityDriver() {
 	hoHandler := handover.NewA3HandoverHandler(m.model)
 	ho := handover.NewA3Handover(hoHandler)
 	hoCtrl := handover.NewHOController(handover.A3, ho)
+
 	m.finishHOsChan = make(chan bool)
+
 	m.mobilityDriver = mobility.NewMobilityDriver(
 		m.model,
 		m.config.HOLogic,
@@ -133,16 +135,15 @@ func (m *Manager) Start() error {
 		return err
 	}
 
-	m.initModelStores()
+	// m.initModelStores()
 	m.initMetricStore()
+	m.initΜobilityDriver()
 
 	// Start gRPC server
 	err = m.startNorthboundServer()
 	if err != nil {
 		return err
 	}
-	// TODO: ADD mobilityDriver
-	// m.initmobilityDriver()
 
 	// Start E2 agents
 	// err = m.startE2Agents()
@@ -161,21 +162,6 @@ func (m *Manager) Close() {
 	m.mobilityDriver.Stop()
 }
 
-func (m *Manager) initModelStores() {
-	// Create the node registry primed with the pre-loaded nodes
-	m.nodeStore = nodes.NewNodeRegistry(m.model.Nodes)
-
-	// Create the cell registry primed with the cells without cell params
-	// e.g RPCoverageBoundaries, CoverageBoundaries, ShadowingMap, Bwps
-	m.cellStore = cells.NewCellRegistry(m.model.Cells, m.nodeStore)
-
-	// Create the UE registry primed with the specified number of UEs
-	m.ueStore = uesstore.NewUERegistry(m.model, m.cellStore, &m.redisStore, m.model.InitialRrcState)
-	// Create an empty route registry
-	// m.routeStore = routes.NewRouteRegistry()
-
-}
-
 func (m *Manager) initMetricStore() {
 	// Create store for tracking arbitrary metrics and attributes for nodes, cells and UEs
 	m.metricsStore = metrics.NewMetricsStore()
@@ -183,15 +169,16 @@ func (m *Manager) initMetricStore() {
 
 func (m *Manager) computeCellAttributes() {
 
-	cellList, _ := m.cellStore.List(context.Background())
-
 	ueHeight := 1.5
 	refSignalStrength := -107.0
 
+	// change model's cells key from designated name to ncgi
 	cellGroup := make(map[string]*model.Cell)
-	for _, cell := range cellList {
+	for key, cell := range m.model.Cells {
+		cellCopy := cell
 		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
-		cellGroup[ncgi] = cell
+		cellGroup[ncgi] = &cellCopy
+		delete(m.model.Cells, key)
 	}
 
 	signal.UpdateCells(cellGroup, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
@@ -207,7 +194,6 @@ func (m *Manager) computeUEAttributes() {
 	signal.InitUEs(m.model, &m.redisStore)
 
 	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
-	ctx := context.Background()
 	for ncgi, cell := range m.model.Cells {
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 		if len(servedUEs) == 0 {
@@ -219,11 +205,8 @@ func (m *Manager) computeUEAttributes() {
 		ueBWPIndexes := ues.PartitionIndexes(len(cell.Bwps), len(servedUEs), ues.Lognormally)
 		for i, ue := range servedUEs {
 			ue.Cell.BwpRefs = ues.GetBWPRefs(ueBWPIndexes[i])
-			// create UE with updated BwpRefs here and not in InitUEs
-			m.ueStore.CreateUE(ctx, ue)
 		}
 	}
-	m.ueStore.UpdateMaxUEsPerCell(ctx)
 }
 
 func (m *Manager) computeCellStatistics() {
@@ -333,11 +316,8 @@ func (m *Manager) stopNorthboundServer() {
 // PauseAndClear pauses simulation and clears the model
 func (m *Manager) PauseAndClear(ctx context.Context) {
 	log.Info("Pausing RAN simulator...")
-	// m.stopE2Agents()
-	m.nodeStore.Clear(ctx)
-	m.cellStore.Clear(ctx)
 	m.metricsStore.Clear(ctx)
-	// m.mobilityDriver.Stop()
+	m.mobilityDriver.Stop()
 }
 
 // LoadModel loads the new model into the simulator
@@ -346,7 +326,7 @@ func (m *Manager) LoadModel(ctx context.Context, data []byte) error {
 	if err := model.LoadConfigFromBytes(m.model, data); err != nil {
 		return err
 	}
-	m.initModelStores()
+
 	m.LoadMetrics(ctx)
 	return nil
 }

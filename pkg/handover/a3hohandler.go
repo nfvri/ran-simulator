@@ -2,7 +2,6 @@ package handover
 
 import (
 	"strconv"
-	"sync"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 )
@@ -22,9 +21,8 @@ const MIN_ACCEPTABLE_RSRP = -110
 
 // A3HandoverHandler is A3 handover handler
 type A3HandoverHandler struct {
-	Chans        A3HandoverChannel
-	HandlerMutex sync.RWMutex
-	Model        *model.Model
+	Chans A3HandoverChannel
+	Model *model.Model
 }
 
 // A3HandoverChannel struct has channels used in A3 handover handler

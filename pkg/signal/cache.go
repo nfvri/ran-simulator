@@ -45,6 +45,7 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 
 			} else {
 				cellGroup[ncgi] = &cachedCell
+				cachedCell.Cached = true
 				cachedCells[cell.NCGI] = struct{}{}
 			}
 

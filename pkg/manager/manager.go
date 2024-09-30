@@ -90,21 +90,14 @@ func (m *Manager) Run() {
 	}
 }
 
-func (m *Manager) initmobilityDriver() {
+func (m *Manager) initΜobilityDriver() {
 	hoHandler := handover.NewA3HandoverHandler(m.model)
 	ho := handover.NewA3Handover(hoHandler)
 	hoCtrl := handover.NewHOController(handover.A3, ho)
 	m.finishHOsChan = make(chan bool)
 	m.mobilityDriver = mobility.NewMobilityDriver(
 		m.model,
-		m.cellStore,
-		m.routeStore,
-		m.ueStore,
-		m.model.APIKey,
 		m.config.HOLogic,
-		m.model.UECountPerCell,
-		m.model.RrcStateChangesDisabled,
-		m.model.WayPointRoute,
 		hoCtrl,
 		m.finishHOsChan,
 	)
@@ -228,7 +221,6 @@ func (m *Manager) computeUEAttributes() {
 			ue.Cell.BwpRefs = ues.GetBWPRefs(ueBWPIndexes[i])
 			// create UE with updated BwpRefs here and not in InitUEs
 			m.ueStore.CreateUE(ctx, ue)
-			m.cellStore.IncrementRrcConnectedCount(ctx, ue.Cell.NCGI)
 		}
 	}
 	m.ueStore.UpdateMaxUEsPerCell(ctx)
@@ -375,10 +367,9 @@ func (m *Manager) Resume() {
 
 	m.computeCellAttributes()
 	m.computeUEAttributes()
-	m.initmobilityDriver()
+	m.initΜobilityDriver()
 	m.performHandovers()
-	m.mobilityDriver.Stop()
-	m.waitHandoverDone()
+	m.waitHandoversExecution()
 	m.computeCellStatistics()
 	go func() {
 		time.Sleep(1 * time.Millisecond)
@@ -394,13 +385,11 @@ func (m *Manager) performHandovers() {
 	}
 }
 
-func (m *Manager) waitHandoverDone() {
-	for {
-		select {
-
-		case <-m.finishHOsChan:
-			log.Info("HOs completed")
-			return
-		}
+func (m *Manager) waitHandoversExecution() {
+	m.mobilityDriver.Stop()
+	for range m.finishHOsChan {
+		log.Info("HOs completed")
+		return
 	}
+
 }

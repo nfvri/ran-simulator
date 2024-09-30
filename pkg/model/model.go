@@ -165,6 +165,7 @@ type Cell struct {
 	Bwps                 map[string]Bwp     `mapstructure:"bwps"`
 	RrcIdleCount         uint32
 	RrcConnectedCount    uint32
+	Cached               bool
 	Grid
 }
 

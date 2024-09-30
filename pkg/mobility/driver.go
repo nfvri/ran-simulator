@@ -87,16 +87,13 @@ type driver struct {
 }
 
 // NewMobilityDriver returns a driving engine capable of "driving" UEs along pre-specified routes
-func NewMobilityDriver(m *model.Model, cellStore cells.Store, routeStore routes.Store, ueStore ues.Store, apiKey string, hoLogic string, ueCountPerCell uint, rrcStateChangesDisabled bool, wayPointRoute bool, hoCtrl handover.HOController, finishHOsChan chan bool) Driver {
+func NewMobilityDriver(m *model.Model, hoLogic string, hoCtrl handover.HOController, finishHOsChan chan bool) Driver {
 	return &driver{
-		m: m,
-		// cellStore: cellStore,
-		// routeStore:              routeStore,
-		// ueStore:                 ueStore,
+		m:                       m,
 		hoLogic:                 hoLogic,
-		rrcCtrl:                 NewRrcCtrl(ueCountPerCell),
-		rrcStateChangesDisabled: rrcStateChangesDisabled,
-		wayPointRoute:           wayPointRoute,
+		rrcCtrl:                 NewRrcCtrl(m.UECountPerCell),
+		rrcStateChangesDisabled: m.RrcStateChangesDisabled,
+		wayPointRoute:           m.WayPointRoute,
 		hoCtrl:                  hoCtrl,
 		finishHOsChan:           finishHOsChan,
 	}
@@ -316,6 +313,7 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 			if hoDecision.Feasible {
 				d.Handover(ctx, hoDecision.UE, hoDecision.TargetCell)
 			} else {
+				// TODO: delete ue.BwpRefs and sCell.BWPs from cell but not transfer them and ue.Rrcstatus_RRCSTATUS_INACTIVE
 				logrus.Warnf("Handover infeasible for imsi: %v, at cell: %v",
 					hoDecision.UE.IMSI,
 					hoDecision.TargetCell.NCGI,
@@ -349,12 +347,14 @@ func (d *driver) Handover(ctx context.Context, ue *model.UE, tCell *model.UECell
 	// d.DecrementRrcConnectedCount(ue.Cell.NCGI)
 	// d.IncrementRrcConnectedCount(tCell.NCGI)
 
-	//TODO:
+	//TODO: update ueCell.BwpRefs and delete oldcell.BWPs and append tCell.BWPs and tueCell.BWPs
 	// ue.Cell <- new cell
 	// append(ue.Cells, oldSCell)
 	// d.UpdateBWPRefs()
 
 	// after changing serving cell, calculate channel quality/signal strength again
+
+	// TODO: update all ueCells metrics(rsrp,rsrq,sinr) for sCell and cCells
 	d.UpdateUESignalStrength(ue.IMSI)
 	// d.ueStore.UpdateMaxUEsPerCell(ctx)
 
@@ -385,19 +385,23 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 func (d *driver) updateUESignalStrengthCandServCells(ue *model.UE) error {
 
 	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
-	mpf := signal.RiceanFading(signal.GetRiceanK(&sCell))
-	rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell)
-	ue.Cell.Rsrp = rsrp
+	if !sCell.Cached {
+		mpf := signal.RiceanFading(signal.GetRiceanK(&sCell))
+		rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell)
+		ue.Cell.Rsrp = rsrp
+	}
 
 	for _, ueCell := range ue.Cells {
 		cell := d.m.Cells[strconv.FormatUint(uint64(ueCell.NCGI), 10)]
-		mpf := signal.RiceanFading(signal.GetRiceanK(&cell))
-		rsrp := signal.Strength(ue.Location, ue.Height, mpf, cell)
-		if rsrp == math.Inf(-1) || math.IsNaN(rsrp) {
-			continue
-		}
+		if !sCell.Cached {
+			mpf := signal.RiceanFading(signal.GetRiceanK(&cell))
+			rsrp := signal.Strength(ue.Location, ue.Height, mpf, cell)
+			if rsrp == math.Inf(-1) || math.IsNaN(rsrp) {
+				continue
+			}
 
-		ueCell.Rsrp = rsrp
+			ueCell.Rsrp = rsrp
+		}
 
 	}
 	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = *ue

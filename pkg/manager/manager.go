@@ -318,7 +318,6 @@ func (m *Manager) stopNorthboundServer() {
 func (m *Manager) PauseAndClear(ctx context.Context) {
 	log.Info("Pausing RAN simulator...")
 	m.metricsStore.Clear(ctx)
-	m.mobilityDriver.Stop()
 }
 
 // LoadModel loads the new model into the simulator

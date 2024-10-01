@@ -3,7 +3,6 @@ package signal
 import (
 	"testing"
 
-	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,13 +25,4 @@ func TestCalculateRSRQ(t *testing.T) {
 	t.Logf("rssiDbm: %f sinrCalc:%v\n", rsrq, sinrCalc)
 	t.Logf("rsrq: %f rsrq1:%v  rsrq1Calc: %v \n", rsrq, rsrq1, rsrqCalc)
 
-}
-
-func TestUpdateCells(t *testing.T) {
-	cqi := 5
-	numPRBs := 24
-	sinr := GetSINR(cqi)
-	rsrp := -95.0
-	rsrq := RSRQ(sinr, numPRBs)
-	CreateSimulationUE(17660905553922, 1, cqi, sinr, rsrp, rsrq, model.Coordinate{Lat: 0.0, Lng: 0.0}, []*model.UECell{})
 }

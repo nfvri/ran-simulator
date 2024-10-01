@@ -15,7 +15,7 @@ var logHoCtrl = logging.GetLogger("handover", "controller")
 func NewHOController(hoType HOType, ho A3Handover) HOController {
 	return &hoController{
 		hoType:     hoType,
-		inputChan:  make(chan *model.UE),
+		inputChan:  make(chan model.UE),
 		outputChan: make(chan A3HandoverDecision),
 		HoHandler:  ho,
 	}
@@ -27,7 +27,7 @@ type HOController interface {
 	Start()
 
 	// GetInputChan returns input channel
-	GetInputChan() chan *model.UE
+	GetInputChan() chan model.UE
 
 	// GetOutputChan returns output channel
 	GetOutputChan() chan A3HandoverDecision
@@ -42,7 +42,7 @@ const (
 
 type hoController struct {
 	hoType     HOType
-	inputChan  chan *model.UE
+	inputChan  chan model.UE
 	outputChan chan A3HandoverDecision
 	HoHandler  A3Handover
 }
@@ -66,7 +66,7 @@ func (h *hoController) startA3HandoverHandler() {
 func (h *hoController) forwardReportToA3HandoverHandler(handler A3Handover) {
 	for ue := range h.inputChan {
 		logHoCtrl.Debugf("[input] Measurement report for HO decision: %v", ue)
-		handler.PushMeasurementEventA3(ue)
+		handler.PushMeasurementEventA3(&ue)
 	}
 }
 
@@ -77,7 +77,7 @@ func (h *hoController) forwardHandoverDecision(handler A3Handover) {
 	}
 }
 
-func (h *hoController) GetInputChan() chan *model.UE {
+func (h *hoController) GetInputChan() chan model.UE {
 	return h.inputChan
 }
 

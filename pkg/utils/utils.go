@@ -201,3 +201,18 @@ func GetNeighborCells(cell *model.Cell, simModelCells map[string]*model.Cell) []
 	}
 	return neighborCells
 }
+
+func GetNeighborCells1(cell model.Cell, modelCells map[string]model.Cell) []*model.Cell {
+
+	neighborCells := []*model.Cell{}
+	for _, ncgi := range cell.Neighbors {
+		nCell, ok := modelCells[strconv.FormatUint(uint64(ncgi), 10)]
+		if !ok {
+			continue
+		}
+		if nCell.Channel.SSBFrequency == cell.Channel.SSBFrequency {
+			neighborCells = append(neighborCells, &nCell)
+		}
+	}
+	return neighborCells
+}

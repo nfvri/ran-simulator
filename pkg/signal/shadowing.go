@@ -134,7 +134,7 @@ func FindBoundingBox(gridPoints []model.Coordinate) (bb model.BoundingBox) {
 }
 
 // Function to check if a point is inside a bounding box
-func isPointInsideBoundingBox(point model.Coordinate, bb model.BoundingBox) bool {
+func IsPointInsideBoundingBox(point model.Coordinate, bb model.BoundingBox) bool {
 	return point.Lat >= bb.MinLat &&
 		point.Lat <= bb.MaxLat &&
 		point.Lng >= bb.MinLng &&
@@ -149,7 +149,7 @@ func FindOverlappingGridPoints(cell1, cell2 *model.Cell) (pointIndxsG1, pointInd
 	overlapping = false
 
 	for _, p1 := range cell1.GridPoints {
-		if isPointInsideBoundingBox(p1, cell2.BoundingBox) {
+		if IsPointInsideBoundingBox(p1, cell2.BoundingBox) {
 			overlapping = true
 			rowG1, colG1 := FindGridCell(p1, cell1.GridPoints)
 			rowG2, colG2 := FindGridCell(p1, cell2.GridPoints)

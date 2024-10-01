@@ -216,12 +216,13 @@ type UEType string
 
 // UECell represents UE-cell relationship
 type UECell struct {
-	ID      types.GnbID `mapstructure:"id"`
-	NCGI    types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
-	Rsrp    float64     `mapstructure:"rsrp"`
-	Rsrq    float64     `mapstructure:"rsrq"`
-	Sinr    float64     `mapstructure:"sinr"`
-	BwpRefs []*Bwp      `mapstructure:"bwpRefs"`
+	ID          types.GnbID `mapstructure:"id"`
+	NCGI        types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
+	Rsrp        float64     `mapstructure:"rsrp"`
+	Rsrq        float64     `mapstructure:"rsrq"`
+	Sinr        float64     `mapstructure:"sinr"`
+	BwpRefs     []*Bwp      `mapstructure:"bwpRefs"`
+	TotalPrbsDl int
 }
 
 type Bwp struct {

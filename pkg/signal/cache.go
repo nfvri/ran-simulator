@@ -102,7 +102,7 @@ func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc 
 	}
 }
 
-func InitUEs(m *model.Model, redisStore redisLib.Store) {
+func PopulateUEs(m *model.Model, redisStore redisLib.Store) {
 	ctx := context.Background()
 
 	if m.SnapshotId == "" {

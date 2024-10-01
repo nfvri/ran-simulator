@@ -11,7 +11,10 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/signal"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,10 +68,11 @@ func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.
 					ueSINR := uesSINR[sCellNCGI][cqi]
 					ueRSRP := uesRSRP[sCellNCGI][cqi][i]
 					ueLocation := uesLocations[sCellNCGI][cqi][i]
-					ueNeighbors := signal.GetUeNeighbors(ueLocation, sCell, updatedCells, ueHeight)
-					ueRSRQ := signal.RSRQ(ueSINR, cellPrbsMap[sCellNCGI][TOTAL_PRBS_DL_METRIC])
+					ueNeighbors := GetUeNeighbors(ueLocation, sCell, updatedCells, ueHeight, cellPrbsMap)
+					totalPrbsDl := cellPrbsMap[sCellNCGI][TOTAL_PRBS_DL_METRIC]
+					ueRSRQ := signal.RSRQ(ueSINR, totalPrbsDl)
 
-					simUE, ueIMSI := signal.CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
+					simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, totalPrbsDl, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 					simUE.Cell.BwpRefs = bwpPartitions[i]
 					ueList[ueIMSI] = *simUE
 
@@ -201,4 +205,63 @@ func GetUEsRsrpBasedOnLocation(uesLocations map[uint64]map[int][]model.Coordinat
 
 	}
 	return uesRSRP
+}
+
+func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
+
+	imsi := utils.ImsiGenerator(counter)
+	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
+
+	rrcState := mho.Rrcstatus_RRCSTATUS_CONNECTED
+	// add neighbours
+	servingCell := &model.UECell{
+		ID:          types.GnbID(ncgi),
+		NCGI:        types.NCGI(ncgi),
+		Rsrq:        rsrq,
+		Rsrp:        rsrp,
+		Sinr:        sinr,
+		TotalPrbsDl: totalPrbsDl,
+	}
+
+	ue := &model.UE{
+		IMSI:        imsi,
+		AmfUeNgapID: types.AmfUENgapID(1000 + counter),
+		Type:        "phone",
+		Location:    location,
+		Heading:     0,
+		Cell:        servingCell,
+		FiveQi:      cqi,
+		CRNTI:       types.CRNTI(90125 + counter),
+		Cells:       neighborCells,
+		IsAdmitted:  false,
+		RrcState:    rrcState,
+	}
+
+	return ue, ueIMSI
+}
+
+func GetUeNeighbors(point model.Coordinate, sCell *model.Cell, simModelCells map[string]*model.Cell, ueHeight float64, cellPrbsMap map[uint64]map[string]int) []*model.UECell {
+	ueNeighbors := []*model.UECell{}
+
+	neighborCells := utils.GetNeighborCells(sCell, simModelCells)
+	for _, nCell := range neighborCells {
+		if signal.IsPointInsideBoundingBox(point, nCell.BoundingBox) {
+			mpf := signal.RiceanFading(signal.GetRiceanK(nCell))
+			nCellNeigh := utils.GetNeighborCells(nCell, simModelCells)
+			rsrp := signal.Strength(point, ueHeight, mpf, *nCell)
+			sinr := signal.Sinr(point, ueHeight, nCell, nCellNeigh)
+			rsrq := signal.RSRQ(sinr, 24)
+
+			ueCell := &model.UECell{
+				ID:          types.GnbID(nCell.NCGI),
+				NCGI:        nCell.NCGI,
+				Rsrp:        rsrp,
+				Rsrq:        rsrq,
+				Sinr:        sinr,
+				TotalPrbsDl: cellPrbsMap[uint64(nCell.NCGI)][TOTAL_PRBS_DL_METRIC],
+			}
+			ueNeighbors = append(ueNeighbors, ueCell)
+		}
+	}
+	return ueNeighbors
 }

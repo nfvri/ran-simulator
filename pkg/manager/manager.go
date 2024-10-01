@@ -192,7 +192,7 @@ func (m *Manager) computeCellAttributes() {
 
 func (m *Manager) computeUEAttributes() {
 
-	signal.InitUEs(m.model, &m.redisStore)
+	signal.PopulateUEs(m.model, &m.redisStore)
 
 	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
 	for ncgi, cell := range m.model.Cells {
@@ -360,8 +360,13 @@ func (m *Manager) Resume() {
 }
 
 func (m *Manager) performHandovers() {
-	for _, ue := range m.model.UEList {
-		m.mobilityDriver.GetHoCtrl().GetInputChan() <- &ue
+	ueCopies := map[string]model.UE{}
+	for imsi, ue := range m.model.UEList {
+		ueCopies[imsi] = ue
+	}
+
+	for _, ue := range ueCopies {
+		m.mobilityDriver.GetHoCtrl().GetInputChan() <- ue
 	}
 }
 

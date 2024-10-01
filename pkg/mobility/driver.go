@@ -42,7 +42,7 @@ type Driver interface {
 	GetHoCtrl() handover.HOController
 
 	// Handover
-	Handover(ctx context.Context, ue *model.UE, tCell *model.UECell)
+	Handover(ctx context.Context, ue model.UE, tCell *model.UECell)
 
 	UpdateUESignalStrength(imsi types.IMSI)
 
@@ -88,6 +88,7 @@ type driver struct {
 
 // NewMobilityDriver returns a driving engine capable of "driving" UEs along pre-specified routes
 func NewMobilityDriver(m *model.Model, hoLogic string, hoCtrl handover.HOController, finishHOsChan chan bool) Driver {
+
 	return &driver{
 		m:                       m,
 		hoLogic:                 hoLogic,
@@ -135,7 +136,7 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 		case hoDecision := <-d.hoCtrl.GetOutputChan():
 			log.Debugf("Received HO Decision: %v", hoDecision)
 			if hoDecision.Feasible {
-				d.Handover(ctx, hoDecision.UE, hoDecision.TargetCell)
+				d.Handover(ctx, *hoDecision.UE, hoDecision.TargetCell)
 			} else {
 				// TODO: delete ue.BwpRefs and sCell.BWPs from cell but not transfer them and ue.Rrcstatus_RRCSTATUS_INACTIVE
 
@@ -155,7 +156,7 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 }
 
 // Handover handovers ue to target cell
-func (d *driver) Handover(ctx context.Context, ue *model.UE, tCell *model.UECell) {
+func (d *driver) Handover(ctx context.Context, ue model.UE, tCell *model.UECell) {
 	log.Infof("Handover() imsi:%v, tCell:%v", ue.IMSI, tCell)
 
 	// Update RRC state on handover
@@ -177,7 +178,7 @@ func (d *driver) Handover(ctx context.Context, ue *model.UE, tCell *model.UECell
 	// after changing serving cell, calculate channel quality/signal strength again
 
 	// TODO: update all ueCells metrics(rsrp,rsrq,sinr) for sCell and cCells
-	d.UpdateUESignalStrength(ue.IMSI)
+	d.UpdateUECellsParams(ue)
 
 	log.Infof("HO is done successfully: %v to %v", ue.IMSI, tCell)
 }
@@ -216,6 +217,25 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 			ueCell.Rsrp = rsrp
 		}
 
+	}
+	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = ue
+}
+
+func (d *driver) UpdateUECellsParams(ue model.UE) {
+
+	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
+	mpf := signal.RiceanFading(signal.GetRiceanK(&sCell))
+
+	ue.Cell.Rsrp = signal.Strength(ue.Location, ue.Height, mpf, sCell)
+	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, &sCell, utils.GetNeighborCells1(sCell, d.m.Cells))
+	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
+
+	for _, ueCell := range ue.Cells {
+		cell := d.m.Cells[strconv.FormatUint(uint64(ueCell.NCGI), 10)]
+		mpf := signal.RiceanFading(signal.GetRiceanK(&cell))
+		ueCell.Rsrp = signal.Strength(ue.Location, ue.Height, mpf, cell)
+		ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, &sCell, utils.GetNeighborCells1(sCell, d.m.Cells))
+		ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
 	}
 	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = ue
 }

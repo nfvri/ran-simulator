@@ -571,7 +571,7 @@ func (c *Client) runHandover(ctx context.Context, controlHeader *e2smrcies.E2SmR
 				ID:   ransimtypes.GnbID(ncgi),
 				NCGI: ncgi,
 			}
-			c.mobilityDriver.Handover(ctx, ue, tCell)
+			c.mobilityDriver.Handover(ctx, *ue, tCell)
 		}
 	}
 	return nil

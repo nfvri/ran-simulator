@@ -36,7 +36,7 @@ type Driver interface {
 	Start(ctx context.Context)
 
 	// Stop stops the driving engine
-	Stop()
+	Stop(notifyAfterFinish bool)
 
 	// GetHoCtrl
 	GetHoCtrl() handover.HOController
@@ -119,9 +119,9 @@ func (d *driver) Start(ctx context.Context) {
 
 }
 
-func (d *driver) Stop() {
+func (d *driver) Stop(notifyAfterFinish bool) {
 	log.Info("Driver stopping")
-	d.stopLocalHO <- true
+	d.stopLocalHO <- notifyAfterFinish
 }
 
 func (d *driver) GetHoCtrl() handover.HOController {
@@ -144,9 +144,11 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 					hoDecision.TargetCell.NCGI,
 				)
 			}
-		case <-d.stopLocalHO:
+		case notifyAfterFinish := <-d.stopLocalHO:
 			log.Info("local HO stopped")
-			d.finishHOsChan <- true
+			if notifyAfterFinish {
+				d.finishHOsChan <- true
+			}
 			return
 		}
 	}

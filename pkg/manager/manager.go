@@ -160,7 +160,7 @@ func (m *Manager) Close() {
 	log.Info("Closing Manager")
 	// m.stopE2Agents()
 	m.stopNorthboundServer()
-	m.mobilityDriver.Stop()
+	m.mobilityDriver.Stop(false)
 }
 
 func (m *Manager) initMetricStore() {
@@ -366,7 +366,7 @@ func (m *Manager) performHandovers() {
 }
 
 func (m *Manager) waitHandoversExecution() {
-	m.mobilityDriver.Stop()
+	m.mobilityDriver.Stop(true)
 	for range m.finishHOsChan {
 		log.Info("HOs completed")
 		return

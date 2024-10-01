@@ -2,17 +2,16 @@ package ues
 
 import (
 	"context"
-	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
-	model_ransim "github.com/nfvri/ran-simulator/pkg/model"
-	signal_ransim "github.com/nfvri/ran-simulator/pkg/signal"
-	redis_ransim "github.com/nfvri/ran-simulator/pkg/store/redis"
-	metrics_ransim "github.com/onosproject/onos-api/go/onos/ransim/metrics"
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/signal"
+	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
+	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,11 +24,11 @@ const USED_PRBS_UL_PATTERN = "RRU.PrbUsedUl.([0-9]|1[0-5])"
 const USED_PRBS_DL_METRIC = "RRU.PrbUsedDl"
 const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl"
 
-func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]*model_ransim.Cell, cacheStore redis_ransim.Store, snapshotId string, dc, ueHeight float64) (map[string]model_ransim.UE, bool) {
+func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]model.UE, bool) {
 
 	cellCqiUesMap, cellPrbsMap := CreateCellInfoMaps(cellMeasurements)
 
-	var ueList map[string]model_ransim.UE
+	var ueList map[string]model.UE
 
 	ctx := context.Background()
 	ueGroup, err := cacheStore.GetUEGroup(ctx, snapshotId)
@@ -38,7 +37,7 @@ func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]
 	if err != nil {
 		uesLocations, uesSINR := GenerateUEsLocationBasedOnCQI(cellCqiUesMap, updatedCells, ueHeight, dc)
 		uesRSRP := GetUEsRsrpBasedOnLocation(uesLocations, updatedCells, ueHeight)
-		ueList = make(map[string]model_ransim.UE)
+		ueList = make(map[string]model.UE)
 
 		for sCellNCGI, cqiMap := range cellCqiUesMap {
 			sCell, ok := updatedCells[strconv.FormatUint(sCellNCGI, 10)]
@@ -66,10 +65,10 @@ func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]
 					ueSINR := uesSINR[sCellNCGI][cqi]
 					ueRSRP := uesRSRP[sCellNCGI][cqi][i]
 					ueLocation := uesLocations[sCellNCGI][cqi][i]
-					ueNeighbors := signal_ransim.GetUeNeighbors(ueLocation, sCell, updatedCells, ueHeight)
-					ueRSRQ := signal_ransim.RSRQ(ueSINR, cellPrbsMap[sCellNCGI][TOTAL_PRBS_DL_METRIC])
+					ueNeighbors := signal.GetUeNeighbors(ueLocation, sCell, updatedCells, ueHeight)
+					ueRSRQ := signal.RSRQ(ueSINR, cellPrbsMap[sCellNCGI][TOTAL_PRBS_DL_METRIC])
 
-					simUE, ueIMSI := signal_ransim.CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
+					simUE, ueIMSI := signal.CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 					simUE.Cell.BwpRefs = bwpPartitions[i]
 					ueList[ueIMSI] = *simUE
 
@@ -85,7 +84,7 @@ func InitUEs(cellMeasurements []*metrics_ransim.Metric, updatedCells map[string]
 	return ueList, storeInCache
 }
 
-func CreateCellInfoMaps(cellMeasurements []*metrics_ransim.Metric) (map[uint64]map[int]int, map[uint64]map[string]int) {
+func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]int, map[uint64]map[string]int) {
 	//cellPrbsMap[NCGI][CQI]
 	cellCQIUEsMap := map[uint64]map[int]int{}
 	//cellPrbsMap[NCGI][MetricName]
@@ -140,9 +139,9 @@ func matchesPattern(metric, p string) bool {
 	return r.MatchString(metric)
 }
 
-func GenerateUEsLocationBasedOnCQI(cellCqiUesMap map[uint64]map[int]int, simModelCells map[string]*model_ransim.Cell, ueHeight, dc float64) (map[uint64]map[int][]model_ransim.Coordinate, map[uint64]map[int]float64) {
+func GenerateUEsLocationBasedOnCQI(cellCqiUesMap map[uint64]map[int]int, simModelCells map[string]*model.Cell, ueHeight, dc float64) (map[uint64]map[int][]model.Coordinate, map[uint64]map[int]float64) {
 	// map[servingCellNCGI]map[CQI][]Locations
-	uesLocations := make(map[uint64]map[int][]model_ransim.Coordinate)
+	uesLocations := make(map[uint64]map[int][]model.Coordinate)
 
 	// map[servingCellNCGI]map[CQI]SINR
 	uesSINR := make(map[uint64]map[int]float64)
@@ -155,16 +154,16 @@ func GenerateUEsLocationBasedOnCQI(cellCqiUesMap map[uint64]map[int]int, simMode
 			uesSINR[sCellNCGI] = make(map[int]float64)
 		}
 		if _, exists := uesLocations[sCellNCGI]; !exists {
-			uesLocations[sCellNCGI] = make(map[int][]model_ransim.Coordinate)
+			uesLocations[sCellNCGI] = make(map[int][]model.Coordinate)
 		}
 
 		for cqi, numUEs := range cqiMap {
 			wg.Add(1)
 			go func(sCellNCGI uint64, cqi, numUEs int) {
 				defer wg.Done()
-				ueSINR := signal_ransim.GetSINR(cqi)
+				ueSINR := signal.GetSINR(cqi)
 
-				ueLocationForCqi := signal_ransim.GenerateUEsLocations(sCellNCGI, numUEs, cqi, ueSINR, ueHeight, dc, simModelCells)
+				ueLocationForCqi := signal.GenerateUEsLocations(sCellNCGI, numUEs, cqi, ueSINR, ueHeight, dc, simModelCells)
 				uesLocations[sCellNCGI][cqi] = ueLocationForCqi
 				uesSINR[sCellNCGI][cqi] = ueSINR
 			}(sCellNCGI, cqi, numUEs)
@@ -176,7 +175,7 @@ func GenerateUEsLocationBasedOnCQI(cellCqiUesMap map[uint64]map[int]int, simMode
 	return uesLocations, uesSINR
 }
 
-func GetUEsRsrpBasedOnLocation(uesLocations map[uint64]map[int][]model_ransim.Coordinate, simModelCells map[string]*model_ransim.Cell, ueHeight float64) map[uint64]map[int][]float64 {
+func GetUEsRsrpBasedOnLocation(uesLocations map[uint64]map[int][]model.Coordinate, simModelCells map[string]*model.Cell, ueHeight float64) map[uint64]map[int][]float64 {
 
 	// map[servingCellNCGI]map[CQI]RSRP
 	uesRSRP := make(map[uint64]map[int][]float64)
@@ -190,16 +189,12 @@ func GetUEsRsrpBasedOnLocation(uesLocations map[uint64]map[int][]model_ransim.Co
 			continue
 		}
 
-		K := 0.0
-		if sCell.Channel.LOS {
-			K = rand.NormFloat64()*signal_ransim.RICEAN_K_STD_MACRO + signal_ransim.RICEAN_K_MEAN
-		}
-		mpf := signal_ransim.RiceanFading(K)
+		mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
 
 		for cqi, cellUesLocations := range cqiMap {
 			uesRSRP[sCellNCGI][cqi] = make([]float64, len(uesLocations[sCellNCGI][cqi]))
 			for i, ueCoord := range cellUesLocations {
-				uesRSRP[sCellNCGI][cqi][i] = signal_ransim.Strength(ueCoord, ueHeight, mpf, *sCell)
+				uesRSRP[sCellNCGI][cqi][i] = signal.Strength(ueCoord, ueHeight, mpf, *sCell)
 			}
 
 		}

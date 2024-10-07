@@ -20,7 +20,7 @@ type A3Handover interface {
 	GetInputChan() chan *model.UE
 
 	// GetOutputChan returns the channel to get handover event
-	GetOutputChan() chan A3HandoverDecision
+	GetOutputChan() chan HandoverDecision
 
 	// PushMeasurementEventA3 pushes measurement to the input channel
 	PushMeasurementEventA3(*model.UE)
@@ -47,7 +47,7 @@ func (h *a3Handover) GetInputChan() chan *model.UE {
 	return h.a3HandoverHandler.Chans.InputChan
 }
 
-func (h *a3Handover) GetOutputChan() chan A3HandoverDecision {
+func (h *a3Handover) GetOutputChan() chan HandoverDecision {
 	return h.a3HandoverHandler.Chans.OutputChan
 }
 

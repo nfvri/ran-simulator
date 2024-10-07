@@ -71,7 +71,6 @@ func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.
 					simUE, ueIMSI := signal.CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 					simUE.Cell.BwpRefs = bwpPartitions[i]
 					ueList[ueIMSI] = *simUE
-
 				}
 			}
 		}

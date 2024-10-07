@@ -16,7 +16,7 @@ func NewHOController(hoType HOType, ho A3Handover) HOController {
 	return &hoController{
 		hoType:     hoType,
 		inputChan:  make(chan *model.UE),
-		outputChan: make(chan A3HandoverDecision),
+		outputChan: make(chan HandoverDecision),
 		HoHandler:  ho,
 	}
 }
@@ -30,7 +30,15 @@ type HOController interface {
 	GetInputChan() chan *model.UE
 
 	// GetOutputChan returns output channel
-	GetOutputChan() chan A3HandoverDecision
+	GetOutputChan() chan HandoverDecision
+}
+
+// HandoverDecision struct has handover decision information
+type HandoverDecision struct {
+	UE          *model.UE
+	ServingCell *model.Cell
+	TargetCell  *model.UECell
+	Feasible    bool
 }
 
 // HOType is the type of handover - currently it is string
@@ -43,7 +51,7 @@ const (
 type hoController struct {
 	hoType     HOType
 	inputChan  chan *model.UE
-	outputChan chan A3HandoverDecision
+	outputChan chan HandoverDecision
 	HoHandler  A3Handover
 }
 
@@ -81,6 +89,6 @@ func (h *hoController) GetInputChan() chan *model.UE {
 	return h.inputChan
 }
 
-func (h *hoController) GetOutputChan() chan A3HandoverDecision {
+func (h *hoController) GetOutputChan() chan HandoverDecision {
 	return h.outputChan
 }

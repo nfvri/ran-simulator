@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -230,4 +231,89 @@ func Lognormally(remaining int, partsLeft int) int {
 	}
 
 	return size
+}
+
+func ReleaseBWPs(sCell *model.Cell, ue *model.UE) []model.Bwp {
+	bwps := []model.Bwp{}
+	for _, bwp := range ue.Cell.BwpRefs {
+		bwps = append(bwps, *bwp)
+	}
+	ue.Cell.BwpRefs = []*model.Bwp{}
+	sCell.Bwps = map[string]*model.Bwp{}
+	return bwps
+}
+
+func AllocateBWPs(tCell *model.Cell, servedUEs []*model.UE, ue *model.UE, requestedBwps []model.Bwp) {
+
+	if enoughBW(tCell, requestedBwps) {
+		bwpId := len(tCell.Bwps)
+		for _, bwp := range requestedBwps {
+			bwp.ID = strconv.Itoa(bwpId)
+			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
+			tCell.Bwps[bwp.ID] = &bwp
+			bwpId++
+		}
+		return
+	}
+
+	currAlloc := map[types.IMSI][]model.Bwp{
+		ue.IMSI: requestedBwps,
+	}
+	// delete current allocation
+	for _, servedUe := range servedUEs {
+		currAlloc[servedUe.IMSI] = ReleaseBWPs(tCell, servedUe)
+	}
+
+	// reallocate using selected scheme
+	servedUEs = append(servedUEs, ue)
+	switch tCell.ResourceAllocScheme {
+	case PROPORTIONAL_FAIR:
+		pf := ProportionalFair{
+			UeBwMaxDecPerc:      0.1,
+			InitialBwAllocation: tCell.InitialBwAllocation,
+			CurrBwAllocation:    BwAlloctionOf(servedUEs),
+		}
+		pf.apply(tCell, servedUEs)
+	}
+}
+
+func enoughBW(tCell *model.Cell, requestedBwps []model.Bwp) bool {
+	//TODO: check if UL+DL is sufficient istead of individual checks
+	requestedBWDLUe, requestedBWULUe := 0, 0
+	for _, bwp := range requestedBwps {
+		if bwp.Downlink {
+			requestedBWDLUe += bwp.Scs * 12 * bwp.NumberOfRBs
+		} else {
+			requestedBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
+		}
+	}
+	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
+
+	sufficientBWDL := tCell.Channel.BsChannelBwDL-uint32(usedBWDLCell) > uint32(requestedBWDLUe)
+	sufficientBWUL := tCell.Channel.BsChannelBwUL-uint32(usedBWULCell) > uint32(requestedBWULUe)
+
+	return sufficientBWDL && sufficientBWUL
+}
+
+func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
+
+	for _, bwp := range cell.Bwps {
+		if bwp.Downlink {
+			usedBWDLCell += bwp.Scs * 12 * bwp.NumberOfRBs
+		} else {
+			usedBWULCell += bwp.Scs * 12 * bwp.NumberOfRBs
+		}
+	}
+	return
+
+}
+
+func BwAlloctionOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
+	bwAlloc := map[types.IMSI][]model.Bwp{}
+	for _, ue := range ues {
+		for _, bwp := range ue.Cell.BwpRefs {
+			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], *bwp)
+		}
+	}
+	return bwAlloc
 }

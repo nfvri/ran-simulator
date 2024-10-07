@@ -10,8 +10,9 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
 	e2smmhosm "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/servicemodel"
-	"github.com/onosproject/rrm-son-lib/pkg/handover"
+	mho "github.com/onosproject/rrm-son-lib/pkg/handover"
 
+	lho "github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
@@ -49,7 +50,7 @@ type Mho struct {
 func NewServiceModel(node model.Node, model *model.Model,
 	subStore *subscriptions.Subscriptions, nodeStore nodes.Store,
 	ueStore ues.Store, cellStore cells.Store, metricStore metrics.Store,
-	a3Chan chan handover.A3HandoverDecision, mobilityDriver mobility.Driver) (registry.ServiceModel, error) {
+	a3Chan chan mho.A3HandoverDecision, mobilityDriver mobility.Driver) (registry.ServiceModel, error) {
 	modelName := e2smtypes.ShortName(modelFullName)
 	mhoSm := registry.ServiceModel{
 		RanFunctionID: registry.Mho,
@@ -377,7 +378,11 @@ func (m *Mho) RICControl(ctx context.Context, request *e2appducontents.Riccontro
 			ID:   types.GnbID(tCellNcgi),
 			NCGI: tCellNcgi,
 		}
-		m.mobilityDriver.Handover(ctx, &model.UE{IMSI: ransimtypes.IMSI(imsi)}, tCell)
+		hoDecision := lho.HandoverDecision{
+			UE:         &model.UE{IMSI: ransimtypes.IMSI(imsi)},
+			TargetCell: tCell,
+		}
+		m.mobilityDriver.Handover(ctx, hoDecision)
 	}()
 
 	reqID, err := controlutils.GetRequesterID(request)

@@ -14,8 +14,8 @@ import (
 	"time"
 
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
-	"github.com/sirupsen/logrus"
 
+	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/measurement"
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -42,7 +42,7 @@ type Driver interface {
 	GetHoCtrl() handover.HOController
 
 	// Handover
-	Handover(ctx context.Context, ue *model.UE, tCell *model.UECell)
+	Handover(ctx context.Context, hoDecision handover.HandoverDecision)
 
 	UpdateUESignalStrength(imsi types.IMSI)
 
@@ -134,16 +134,9 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 		select {
 		case hoDecision := <-d.hoCtrl.GetOutputChan():
 			log.Debugf("Received HO Decision: %v", hoDecision)
-			if hoDecision.Feasible {
-				d.Handover(ctx, hoDecision.UE, hoDecision.TargetCell)
-			} else {
-				// TODO: delete ue.BwpRefs and sCell.BWPs from cell but not transfer them and ue.Rrcstatus_RRCSTATUS_INACTIVE
-
-				logrus.Warnf("Handover infeasible for imsi: %v, at cell: %v",
-					hoDecision.UE.IMSI,
-					hoDecision.TargetCell.NCGI,
-				)
-			}
+			d.Handover(ctx, hoDecision)
+			// TODO: delete ue.BwpRefs and sCell.BWPs from cell but not transfer them
+			// and ue.Rrcstatus_RRCSTATUS_IDLE
 		case notifyAfterFinish := <-d.stopLocalHO:
 			log.Info("local HO stopped")
 			if notifyAfterFinish {
@@ -155,38 +148,43 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 }
 
 // Handover handovers ue to target cell
-func (d *driver) Handover(ctx context.Context, ue *model.UE, tCell *model.UECell) {
-	log.Infof("Handover() imsi:%v, tCell:%v", ue.IMSI, tCell)
+func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecision) {
+
+	log.Infof("Handover() imsi:%v, tCell:%v", hoDecision.UE.IMSI, hoDecision.TargetCell)
 
 	// Update RRC state on handover
-	if ue.Cell.NCGI == tCell.NCGI {
-		log.Infof("Duplicate HO skipped imsi%d, cgi:%v", ue.IMSI, tCell.NCGI)
+	if hoDecision.UE.Cell.NCGI == hoDecision.TargetCell.NCGI {
+		log.Infof("Duplicate HO skipped imsi%d, cgi:%v", hoDecision.UE.IMSI, hoDecision.TargetCell)
 		return
 	}
 
-	if ue.RrcState != e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED {
-		log.Warnf("HO skipped for not connected UE %d", ue.IMSI)
+	if hoDecision.UE.RrcState != e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED {
+		log.Warnf("HO skipped for not connected UE %d", hoDecision.UE.IMSI)
 		return
 	}
 
-	//TODO: update ueCell.BwpRefs and delete oldcell.BWPs and append tCell.BWPs and tueCell.BWPs
-	// ue.Cell <- new cell
-	// append(ue.Cells, oldSCell)
-	// d.UpdateBWPRefs()
+	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED &&
+		hoDecision.ServingCell != nil
 
-	// after changing serving cell, calculate channel quality/signal strength again
+	requestedBwps := []model.Bwp{}
+	if redirection {
+		requestedBwps = bw.ReleaseBWPs(hoDecision.ServingCell, hoDecision.UE)
+	}
+	// d.cellStore.IncrementRrcConnectedCount() -> metric store
+	// d.cellStore.DecrementRrcConnectedCount() -> metric store
+	tCellNcgiStr := strconv.FormatUint(uint64(hoDecision.TargetCell.NCGI), 10)
+	tCell := d.m.Cells[tCellNcgiStr]
+	servedUes := d.m.GetServedUEs(tCell.NCGI)
+	bw.AllocateBWPs(&tCell, servedUes, hoDecision.UE, requestedBwps)
+	d.m.Cells[tCellNcgiStr] = tCell
 
+	// TODO: swap servingCell, targetCell for UE (Cell, Cells)
+	// TODO: updateServiceMappings
 	// TODO: update all ueCells metrics(rsrp,rsrq,sinr) for sCell and cCells
-	d.UpdateUESignalStrength(ue.IMSI)
+	// after changing serving cell, calculate channel quality/signal strength again
+	d.UpdateUESignalStrength(hoDecision.UE.IMSI)
 
-	log.Infof("HO is done successfully: %v to %v", ue.IMSI, tCell)
-}
-
-func (d *driver) releaseBWPs(sCell *model.Cell, ue *model.UE) {
-	// for _, bwpRef := range ue.Cell.BwpRefs {
-	// 	// bwp := sCell.Bwps[bwpRef]
-	// 	// bwp.NumberOfRBs = 0
-	// }
+	log.Infof("HO is done successfully: %v to %v", hoDecision.UE.IMSI, hoDecision.TargetCell)
 }
 
 // UpdateUESignalStrength updates UE signal strength

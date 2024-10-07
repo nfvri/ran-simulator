@@ -208,6 +208,7 @@ func (m *Manager) computeUEAttributes() {
 		for i, ue := range servedUEs {
 			ue.Cell.BwpRefs = bwpPartitions[i]
 		}
+		cell.InitialBwAllocation = bw.BwAlloctionOf(servedUEs)
 	}
 }
 
@@ -219,7 +220,6 @@ func (m *Manager) computeCellStatistics() {
 		prbsTotalDl := 0
 		prbsTotalUl := 0
 		activeUEs := 0
-		measDuration := 1.0
 
 		if len(cell.Bwps) == 0 {
 			log.Warnf("cell %v Bwps: %v", cell.NCGI, cell.Bwps)
@@ -241,8 +241,8 @@ func (m *Manager) computeCellStatistics() {
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotDl", prbsTotalDl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotUl", prbsTotalUl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeDl", activeUEs)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpDl", statistics.UEThpDl(prbsTotalDl, measDuration))
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalUl, measDuration))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpDl", statistics.UEThpDl(prbsTotalDl, float64(len(servedUEs))))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalUl, float64(len(servedUEs))))
 
 	}
 

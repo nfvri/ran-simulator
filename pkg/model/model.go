@@ -148,24 +148,26 @@ type Channel struct {
 
 // Cell represents a section of coverage
 type Cell struct {
-	NCGI                 types.NCGI         `mapstructure:"ncgi"`
-	Sector               Sector             `mapstructure:"sector"`
-	Color                string             `mapstructure:"color"`
-	MaxUEs               uint32             `mapstructure:"maxUEs"`
-	Neighbors            []types.NCGI       `mapstructure:"neighbors"`
-	TxPowerDB            float64            `mapstructure:"txpowerdb"`
-	MeasurementParams    MeasurementParams  `mapstructure:"measurementParams"`
-	PCI                  uint32             `mapstructure:"pci"`
-	Earfcn               uint32             `mapstructure:"earfcn"`
-	CellType             types.CellType     `mapstructure:"cellType"`
-	Channel              Channel            `mapstructure:"channel"`
-	Beam                 Beam               `mapstructure:"beam"`
-	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
-	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
-	Bwps                 map[string]*Bwp    `mapstructure:"bwps"`
+	NCGI                 types.NCGI           `mapstructure:"ncgi"`
+	Sector               Sector               `mapstructure:"sector"`
+	Color                string               `mapstructure:"color"`
+	MaxUEs               uint32               `mapstructure:"maxUEs"`
+	Neighbors            []types.NCGI         `mapstructure:"neighbors"`
+	TxPowerDB            float64              `mapstructure:"txpowerdb"`
+	MeasurementParams    MeasurementParams    `mapstructure:"measurementParams"`
+	PCI                  uint32               `mapstructure:"pci"`
+	Earfcn               uint32               `mapstructure:"earfcn"`
+	CellType             types.CellType       `mapstructure:"cellType"`
+	Channel              Channel              `mapstructure:"channel"`
+	Beam                 Beam                 `mapstructure:"beam"`
+	RPCoverageBoundaries []CoverageBoundary   `mapstructure:"rpCoverageBoundaries"`
+	CoverageBoundaries   []CoverageBoundary   `mapstructure:"coverageBoundaries"`
+	InitialBwAllocation  map[types.IMSI][]Bwp `mapstructure:"initialBwps"`
+	Bwps                 map[string]*Bwp      `mapstructure:"bwps"`
 	RrcIdleCount         uint32
 	RrcConnectedCount    uint32
 	Cached               bool
+	ResourceAllocScheme  string
 	Grid
 }
 

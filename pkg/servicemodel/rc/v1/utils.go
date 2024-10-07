@@ -12,6 +12,7 @@ import (
 	"math"
 	"strconv"
 
+	lho "github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	indicationutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
@@ -571,7 +572,11 @@ func (c *Client) runHandover(ctx context.Context, controlHeader *e2smrcies.E2SmR
 				ID:   ransimtypes.GnbID(ncgi),
 				NCGI: ncgi,
 			}
-			c.mobilityDriver.Handover(ctx, ue, tCell)
+			hoDecision := lho.HandoverDecision{
+				UE:         &model.UE{IMSI: ue.IMSI},
+				TargetCell: tCell,
+			}
+			c.mobilityDriver.Handover(ctx, hoDecision)
 		}
 	}
 	return nil

@@ -67,17 +67,19 @@ func cellToAPI(cell *model.Cell) *types.Cell {
 func cellToModel(cell *types.Cell) *model.Cell {
 	return &model.Cell{
 		NCGI: cell.NCGI,
-		Sector: model.Sector{
-			Center:  model.Coordinate{Lat: cell.Sector.Centroid.Lat, Lng: cell.Sector.Centroid.Lng},
-			Arc:     cell.Sector.Arc,
-			Azimuth: float64(cell.Sector.Azimuth),
-			Tilt:    float64(cell.Sector.Tilt),
-			Height:  cell.Sector.Height,
+		CellConfig: model.CellConfig{
+			TxPowerDB: cell.TxPowerdB,
+			Sector: model.Sector{
+				Center:  model.Coordinate{Lat: cell.Sector.Centroid.Lat, Lng: cell.Sector.Centroid.Lng},
+				Arc:     cell.Sector.Arc,
+				Azimuth: float64(cell.Sector.Azimuth),
+				Tilt:    float64(cell.Sector.Tilt),
+				Height:  cell.Sector.Height,
+			},
 		},
 		Color:     cell.Color,
 		MaxUEs:    cell.MaxUEs,
 		Neighbors: cell.Neighbors,
-		TxPowerDB: cell.TxPowerdB,
 		MeasurementParams: model.MeasurementParams{
 			TimeToTrigger:          cell.MeasurementParams.TimeToTrigger,
 			FrequencyOffset:        cell.MeasurementParams.FrequencyOffset,

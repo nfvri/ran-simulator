@@ -38,9 +38,14 @@ func TestCells(t *testing.T) {
 
 	ecgi1 := types.NCGI(17660905570308)
 	cell1 := &model.Cell{
-		NCGI:   ecgi1,
-		Sector: model.Sector{Center: model.Coordinate{Lat: 46, Lng: 29}, Azimuth: 180, Arc: 180, Height: 30, Tilt: -10},
-		Color:  "blue"}
+		NCGI: ecgi1,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 46, Lng: 29}, Azimuth: 180, Arc: 180, Height: 30, Tilt: -10,
+			},
+		},
+		Color: "blue",
+	}
 
 	err = cellStore.Add(ctx, cell1)
 	assert.NoError(t, err)

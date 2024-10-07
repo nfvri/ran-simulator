@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ComputeGridPoints(bb model.BoundingBox, d_c float64, ncgi types.NCGI) []model.Coordinate {
+func ComputeGridPoints(bb *model.BoundingBox, d_c float64, ncgi types.NCGI) []model.Coordinate {
 
 	log.Debugf("square min point(%v, %v), max point(%v, %v)\n", bb.MinLat, bb.MinLng, bb.MaxLat, bb.MaxLng)
 
@@ -116,9 +116,9 @@ func FindGridCell(point model.Coordinate, gridPoints []model.Coordinate) (int, i
 }
 
 // Function to find the bounding box (min and max lat/lng) of a list of coordinates
-func FindBoundingBox(gridPoints []model.Coordinate) (bb model.BoundingBox) {
+func FindBoundingBox(gridPoints []model.Coordinate) (bb *model.BoundingBox) {
 
-	bb = model.BoundingBox{
+	bb = &model.BoundingBox{
 		MinLat: math.MaxFloat64,
 		MinLng: math.MaxFloat64,
 		MaxLat: -math.MaxFloat64,
@@ -134,7 +134,7 @@ func FindBoundingBox(gridPoints []model.Coordinate) (bb model.BoundingBox) {
 }
 
 // Function to check if a point is inside a bounding box
-func IsPointInsideBoundingBox(point model.Coordinate, bb model.BoundingBox) bool {
+func IsPointInsideBoundingBox(point model.Coordinate, bb *model.BoundingBox) bool {
 	return point.Lat >= bb.MinLat &&
 		point.Lat <= bb.MaxLat &&
 		point.Lng >= bb.MinLng &&
@@ -174,17 +174,23 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
 		sigma = 8.0
 	}
-	rpBoundaryPoints := cell.RPCoverageBoundaries[0].BoundaryPoints
+	rpBoundaryPoints := cell.CachedStates[cell.CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints
 	if len(rpBoundaryPoints) == 0 {
 		return
 	}
 	log.Infof("NCGI: %v: len(rpBoundaryPoints): %d", cell.NCGI, len(rpBoundaryPoints))
-	cell.BoundingBox = FindBoundingBox(rpBoundaryPoints)
-	cell.GridPoints = ComputeGridPoints(cell.BoundingBox, d_c, cell.NCGI)
 
-	log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints))
-	cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
-	log.Infof("NCGI: %v: len(ShadowingMap): %d", cell.NCGI, len(cell.ShadowingMap))
+	boundingBox := FindBoundingBox(rpBoundaryPoints)
+
+	if cell.BoundingBox == nil || boundingBox.GreaterThan(cell.BoundingBox) {
+		cell.BoundingBox = boundingBox
+
+		cell.GridPoints = ComputeGridPoints(cell.BoundingBox, d_c, cell.NCGI)
+
+		log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints))
+		cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
+		log.Infof("NCGI: %v: len(ShadowingMap): %d", cell.NCGI, len(cell.ShadowingMap))
+	}
 }
 
 func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {

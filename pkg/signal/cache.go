@@ -17,42 +17,50 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	ctx := context.Background()
 	var wg sync.WaitGroup
 	storeInCache := false
+	shouldUpdateCellStates := false
+
+	updateCell := func(snapShotCell, cachedCell *model.Cell) {
+		wg.Add(1)
+		go func(snapShotCell, cachedCell *model.Cell) {
+			defer wg.Done()
+			updateCellParams(snapShotCell, cachedCell, ueHeight, refSignalStrength, dc)
+		}(snapShotCell, cachedCell)
+	}
+
 	cachedCells := map[types.NCGI]struct{}{}
-
 	cachedCellGroup, err := redisStore.GetCellGroup(ctx, snapshotId)
-	// Add cellGroup in redis only if a new snapshot is created
-	// Don't add cellGroup in redis if UpdateCells is called in visualize liveSnapshot
-	storeInCache = (snapshotId != "") && (err != nil)
-	if err != nil {
 
+	if err != nil {
 		for _, cell := range cellGroup {
-			wg.Add(1)
-			go func(cell *model.Cell) {
-				defer wg.Done()
-				updateCellParams(ueHeight, cell, refSignalStrength, dc)
-			}(cell)
+			updateCell(cell, nil)
 		}
 	} else {
 		for _, cell := range cellGroup {
 			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
 			cachedCell, ok := cachedCellGroup[ncgi]
-			if !ok || !cell.ConfigEquivalent(&cachedCell) {
-				wg.Add(1)
-				go func(cell *model.Cell) {
-					defer wg.Done()
-					updateCellParams(ueHeight, cell, refSignalStrength, dc)
-				}(cell)
-
+			if !ok {
+				shouldUpdateCellStates = true
+				updateCell(cell, &cachedCell)
+			}
+			cellConfig := cell.GetCellConfig()
+			log.Infof("%v --> cell.cellConfig.TxPowerDB: %v", cell.NCGI, cellConfig.TxPowerDB)
+			_, ok = cachedCell.CachedStates[cell.GetHashedConfig()]
+			if !ok {
+				shouldUpdateCellStates = true
+				updateCell(cell, &cachedCell)
 			} else {
+				cachedCell.CurrentStateHash = cell.GetHashedConfig()
 				cellGroup[ncgi] = &cachedCell
 				cachedCell.Cached = true
 				cachedCells[cell.NCGI] = struct{}{}
 			}
-
 		}
 	}
 
 	wg.Wait()
+	// Add cellGroup in redis only if a new snapshot is created
+	// Don't add cellGroup in redis if UpdateCells is called in visualize liveSnapshot
+	storeInCache = (snapshotId != "") && ((err != nil) || shouldUpdateCellStates)
 
 	cellList := []*model.Cell{}
 	for _, cell := range cellGroup {
@@ -73,28 +81,41 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	return storeInCache
 }
 
-func updateCellParams(ueHeight float64, cell *model.Cell, refSignalStrength, dc float64) {
-	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, cell, refSignalStrength)
+func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalStrength, dc float64) {
+	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, snapShotCell, refSignalStrength)
 	if len(rpBoundaryPoints) == 0 {
-		log.Errorf("failed to update cell's: %v rpBoundaryPoints", cell.NCGI)
+		log.Errorf("failed to update cell's: %v rpBoundaryPoints", snapShotCell.NCGI)
 		return
 	}
 
-	cell.RPCoverageBoundaries = []model.CoverageBoundary{
-		{
-			RefSignalStrength: refSignalStrength,
-			BoundaryPoints:    rpBoundaryPoints,
+	if cachedCell != nil {
+		snapShotCell.CachedStates = cachedCell.CachedStates
+		snapShotCell.Bwps = cachedCell.Bwps
+		snapShotCell.Grid = cachedCell.Grid
+	} else {
+		snapShotCell.CachedStates = make(map[string]*model.CellSignalInfo)
+	}
+
+	snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
+	snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellSignalInfo{
+		RPCoverageBoundaries: []model.CoverageBoundary{
+			{
+				RefSignalStrength: refSignalStrength,
+				BoundaryPoints:    rpBoundaryPoints,
+			},
 		},
 	}
-	InitShadowMap(cell, dc)
-	covBoundaryPoints := GetCovBoundaryPoints(ueHeight, cell, refSignalStrength, rpBoundaryPoints)
 
+	InitShadowMap(snapShotCell, dc)
+
+	covBoundaryPoints := GetCovBoundaryPoints(ueHeight, snapShotCell, refSignalStrength, rpBoundaryPoints)
 	if len(covBoundaryPoints) == 0 {
-		log.Errorf("failed to update cell's: %v covBoundaryPoints", cell.NCGI)
+		log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
 		return
 	}
-	log.Infof("NCGI: %v: len(covBoundaryPoints): %d", cell.NCGI, len(covBoundaryPoints))
-	cell.CoverageBoundaries = []model.CoverageBoundary{
+	log.Infof("NCGI: %v: len(covBoundaryPoints): %d", snapShotCell.NCGI, len(covBoundaryPoints))
+
+	snapShotCell.CachedStates[snapShotCell.CurrentStateHash].CoverageBoundaries = []model.CoverageBoundary{
 		{
 			RefSignalStrength: refSignalStrength,
 			BoundaryPoints:    covBoundaryPoints,

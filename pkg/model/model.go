@@ -5,6 +5,9 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"strconv"
 
 	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
@@ -146,43 +149,53 @@ type Channel struct {
 	LOS            bool   `mapstructure:"LOS"`
 }
 
-// Cell represents a section of coverage
-type Cell struct {
-	NCGI                 types.NCGI         `mapstructure:"ncgi"`
-	Sector               Sector             `mapstructure:"sector"`
-	Color                string             `mapstructure:"color"`
-	MaxUEs               uint32             `mapstructure:"maxUEs"`
-	Neighbors            []types.NCGI       `mapstructure:"neighbors"`
-	TxPowerDB            float64            `mapstructure:"txpowerdb"`
-	MeasurementParams    MeasurementParams  `mapstructure:"measurementParams"`
-	PCI                  uint32             `mapstructure:"pci"`
-	Earfcn               uint32             `mapstructure:"earfcn"`
-	CellType             types.CellType     `mapstructure:"cellType"`
-	Channel              Channel            `mapstructure:"channel"`
-	Beam                 Beam               `mapstructure:"beam"`
+type CellConfig struct {
+	TxPowerDB float64 `mapstructure:"txpowerdb"`
+	Sector    Sector  `mapstructure:"sector"`
+	Channel   Channel `mapstructure:"channel"`
+	Beam      Beam    `mapstructure:"beam"`
+}
+
+type CellSignalInfo struct {
 	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
 	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
-	Bwps                 map[string]*Bwp    `mapstructure:"bwps"`
-	RrcIdleCount         uint32
-	RrcConnectedCount    uint32
-	Cached               bool
+}
+
+// Cell represents a section of coverage
+type Cell struct {
+	CellConfig
+	NCGI              types.NCGI        `mapstructure:"ncgi"`
+	Color             string            `mapstructure:"color"`
+	MaxUEs            uint32            `mapstructure:"maxUEs"`
+	Neighbors         []types.NCGI      `mapstructure:"neighbors"`
+	MeasurementParams MeasurementParams `mapstructure:"measurementParams"`
+	PCI               uint32            `mapstructure:"pci"`
+	Earfcn            uint32            `mapstructure:"earfcn"`
+	CellType          types.CellType    `mapstructure:"cellType"`
+	Bwps              map[string]*Bwp   `mapstructure:"bwps"`
+	RrcIdleCount      uint32
+	RrcConnectedCount uint32
+	Cached            bool
+	CachedStates      map[string]*CellSignalInfo
+	CurrentStateHash  string
 	Grid
 }
 
-func (cell *Cell) ConfigEquivalent(otherCell *Cell) bool {
-	return cell.TxPowerDB == otherCell.TxPowerDB &&
-		cell.Channel.SSBFrequency == otherCell.Channel.SSBFrequency &&
-		cell.Channel.Environment == otherCell.Channel.Environment &&
-		cell.Channel.LOS == otherCell.Channel.LOS &&
-		cell.Beam.H3dBAngle == otherCell.Beam.H3dBAngle &&
-		cell.Beam.V3dBAngle == otherCell.Beam.V3dBAngle &&
-		cell.Beam.MaxGain == otherCell.Beam.MaxGain &&
-		cell.Beam.MaxAttenuationDB == otherCell.Beam.MaxAttenuationDB &&
-		cell.Sector.Azimuth == otherCell.Sector.Azimuth &&
-		cell.Sector.Arc == otherCell.Sector.Arc &&
-		cell.Sector.Tilt == otherCell.Sector.Tilt &&
-		cell.Sector.Center.Lat == otherCell.Sector.Center.Lat &&
-		cell.Sector.Center.Lng == otherCell.Sector.Center.Lng
+func (cell *Cell) GetCellConfig() CellConfig {
+	return CellConfig{
+		TxPowerDB: cell.TxPowerDB,
+		Sector:    cell.Sector,
+		Channel:   cell.Channel,
+		Beam:      cell.Beam,
+	}
+}
+
+func (cell *Cell) GetHashedConfig() string {
+	cellConfig, _ := json.Marshal(cell.GetCellConfig())
+	hash := sha256.New()
+	hash.Write(cellConfig)
+
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 type Beam struct {
@@ -196,7 +209,7 @@ type Beam struct {
 type Grid struct {
 	ShadowingMap []float64    `json:"shadowingMap"`
 	GridPoints   []Coordinate `json:"gridPoints"`
-	BoundingBox  BoundingBox  `json:"boundingBox"`
+	BoundingBox  *BoundingBox `json:"boundingBox"`
 }
 
 type BoundingBox struct {
@@ -204,6 +217,12 @@ type BoundingBox struct {
 	MinLng float64 `json:"minLng"`
 	MaxLat float64 `json:"maxLat"`
 	MaxLng float64 `json:"maxLng"`
+}
+
+func (bb *BoundingBox) GreaterThan(bb2 *BoundingBox) bool {
+	bbArea := (bb.MaxLat - bb.MinLat) * (bb.MaxLng - bb.MinLng)
+	bb2Area := (bb2.MaxLat - bb2.MinLat) * (bb2.MaxLng - bb2.MinLng)
+	return bbArea > bb2Area
 }
 
 type CoverageBoundary struct {

@@ -60,6 +60,10 @@ func (s *MockedRedisStore) GetCellGroup(ctx context.Context, snapshotId string) 
 		cellGroup, ok := s.cache[snapshotId]
 
 		if ok {
+			// cellGroupPtr := make(map[string]*model.Cell)
+			// for ncgi, cell := range cellGroup {
+			// 	cellGroupPtr[ncgi] = &cell
+			// }
 			return cellGroup, nil
 		}
 

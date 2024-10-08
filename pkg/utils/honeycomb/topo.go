@@ -59,7 +59,7 @@ func printNode(w *bufio.Writer, node model.Node) {
 	_, _ = w.WriteString("---\n")
 }
 
-func printCell(w *bufio.Writer, cell model.Cell) {
+func printCell(w *bufio.Writer, cell *model.Cell) {
 	_, _ = w.WriteString("apiVersion: topo.onosproject.org/v1beta1\nkind: Entity\nmetadata:\n")
 	_, _ = w.WriteString(fmt.Sprintf("  name: e2.1.%x.%x\n", types.GetGnbID(uint64(cell.NCGI)), types.GetCellID(uint64(cell.NCGI))))
 	_, _ = w.WriteString("spec:\n")
@@ -94,7 +94,7 @@ func printNodeCellRelation(w *bufio.Writer, node model.Node, ncgi types.NCGI) {
 	_, _ = w.WriteString("---\n")
 }
 
-func printCellNeighbor(w *bufio.Writer, cell model.Cell, neighbor types.NCGI) {
+func printCellNeighbor(w *bufio.Writer, cell *model.Cell, neighbor types.NCGI) {
 	rid, _ := uuid.NewRandom()
 	_, _ = w.WriteString("apiVersion: topo.onosproject.org/v1beta1\nkind: Relation\nmetadata:\n")
 	_, _ = w.WriteString(fmt.Sprintf("  name: rid.%s\n", rid.String()))

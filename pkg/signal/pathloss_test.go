@@ -11,7 +11,7 @@ import (
 )
 
 func TestGetPathLossUrbanLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -39,7 +39,7 @@ func TestGetPathLossUrbanLOS(t *testing.T) {
 }
 
 func TestGetPathLossUrbanNLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -67,7 +67,7 @@ func TestGetPathLossUrbanNLOS(t *testing.T) {
 }
 
 func TestGetPathLossRuralLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -95,7 +95,7 @@ func TestGetPathLossRuralLOS(t *testing.T) {
 }
 
 func TestGetPathLossRuralNLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -123,7 +123,7 @@ func TestGetPathLossRuralNLOS(t *testing.T) {
 }
 
 func TestGetPathLossUnknownEnvironment(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -151,7 +151,7 @@ func TestGetPathLossUnknownEnvironment(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossUrbanLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -183,7 +183,7 @@ func TestGetChangingPositionPathLossUrbanLOS(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossUrbanNLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -215,7 +215,7 @@ func TestGetChangingPositionPathLossUrbanNLOS(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossRuralLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -247,7 +247,7 @@ func TestGetChangingPositionPathLossRuralLOS(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossRuralNLOS(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},
@@ -279,7 +279,7 @@ func TestGetChangingPositionPathLossRuralNLOS(t *testing.T) {
 }
 
 func TestPathloss(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			Sector: model.Sector{
 				Center: model.Coordinate{Lat: 0, Lng: 0},

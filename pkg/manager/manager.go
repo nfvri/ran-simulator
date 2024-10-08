@@ -173,28 +173,20 @@ func (m *Manager) computeCellAttributes() error {
 
 	ueHeight := 1.5
 	refSignalStrength := -107.0
-
 	// change model's cells key from designated name to ncgi
 	cellGroup := make(map[string]*model.Cell)
-	for key, cell := range m.model.Cells {
-		cellCopy := cell
+	for _, cell := range m.model.Cells {
 		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
-		cellGroup[ncgi] = &cellCopy
-		delete(m.model.Cells, key)
+		cellGroup[ncgi] = cell
 	}
-
-	storeCells := signal.UpdateCells(cellGroup, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
+	m.model.Cells = cellGroup
+	storeCells := signal.UpdateCells(m.model.Cells, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
 	if storeCells {
-		if err := m.redisStore.AddCellGroup(context.Background(), m.model.SnapshotId, cellGroup); err != nil {
+		if err := m.redisStore.AddCellGroup(context.Background(), m.model.SnapshotId, m.model.Cells); err != nil {
 			return fmt.Errorf("failed to store cells in cache: %v", err)
 		}
 		log.Infof("Updated CellGroup in Cache")
 	}
-	cells := make(map[string]model.Cell)
-	for ncgi, cell := range cellGroup {
-		cells[ncgi] = *cell
-	}
-	m.model.Cells = cells
 
 	return nil
 }
@@ -204,14 +196,13 @@ func (m *Manager) computeUEAttributes() {
 	signal.PopulateUEs(m.model, &m.redisStore)
 
 	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
-	for ncgi, cell := range m.model.Cells {
+	for _, cell := range m.model.Cells {
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 		if len(servedUEs) == 0 {
 			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
 			continue
 		}
-		bw.InitBWPs(&cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
-		m.model.Cells[ncgi] = cell
+		bw.InitBWPs(cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
 
 		bwpPartitions := bw.PartitionBwps(cell.Bwps, len(servedUEs), bw.Lognormally)
 		for i, ue := range servedUEs {

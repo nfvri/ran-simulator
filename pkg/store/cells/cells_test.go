@@ -20,10 +20,10 @@ import (
 )
 
 func TestCells(t *testing.T) {
-	m := model.Model{}
+	m := &model.Model{}
 	bytes, err := os.ReadFile("../../model/test.yaml")
 	assert.NoError(t, err)
-	err = yaml.Unmarshal(bytes, &m)
+	err = yaml.Unmarshal(bytes, m)
 	assert.NoError(t, err)
 	t.Log(m)
 	ctx := context.Background()

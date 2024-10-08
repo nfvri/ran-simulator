@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"strconv"
+	"sync"
 
 	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
@@ -23,7 +24,7 @@ type Model struct {
 	WayPointRoute           bool                    `mapstructure:"wayPointRoute" yaml:"wayPointRoute"`
 	DirectRoute             bool                    `mapstructure:"directRoute" yaml:"directRoute"`
 	Nodes                   map[string]Node         `mapstructure:"nodes" yaml:"nodes"`
-	Cells                   map[string]Cell         `mapstructure:"cells" yaml:"cells"`
+	Cells                   map[string]*Cell        `mapstructure:"cells" yaml:"cells"`
 	Controllers             map[string]Controller   `mapstructure:"controllers" yaml:"controllers"`
 	ServiceModels           map[string]ServiceModel `mapstructure:"servicemodels" yaml:"servicemodels"`
 	RrcStateChangesDisabled bool                    `mapstructure:"RrcStateChangesDisabled" yaml:"RrcStateChangesDisabled"`
@@ -76,12 +77,13 @@ func (m *Model) GetServingCells(imsi types.IMSI) []*Cell {
 	for _, ncgi := range m.UEToServingCells[imsi] {
 		ncgiStr := strconv.Itoa(int(ncgi))
 		cell := m.Cells[ncgiStr]
-		servingCells = append(servingCells, &cell)
+		servingCells = append(servingCells, cell)
 	}
 	return servingCells
 }
 
 type ServiceMappings struct {
+	sync.RWMutex
 	CellToUEs        map[types.NCGI][]types.IMSI
 	UEToServingCells map[types.IMSI][]types.NCGI
 }
@@ -183,6 +185,7 @@ type CellSignalInfo struct {
 
 // Cell represents a section of coverage
 type Cell struct {
+	sync.RWMutex
 	CellConfig
 	NCGI                types.NCGI           `mapstructure:"ncgi"`
 	Color               string               `mapstructure:"color"`

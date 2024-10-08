@@ -11,7 +11,7 @@ import (
 
 func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellType: types.CellType_MACRO,
 		CellConfig: model.CellConfig{
 			TxPowerDB: 40,
@@ -40,7 +40,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	ueHeight := 1.5
 	const refSignalStrength = -87
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
-		return RadiationPatternF(ueHeight, &cell, refSignalStrength)
+		return RadiationPatternF(ueHeight, cell, refSignalStrength)
 	}
 	newtonKrylovSolver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
@@ -68,7 +68,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 }
 
 func TestStrength(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellType: types.CellType_MACRO,
 		CellConfig: model.CellConfig{
 			TxPowerDB: 40,

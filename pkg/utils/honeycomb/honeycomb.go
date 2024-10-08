@@ -40,7 +40,7 @@ func GenerateHoneycombTopology(mapCenter model.Coordinate, numTowers uint, secto
 	m := &model.Model{
 		PlmnID:        plmnID,
 		MapLayout:     model.MapLayout{Center: mapCenter, LocationsScale: 1.25},
-		Cells:         make(map[string]model.Cell),
+		Cells:         make(map[string]*model.Cell),
 		Nodes:         make(map[string]model.Node),
 		Controllers:   generateControllers(controllerAddresses),
 		ServiceModels: generateServiceModels(serviceModels),
@@ -94,7 +94,7 @@ func GenerateHoneycombTopology(mapCenter model.Coordinate, numTowers uint, secto
 				azimuth = int32(360.0*s/sectorsPerTower + uint(azOffset))
 			}
 
-			cell := model.Cell{
+			cell := &model.Cell{
 				NCGI: types.ToNCGI(plmnID, types.ToNCI(gnbID, cellID)),
 				CellConfig: model.CellConfig{
 					TxPowerDB: 11,
@@ -148,7 +148,7 @@ func GenerateHoneycombTopology(mapCenter model.Coordinate, numTowers uint, secto
 	return m, nil
 }
 
-func generatePCI(cells map[string]model.Cell, minPCI uint, maxPCI uint, maxCollisions uint) {
+func generatePCI(cells map[string]*model.Cell, minPCI uint, maxPCI uint, maxCollisions uint) {
 	if len(cells) > int(maxPCI-minPCI) {
 		panic("Too little space in between the minimum and maximum PCI values. Try setting --min-pci lower or --max-pci higher")
 	}
@@ -264,7 +264,7 @@ func generateServiceModels(namesAndIDs []string) map[string]model.ServiceModel {
 }
 
 // Cells are neighbors if their sectors have the same coordinates or if their center arc vectors fall within a distance/2
-func isNeighbor(cell model.Cell, other model.Cell, maxDistance float64, onlyDistance bool) bool {
+func isNeighbor(cell *model.Cell, other *model.Cell, maxDistance float64, onlyDistance bool) bool {
 	return (cell.Sector.Center.Lat == other.Sector.Center.Lat && cell.Sector.Center.Lng == other.Sector.Center.Lng) ||
 		(onlyDistance && utils.Distance(cell.Sector.Center, other.Sector.Center) <= maxDistance) ||
 		utils.Distance(reachPoint(cell.Sector, maxDistance), reachPoint(other.Sector, maxDistance)) <= maxDistance/2

@@ -21,7 +21,7 @@ const (
 )
 
 // Strength returns the signal strength at location relative to the specified cell.
-func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) float64 {
+func Strength(coord model.Coordinate, height, mpf float64, cell *model.Cell) float64 {
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || !IsPointInsideBoundingBox(coord, cell.BoundingBox) {
 		return math.Inf(-1)
 	}
@@ -39,8 +39,8 @@ func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) floa
 
 }
 
-func RadiatedStrength(coord model.Coordinate, height float64, cell model.Cell) float64 {
-	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
+func RadiatedStrength(coord model.Coordinate, height float64, cell *model.Cell) float64 {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || cell.TxPowerDB == 0 {
 		return math.Inf(-1)
 	}
 	angleAtt := angularAttenuation(coord, height, cell)
@@ -87,7 +87,7 @@ func RSRQ1(rsrpDbm, sinrDbm float64, numPRBs int) float64 {
 // A 60° wide beam will be half that and so will have double the gain
 // https://en.wikipedia.org/wiki/Sector_antenna
 // https://en.wikipedia.org/wiki/Steradian
-func DistanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
+func DistanceAttenuation(coord model.Coordinate, cell *model.Cell) float64 {
 	latDist := coord.Lat - cell.Sector.Center.Lat
 	realLngDist := (coord.Lng - cell.Sector.Center.Lng) / utils.AspectRatio(cell.Sector.Center.Lat)
 	r := math.Hypot(latDist, realLngDist)
@@ -100,7 +100,7 @@ func DistanceAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 // It is an approximation of the directivity of the antenna
 // https://en.wikipedia.org/wiki/Radiation_pattern
 // https://en.wikipedia.org/wiki/Sector_antenna
-func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
+func AngleAttenuation(coord model.Coordinate, cell *model.Cell) float64 {
 	azRads := utils.AzimuthToRads(float64(cell.Sector.Azimuth))
 	pointRads := math.Atan2(coord.Lat-cell.Sector.Center.Lat, coord.Lng-cell.Sector.Center.Lng)
 	angularOffset := math.Abs(azRads - pointRads)
@@ -115,7 +115,7 @@ func AngleAttenuation(coord model.Coordinate, cell model.Cell) float64 {
 
 // https://www.etsi.org/deliver/etsi_tr/138900_138999/138901/17.00.00_60/tr_138901v170000p.pdf
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell) float64 {
+func angularAttenuation(coord model.Coordinate, height float64, cell *model.Cell) float64 {
 	log.Debug("\n======================================\n")
 	ueAngle := utils.CalculateBearing(cell.Sector.Center.Lat, cell.Sector.Center.Lng, coord.Lat, coord.Lng)
 
@@ -146,7 +146,7 @@ func angularAttenuation(coord model.Coordinate, height float64, cell model.Cell)
 	return -math.Min(-(verticalCut + horizontalCut), cell.TxPowerDB)
 }
 
-func calcZenithAngle(coord model.Coordinate, height float64, cell model.Cell) float64 {
+func calcZenithAngle(coord model.Coordinate, height float64, cell *model.Cell) float64 {
 
 	d2D := utils.GetSphericalDistance(coord, cell.Sector.Center) // assume small error for small distances
 	d3D := get3dEuclideanDistanceFromGPS(coord, height, cell)

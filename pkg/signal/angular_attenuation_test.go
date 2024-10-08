@@ -50,7 +50,7 @@ func Test_AngularAttenuation(t *testing.T) {
 		Height: 1.5,
 	}
 
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			TxPowerDB: 45,
 			Sector: model.Sector{

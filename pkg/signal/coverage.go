@@ -56,7 +56,7 @@ func ComputePoints(fp FProvider, guessChan <-chan []float64, nonLinSolver nonlin
 	return pointsChannel
 }
 
-func GetRandGuessesChanUEs(cell model.Cell, numGuesses, cqi, stepMeters int) <-chan []float64 {
+func GetRandGuessesChanUEs(cell *model.Cell, numGuesses, cqi, stepMeters int) <-chan []float64 {
 	rgChan := make(chan []float64)
 
 	step := utils.MetersToLatDegrees(float64(stepMeters))
@@ -90,7 +90,7 @@ func GetRandGuessesChanUEs(cell model.Cell, numGuesses, cqi, stepMeters int) <-c
 	return rgChan
 }
 
-func GetRandGuessesChanCells(cell model.Cell, numGuesses, stepSizeMeters, initOffsetMeters, cutOffDistanceMeters float64) <-chan []float64 {
+func GetRandGuessesChanCells(cell *model.Cell, numGuesses, stepSizeMeters, initOffsetMeters, cutOffDistanceMeters float64) <-chan []float64 {
 	rgChan := make(chan []float64)
 
 	stepSize := utils.MetersToLatDegrees(float64(stepSizeMeters))
@@ -139,7 +139,7 @@ func GetGuessesChan(guessesCoord []model.Coordinate) <-chan []float64 {
 func RadiationPatternF(ueHeight float64, cell *model.Cell, refSignalStrength float64) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		fValue := RadiatedStrength(coord, ueHeight, *cell) - refSignalStrength
+		fValue := RadiatedStrength(coord, ueHeight, cell) - refSignalStrength
 		out[0] = fValue
 		out[1] = fValue
 	}
@@ -147,7 +147,7 @@ func RadiationPatternF(ueHeight float64, cell *model.Cell, refSignalStrength flo
 func CoverageF(ueHeight float64, cell *model.Cell, refSignalStrength, mpf float64, radiationPatternBoundary []model.Coordinate) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		fValue := Strength(coord, ueHeight, mpf, *cell) - refSignalStrength
+		fValue := Strength(coord, ueHeight, mpf, cell) - refSignalStrength
 		out[0] = fValue
 		out[1] = fValue
 	}
@@ -168,7 +168,7 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 	initOffset := cutOffDistance / 5
 	stepsize := (20 * cutOffDistance) / numGuesses
 	log.Infof("cutOffDistance: %v -- initOffset: %v -- stepsize: %v -- stepSizeKrylof: %v", cutOffDistance, initOffset, stepsize, stepSizeMeters)
-	guessChan := GetRandGuessesChanCells(*cell, numGuesses, stepsize, initOffset, cutOffDistance)
+	guessChan := GetRandGuessesChanCells(cell, numGuesses, stepsize, initOffset, cutOffDistance)
 	newtonKrylovSolver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
 		Maxiter: maxIter,

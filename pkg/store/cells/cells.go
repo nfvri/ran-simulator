@@ -61,7 +61,7 @@ type Store interface {
 	GetRandomCell() (*model.Cell, error)
 
 	// Load add all cells from the specified cell map; no events will be generated
-	Load(ctx context.Context, nodes map[string]model.Cell)
+	Load(ctx context.Context, nodes map[string]*model.Cell)
 
 	// Clear removes all cells; no events will be generated
 	Clear(ctx context.Context)
@@ -81,7 +81,7 @@ type store struct {
 }
 
 // NewCellRegistry creates a new store abstraction from the specified fixed cell map.
-func NewCellRegistry(cells map[string]model.Cell, nodeStore nodes.Store) Store {
+func NewCellRegistry(cells map[string]*model.Cell, nodeStore nodes.Store) Store {
 	log.Infof("Creating registry from model with %d cells", len(cells))
 	watchers := watcher.NewWatchers()
 	reg := &store{
@@ -98,13 +98,13 @@ func NewCellRegistry(cells map[string]model.Cell, nodeStore nodes.Store) Store {
 }
 
 // Load add all cells from the specified cell map; no events will be generated
-func (s *store) Load(ctx context.Context, cells map[string]model.Cell) {
+func (s *store) Load(ctx context.Context, cells map[string]*model.Cell) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Copy the Cells into our own map
 	for _, c := range cells {
 		cell := c // avoids scopelint issue
-		s.cells[cell.NCGI] = &cell
+		s.cells[cell.NCGI] = cell
 	}
 }
 

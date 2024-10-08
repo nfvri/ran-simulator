@@ -197,7 +197,7 @@ func GetUEsRsrpBasedOnLocation(uesLocations map[uint64]map[int][]model.Coordinat
 		for cqi, cellUesLocations := range cqiMap {
 			uesRSRP[sCellNCGI][cqi] = make([]float64, len(uesLocations[sCellNCGI][cqi]))
 			for i, ueCoord := range cellUesLocations {
-				uesRSRP[sCellNCGI][cqi][i] = signal.Strength(ueCoord, ueHeight, mpf, *sCell)
+				uesRSRP[sCellNCGI][cqi][i] = signal.Strength(ueCoord, ueHeight, mpf, sCell)
 			}
 
 		}
@@ -247,7 +247,7 @@ func GetUeNeighbors(point model.Coordinate, sCell *model.Cell, simModelCells map
 		if signal.IsPointInsideBoundingBox(point, nCell.BoundingBox) {
 			mpf := signal.RiceanFading(signal.GetRiceanK(nCell))
 			nCellNeigh := utils.GetNeighborCells(nCell, simModelCells)
-			rsrp := signal.Strength(point, ueHeight, mpf, *nCell)
+			rsrp := signal.Strength(point, ueHeight, mpf, nCell)
 			sinr := signal.Sinr(point, ueHeight, nCell, nCellNeigh)
 			rsrq := signal.RSRQ(sinr, 24)
 

@@ -7,7 +7,6 @@ package signal
 
 import (
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -18,11 +17,11 @@ import (
 
 var cache *redisLib.MockedRedisStore
 
-func loadModel(t *testing.T) model.Model {
-	m := model.Model{}
+func loadModel(t *testing.T) *model.Model {
+	m := &model.Model{}
 	bytes, err := os.ReadFile("../model/test.yaml")
 	assert.NoError(t, err)
-	err = yaml.Unmarshal(bytes, &m)
+	err = yaml.Unmarshal(bytes, m)
 	assert.NoError(t, err)
 	return m
 }
@@ -30,49 +29,38 @@ func loadModel(t *testing.T) model.Model {
 func Test_UpdateCellsCache(t *testing.T) {
 	m := loadModel(t)
 	ueHeight := 1.5
-	updatedCells := map[string]*model.Cell{}
-	for _, cell := range m.Cells {
-		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
-		cellCopy := cell
-		updatedCells[ncgi] = &cellCopy
-	}
-	assert.Equal(t, 3, len(updatedCells))
+
+	assert.Equal(t, 3, len(m.Cells))
 	cache = &redisLib.MockedRedisStore{}
-	UpdateCells(updatedCells, cache, ueHeight, -87.0, 50, "1234")
-	assert.Equal(t, 3, len(updatedCells))
-	assert.Greater(t, len(updatedCells["17660905570307"].CachedStates[updatedCells["17660905570307"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(updatedCells["17660905553922"].CachedStates[updatedCells["17660905553922"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(updatedCells["17660905537537"].CachedStates[updatedCells["17660905537537"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	UpdateCells(m.Cells, cache, ueHeight, -87.0, 50, "1234")
+	assert.Equal(t, 3, len(m.Cells))
+	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
 
-	assert.Greater(t, len(updatedCells["17660905570307"].CachedStates[updatedCells["17660905570307"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(updatedCells["17660905553922"].CachedStates[updatedCells["17660905553922"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(updatedCells["17660905537537"].CachedStates[updatedCells["17660905537537"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
 
-	assert.Greater(t, len(updatedCells["17660905570307"].Grid.GridPoints), 100)
-	assert.Greater(t, len(updatedCells["17660905553922"].Grid.GridPoints), 100)
-	assert.Greater(t, len(updatedCells["17660905537537"].Grid.GridPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905570307"].Grid.GridPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905553922"].Grid.GridPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905537537"].Grid.GridPoints), 100)
 
-	assert.Greater(t, len(updatedCells["17660905570307"].Grid.ShadowingMap), 100)
-	assert.Greater(t, len(updatedCells["17660905553922"].Grid.ShadowingMap), 100)
-	assert.Greater(t, len(updatedCells["17660905537537"].Grid.ShadowingMap), 100)
+	assert.Greater(t, len(m.Cells["17660905570307"].Grid.ShadowingMap), 100)
+	assert.Greater(t, len(m.Cells["17660905553922"].Grid.ShadowingMap), 100)
+	assert.Greater(t, len(m.Cells["17660905537537"].Grid.ShadowingMap), 100)
 
 }
 
 func Test_GenerateUEsLocations(t *testing.T) {
 	m := loadModel(t)
 	ueHeight := 1.5
-	updatedCells := map[string]*model.Cell{}
-	for _, cell := range m.Cells {
-		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
-		cellCopy := cell
-		updatedCells[ncgi] = &cellCopy
-	}
-	assert.Equal(t, 3, len(updatedCells))
+	assert.Equal(t, 3, len(m.Cells))
 
 	if cache == nil {
 		cache = &redisLib.MockedRedisStore{}
 	}
-	UpdateCells(updatedCells, cache, ueHeight, -87.0, 50, "1234")
+	UpdateCells(m.Cells, cache, ueHeight, -87.0, 50, "1234")
 
 	uesLocations := make(map[uint64]map[int][]model.Coordinate)
 
@@ -89,7 +77,7 @@ func Test_GenerateUEsLocations(t *testing.T) {
 		}
 		for cqi, numUEs := range cqiMap {
 			ueSINR := GetSINR(cqi)
-			ueLocationForCqi := GenerateUEsLocations(sCellNCGI, numUEs, cqi, ueSINR, ueHeight, 50, updatedCells)
+			ueLocationForCqi := GenerateUEsLocations(sCellNCGI, numUEs, cqi, ueSINR, ueHeight, 50, m.Cells)
 			assert.Equal(t, numUEs, len(ueLocationForCqi))
 		}
 	}

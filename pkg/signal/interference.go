@@ -82,7 +82,7 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 	noise := calculateNoisePower(bandwidthHz, types.CellType_MACRO)
 
 	mpf := RiceanFading(GetRiceanK(sCell))
-	rsrpServing := Strength(coord, ueHeight, mpf, *sCell)
+	rsrpServing := Strength(coord, ueHeight, mpf, sCell)
 	if rsrpServing == math.Inf(-1) {
 		return math.Inf(-1)
 	}
@@ -92,7 +92,7 @@ func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborC
 
 		mpf := RiceanFading(GetRiceanK(n))
 
-		nRsrp := Strength(coord, ueHeight, mpf, *n)
+		nRsrp := Strength(coord, ueHeight, mpf, n)
 		if nRsrp == math.Inf(-1) {
 			continue
 		}
@@ -133,7 +133,7 @@ func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Ce
 SINR_POINTS_LOOP:
 	for {
 
-		sinrPointsCh := ComputePoints(cfp, GetRandGuessesChanUEs(*cell, numUes*overSampling, cqi, 25), newtonKrylovSolver, &stop)
+		sinrPointsCh := ComputePoints(cfp, GetRandGuessesChanUEs(cell, numUes*overSampling, cqi, 25), newtonKrylovSolver, &stop)
 		for sp := range sinrPointsCh {
 			if IsPointInsideBoundingBox(sp, cell.BoundingBox) {
 				sinrPoints = append(sinrPoints, sp)

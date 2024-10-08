@@ -17,9 +17,11 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	ctx := context.Background()
 	var wg sync.WaitGroup
 	storeInCache := false
-	shouldUpdateCellStates := false
+	shouldUpdateCellGroup := false
+	cachedCells := map[types.NCGI]struct{}{}
 
 	updateCell := func(snapShotCell, cachedCell *model.Cell) {
+		shouldUpdateCellGroup = true
 		wg.Add(1)
 		go func(snapShotCell, cachedCell *model.Cell) {
 			defer wg.Done()
@@ -27,40 +29,41 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 		}(snapShotCell, cachedCell)
 	}
 
-	cachedCells := map[types.NCGI]struct{}{}
 	cachedCellGroup, err := redisStore.GetCellGroup(ctx, snapshotId)
+	cellGroupIncache := err == nil
 
-	if err != nil {
-		for _, cell := range cellGroup {
+	for _, cell := range cellGroup {
+		if !cellGroupIncache {
 			updateCell(cell, nil)
+			continue
 		}
-	} else {
-		for _, cell := range cellGroup {
-			ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
-			cachedCell, ok := cachedCellGroup[ncgi]
-			if !ok {
-				shouldUpdateCellStates = true
-				updateCell(cell, &cachedCell)
-			}
-			cellConfig := cell.GetCellConfig()
-			log.Infof("%v --> cell.cellConfig.TxPowerDB: %v", cell.NCGI, cellConfig.TxPowerDB)
-			_, ok = cachedCell.CachedStates[cell.GetHashedConfig()]
-			if !ok {
-				shouldUpdateCellStates = true
-				updateCell(cell, &cachedCell)
-			} else {
-				cachedCell.CurrentStateHash = cell.GetHashedConfig()
-				cellGroup[ncgi] = &cachedCell
-				cachedCell.Cached = true
-				cachedCells[cell.NCGI] = struct{}{}
-			}
+
+		ncgi := strconv.FormatUint(uint64(cell.NCGI), 10)
+		cachedCell, cellInCache := cachedCellGroup[ncgi]
+		if !cellInCache {
+			updateCell(cell, nil)
+			continue
 		}
+
+		log.Infof("%v --> cell.cellConfig.TxPowerDB: %v", cell.NCGI, cell.GetCellConfig().TxPowerDB)
+
+		_, curCellConfigInCache := cachedCell.CachedStates[cell.GetHashedConfig()]
+		if !curCellConfigInCache {
+			updateCell(cell, &cachedCell)
+			continue
+		}
+
+		cachedCell.CurrentStateHash = cell.GetHashedConfig()
+		cellGroup[ncgi] = &cachedCell
+		cachedCell.Cached = true
+		cachedCells[cell.NCGI] = struct{}{}
+
 	}
 
 	wg.Wait()
 	// Add cellGroup in redis only if a new snapshot is created
 	// Don't add cellGroup in redis if UpdateCells is called in visualize liveSnapshot
-	storeInCache = (snapshotId != "") && ((err != nil) || shouldUpdateCellStates)
+	storeInCache = (snapshotId != "") && shouldUpdateCellGroup
 
 	cellList := []*model.Cell{}
 	for _, cell := range cellGroup {
@@ -82,11 +85,6 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 }
 
 func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalStrength, dc float64) {
-	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, snapShotCell, refSignalStrength)
-	if len(rpBoundaryPoints) == 0 {
-		log.Errorf("failed to update cell's: %v rpBoundaryPoints", snapShotCell.NCGI)
-		return
-	}
 
 	if cachedCell != nil {
 		snapShotCell.CachedStates = cachedCell.CachedStates
@@ -94,6 +92,12 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 		snapShotCell.Grid = cachedCell.Grid
 	} else {
 		snapShotCell.CachedStates = make(map[string]*model.CellSignalInfo)
+	}
+
+	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, snapShotCell, refSignalStrength)
+	if len(rpBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
+		log.Errorf("failed to update cell's: %v rpBoundaryPoints", snapShotCell.NCGI)
+		return
 	}
 
 	snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
@@ -109,7 +113,7 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 	InitShadowMap(snapShotCell, dc)
 
 	covBoundaryPoints := GetCovBoundaryPoints(ueHeight, snapShotCell, refSignalStrength, rpBoundaryPoints)
-	if len(covBoundaryPoints) == 0 {
+	if len(covBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
 		log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
 		return
 	}

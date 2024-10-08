@@ -20,17 +20,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func loadModel(t *testing.T) model.Model {
-	m := model.Model{}
+func loadModel(t *testing.T) *model.Model {
+	m := &model.Model{}
 	bytes, err := os.ReadFile("../../model/test.yaml")
 	assert.NoError(t, err)
-	err = yaml.Unmarshal(bytes, &m)
+	err = yaml.Unmarshal(bytes, m)
 	assert.NoError(t, err)
 	t.Log(m)
 	return m
 }
 
-func cellStore(m model.Model) cells.Store {
+func cellStore(m *model.Model) cells.Store {
 	return cells.NewCellRegistry(m.Cells, nodes.NewNodeRegistry(m.Nodes))
 }
 
@@ -38,7 +38,7 @@ func TestUERegistry(t *testing.T) {
 
 	m := loadModel(t)
 	ctx := context.Background()
-	ues := NewUERegistry(&m, cellStore(m), &redisLib.MockedRedisStore{}, "random")
+	ues := NewUERegistry(m, cellStore(m), &redisLib.MockedRedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	assert.Equal(t, 12, ues.Len(ctx))
 
@@ -53,7 +53,7 @@ func TestMoveUEsToCell(t *testing.T) {
 	m := loadModel(t)
 	ctx := context.Background()
 	cellStore := cellStore(m)
-	ues := NewUERegistry(&m, cellStore, &redisLib.MockedRedisStore{}, "random")
+	ues := NewUERegistry(m, cellStore, &redisLib.MockedRedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	// Get a cell NCGI
 	cell1, err := cellStore.GetRandomCell()
@@ -87,7 +87,7 @@ func TestMoveUEToCell(t *testing.T) {
 	m := loadModel(t)
 	ctx := context.Background()
 	cellStore := cellStore(m)
-	ues := NewUERegistry(&m, cellStore, &redisLib.MockedRedisStore{}, "random")
+	ues := NewUERegistry(m, cellStore, &redisLib.MockedRedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 	ue := ues.ListAllUEs(ctx)[0]
 	err := ues.MoveToCell(ctx, ue.IMSI, types.NCGI(321), 11.0)
@@ -110,7 +110,7 @@ func TestMoveUEToCoord(t *testing.T) {
 	m := loadModel(t)
 	ctx := context.Background()
 	cellStore := cellStore(m)
-	ues := NewUERegistry(&m, cellStore, &redisLib.MockedRedisStore{}, "random")
+	ues := NewUERegistry(m, cellStore, &redisLib.MockedRedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 
 	ue := ues.ListAllUEs(ctx)[0]
@@ -128,7 +128,7 @@ func TestUpdateCells(t *testing.T) {
 	m := loadModel(t)
 	ctx := context.Background()
 	cellStore := cellStore(m)
-	ues := NewUERegistry(&m, cellStore, &redisLib.MockedRedisStore{}, "random")
+	ues := NewUERegistry(m, cellStore, &redisLib.MockedRedisStore{}, "random")
 	assert.NotNil(t, ues, "unable to create UE registry")
 
 	ue := ues.ListAllUEs(ctx)[0]

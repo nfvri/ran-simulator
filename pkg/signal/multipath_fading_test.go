@@ -14,11 +14,11 @@ import (
 )
 
 // PlotReceivedPower plots the received power values and saves it as a PNG file
-func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
+func PlotReceivedPower(pathlossDb float64, realizations int, cell *model.Cell) {
 	receivedPowerDb := make(plotter.XYs, realizations)
 
 	for i := 0; i < realizations; i++ {
-		f := RiceanFading(GetRiceanK(&cell))
+		f := RiceanFading(GetRiceanK(cell))
 		if math.IsNaN(f) {
 			logrus.Warnf("NAN fading for realization:%d", i)
 			continue
@@ -85,7 +85,7 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
 }
 
 func TestRayleighFading(t *testing.T) {
-	cell := model.Cell{
+	cell := &model.Cell{
 		CellConfig: model.CellConfig{
 			TxPowerDB: 45,
 			Sector: model.Sector{

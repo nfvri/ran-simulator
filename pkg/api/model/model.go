@@ -28,7 +28,7 @@ type ManagementDelegate interface {
 	LoadMetrics(ctx context.Context) error
 
 	// Resume resume the simulation
-	Resume()
+	Resume() error
 }
 
 // NewService returns a new model Service
@@ -72,7 +72,9 @@ func (s *Server) Load(ctx context.Context, request *modelapi.LoadRequest) (*mode
 	}
 
 	if request.Resume {
-		s.delegate.Resume()
+		if err := s.delegate.Resume(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &modelapi.LoadResponse{}, nil

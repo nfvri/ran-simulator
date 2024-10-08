@@ -76,9 +76,9 @@ func printCell(w *bufio.Writer, cell model.Cell) {
 	_, _ = w.WriteString(fmt.Sprintf("      cell_type: %s\n", cell.CellType.String()))
 	_, _ = w.WriteString("    onos.topo.Coverage:\n")
 	_, _ = w.WriteString(fmt.Sprintf("      arc_width: %d\n", cell.Sector.Arc))
-	_, _ = w.WriteString(fmt.Sprintf("      tilt: %d\n", cell.Sector.Tilt))
+	_, _ = w.WriteString(fmt.Sprintf("      tilt: %f\n", cell.CellConfig.Sector.Tilt))
 	_, _ = w.WriteString(fmt.Sprintf("      height: %d\n", cell.Sector.Height))
-	_, _ = w.WriteString(fmt.Sprintf("      azimuth: %d\n", cell.Sector.Azimuth))
+	_, _ = w.WriteString(fmt.Sprintf("      azimuth: %f\n", cell.CellConfig.Sector.Azimuth))
 	_, _ = w.WriteString("---\n")
 }
 

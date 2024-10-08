@@ -12,26 +12,28 @@ import (
 func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 	cell := model.Cell{
-		TxPowerDB: 40,
-		CellType:  types.CellType_MACRO,
-		Sector: model.Sector{
-			Azimuth: 0,
-			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
-			Height:  30,
-			Arc:     90,
-			Tilt:    0,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          true,
-			SSBFrequency: 900,
-		},
-		Beam: model.Beam{
-			H3dBAngle:              65,
-			V3dBAngle:              65,
-			MaxGain:                8,
-			MaxAttenuationDB:       30,
-			VSideLobeAttenuationDB: 30,
+		CellType: types.CellType_MACRO,
+		CellConfig: model.CellConfig{
+			TxPowerDB: 40,
+			Sector: model.Sector{
+				Azimuth: 0,
+				Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
+				Height:  30,
+				Arc:     90,
+				Tilt:    0,
+			},
+			Channel: model.Channel{
+				Environment:  "urban",
+				LOS:          true,
+				SSBFrequency: 900,
+			},
+			Beam: model.Beam{
+				H3dBAngle:              65,
+				V3dBAngle:              65,
+				MaxGain:                8,
+				MaxAttenuationDB:       30,
+				VSideLobeAttenuationDB: 30,
+			},
 		},
 	}
 
@@ -67,26 +69,28 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 
 func TestStrength(t *testing.T) {
 	cell := model.Cell{
-		TxPowerDB: 40,
-		CellType:  types.CellType_MACRO,
-		Sector: model.Sector{
-			Azimuth: 90,
-			Center:  model.Coordinate{Lat: 37.981629, Lng: 23.743353},
-			Height:  0,
-			Arc:     90,
-			Tilt:    20,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          false,
-			SSBFrequency: 900,
-		},
-		Beam: model.Beam{
-			H3dBAngle:              90,
-			V3dBAngle:              65,
-			MaxGain:                8,
-			MaxAttenuationDB:       40,
-			VSideLobeAttenuationDB: 40,
+		CellType: types.CellType_MACRO,
+		CellConfig: model.CellConfig{
+			TxPowerDB: 40,
+			Sector: model.Sector{
+				Azimuth: 90,
+				Center:  model.Coordinate{Lat: 37.981629, Lng: 23.743353},
+				Height:  0,
+				Arc:     90,
+				Tilt:    20,
+			},
+			Channel: model.Channel{
+				Environment:  "urban",
+				LOS:          false,
+				SSBFrequency: 900,
+			},
+			Beam: model.Beam{
+				H3dBAngle:              90,
+				V3dBAngle:              65,
+				MaxGain:                8,
+				MaxAttenuationDB:       40,
+				VSideLobeAttenuationDB: 40,
+			},
 		},
 	}
 

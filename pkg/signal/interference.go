@@ -9,8 +9,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 
-	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
-
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
@@ -44,7 +42,6 @@ func GetSINR(cqi int) float64 {
 	sinr := lowerBound + math.Abs(rand.Float64()*(upperBound-lowerBound))
 	return sinr
 }
-
 func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, dc float64, simModelCells map[string]*model.Cell) []model.Coordinate {
 
 	cell, ok := simModelCells[strconv.FormatUint(ncgi, 10)]
@@ -56,63 +53,6 @@ func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, dc float
 	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, dc, numUes, cqi)
 
 	return ueLocations
-}
-
-func CreateSimulationUE(ncgi uint64, counter, cqi int, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
-
-	imsi := utils.ImsiGenerator(counter)
-	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
-
-	rrcState := mho.Rrcstatus_RRCSTATUS_CONNECTED
-	// add neighbours
-	servingCell := &model.UECell{
-		ID:   types.GnbID(ncgi),
-		NCGI: types.NCGI(ncgi),
-		Rsrq: rsrq,
-		Rsrp: rsrp,
-		Sinr: sinr,
-	}
-
-	ue := &model.UE{
-		IMSI:        imsi,
-		AmfUeNgapID: types.AmfUENgapID(1000 + counter),
-		Type:        "phone",
-		Location:    location,
-		Heading:     0,
-		Cell:        servingCell,
-		FiveQi:      cqi,
-		CRNTI:       types.CRNTI(90125 + counter),
-		Cells:       neighborCells,
-		IsAdmitted:  false,
-		RrcState:    rrcState,
-	}
-
-	return ue, ueIMSI
-}
-
-func GetUeNeighbors(point model.Coordinate, sCell *model.Cell, simModelCells map[string]*model.Cell, ueHeight float64) []*model.UECell {
-	ueNeighbors := []*model.UECell{}
-
-	neighborCells := utils.GetNeighborCells(sCell, simModelCells)
-	for _, nCell := range neighborCells {
-		if isPointInsideBoundingBox(point, nCell.BoundingBox) {
-			mpf := RiceanFading(GetRiceanK(nCell))
-			nCellNeigh := utils.GetNeighborCells(nCell, simModelCells)
-			rsrp := Strength(point, ueHeight, mpf, *nCell)
-			sinr := Sinr(point, ueHeight, nCell, nCellNeigh)
-			rsrq := RSRQ(sinr, 24)
-
-			ueCell := &model.UECell{
-				ID:   types.GnbID(nCell.NCGI),
-				NCGI: nCell.NCGI,
-				Rsrp: rsrp,
-				Rsrq: rsrq,
-				Sinr: sinr,
-			}
-			ueNeighbors = append(ueNeighbors, ueCell)
-		}
-	}
-	return ueNeighbors
 }
 
 func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {
@@ -195,7 +135,7 @@ SINR_POINTS_LOOP:
 
 		sinrPointsCh := ComputePoints(cfp, GetRandGuessesChanUEs(*cell, numUes*overSampling, cqi, 25), newtonKrylovSolver, &stop)
 		for sp := range sinrPointsCh {
-			if isPointInsideBoundingBox(sp, cell.BoundingBox) {
+			if IsPointInsideBoundingBox(sp, cell.BoundingBox) {
 				sinrPoints = append(sinrPoints, sp)
 				if len(sinrPoints) >= numUes {
 					stop = true

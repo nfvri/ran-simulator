@@ -26,7 +26,6 @@ import (
 	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/ranfundesc"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/pdubuilder"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
@@ -371,15 +370,15 @@ func (m *Mho) RICControl(ctx context.Context, request *e2appducontents.Riccontro
 		imsi := controlMessage.GetControlMessageFormat1().GetUedId().GetGNbUeid().GetAmfUeNgapId().GetValue()
 
 		plmnIDBytes := controlMessage.GetControlMessageFormat1().GetTargetCgi().GetNRCgi().GetPLmnidentity().GetValue()
-		plmnID := ransimtypes.Uint24ToUint32(plmnIDBytes)
+		plmnID := types.Uint24ToUint32(plmnIDBytes)
 		nci := utils.NewNCellIDWithBytes(controlMessage.GetControlMessageFormat1().GetTargetCgi().GetNRCgi().GetNRcellIdentity().GetValue().GetValue())
-		tCellNcgi := ransimtypes.ToNCGI(ransimtypes.PlmnID(plmnID), ransimtypes.NCI(nci.Uint64()))
+		tCellNcgi := types.ToNCGI(types.PlmnID(plmnID), types.NCI(nci.Uint64()))
 		tCell := &model.UECell{
 			ID:   types.GnbID(tCellNcgi),
 			NCGI: tCellNcgi,
 		}
 		hoDecision := lho.HandoverDecision{
-			UE:         &model.UE{IMSI: ransimtypes.IMSI(imsi)},
+			UE:         &model.UE{IMSI: types.IMSI(imsi)},
 			TargetCell: tCell,
 		}
 		m.mobilityDriver.Handover(ctx, hoDecision)

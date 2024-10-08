@@ -22,7 +22,7 @@ const (
 
 // Strength returns the signal strength at location relative to the specified cell.
 func Strength(coord model.Coordinate, height, mpf float64, cell model.Cell) float64 {
-	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || !isPointInsideBoundingBox(coord, cell.BoundingBox) {
+	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || !IsPointInsideBoundingBox(coord, cell.BoundingBox) {
 		return math.Inf(-1)
 	}
 

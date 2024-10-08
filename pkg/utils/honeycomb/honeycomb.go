@@ -96,21 +96,24 @@ func GenerateHoneycombTopology(mapCenter model.Coordinate, numTowers uint, secto
 
 			cell := model.Cell{
 				NCGI: types.ToNCGI(plmnID, types.ToNCI(gnbID, cellID)),
-				Sector: model.Sector{
-					Center:  *points[t],
-					Azimuth: float64(azimuth),
-					Arc:     arc,
-					Height:  int32(rand.Intn(31) + 20),
-					Tilt:    float64(rand.Intn(31) - 15)},
+				CellConfig: model.CellConfig{
+					TxPowerDB: 11,
+					Sector: model.Sector{
+						Center:  *points[t],
+						Azimuth: float64(azimuth),
+						Arc:     arc,
+						Height:  int32(rand.Intn(31) + 20),
+						Tilt:    float64(rand.Intn(31) - 15)},
+					Channel: model.Channel{
+						ArfcnDL: earfcn,
+						ArfcnUL: earfcn,
+					},
+				},
+
 				Color:     "green",
 				MaxUEs:    99999,
 				Neighbors: make([]types.NCGI, 0, sectorsPerTower),
-				TxPowerDB: 11,
 				// Changes for new channel, ARFCN == EARFCN
-				Channel: model.Channel{
-					ArfcnDL: earfcn,
-					ArfcnUL: earfcn,
-				},
 			}
 			earfcn++
 

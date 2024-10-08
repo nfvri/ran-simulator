@@ -12,14 +12,16 @@ import (
 
 func TestGetPathLossUrbanLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          true,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "urban",
+				LOS:          true,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -38,14 +40,16 @@ func TestGetPathLossUrbanLOS(t *testing.T) {
 
 func TestGetPathLossUrbanNLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          false,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "urban",
+				LOS:          false,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -64,14 +68,16 @@ func TestGetPathLossUrbanNLOS(t *testing.T) {
 
 func TestGetPathLossRuralLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "rural",
-			LOS:          true,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "rural",
+				LOS:          true,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -90,14 +96,16 @@ func TestGetPathLossRuralLOS(t *testing.T) {
 
 func TestGetPathLossRuralNLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "rural",
-			LOS:          false,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "rural",
+				LOS:          false,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -116,14 +124,16 @@ func TestGetPathLossRuralNLOS(t *testing.T) {
 
 func TestGetPathLossUnknownEnvironment(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "unknown",
-			LOS:          true,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "unknown",
+				LOS:          true,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -142,15 +152,16 @@ func TestGetPathLossUnknownEnvironment(t *testing.T) {
 
 func TestGetChangingPositionPathLossUrbanLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          true,
-			SSBFrequency: 3600,
-		},
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "urban",
+				LOS:          true,
+				SSBFrequency: 3600,
+			}},
 	}
 
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
@@ -173,14 +184,16 @@ func TestGetChangingPositionPathLossUrbanLOS(t *testing.T) {
 
 func TestGetChangingPositionPathLossUrbanNLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "urban",
-			LOS:          false,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "urban",
+				LOS:          false,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -203,14 +216,16 @@ func TestGetChangingPositionPathLossUrbanNLOS(t *testing.T) {
 
 func TestGetChangingPositionPathLossRuralLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "rural",
-			LOS:          true,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "rural",
+				LOS:          true,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -233,14 +248,16 @@ func TestGetChangingPositionPathLossRuralLOS(t *testing.T) {
 
 func TestGetChangingPositionPathLossRuralNLOS(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 30,
-		},
-		Channel: model.Channel{
-			Environment:  "rural",
-			LOS:          false,
-			SSBFrequency: 3600,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 30,
+			},
+			Channel: model.Channel{
+				Environment:  "rural",
+				LOS:          false,
+				SSBFrequency: 3600,
+			},
 		},
 	}
 
@@ -263,12 +280,14 @@ func TestGetChangingPositionPathLossRuralNLOS(t *testing.T) {
 
 func TestPathloss(t *testing.T) {
 	cell := model.Cell{
-		Sector: model.Sector{
-			Center: model.Coordinate{Lat: 0, Lng: 0},
-			Height: 35,
-		},
-		Channel: model.Channel{
-			SSBFrequency: 3000,
+		CellConfig: model.CellConfig{
+			Sector: model.Sector{
+				Center: model.Coordinate{Lat: 0, Lng: 0},
+				Height: 35,
+			},
+			Channel: model.Channel{
+				SSBFrequency: 3000,
+			},
 		},
 	}
 

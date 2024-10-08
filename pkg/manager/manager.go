@@ -6,6 +6,7 @@ package manager
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -168,7 +169,7 @@ func (m *Manager) initMetricStore() {
 	m.metricsStore = metrics.NewMetricsStore()
 }
 
-func (m *Manager) computeCellAttributes() {
+func (m *Manager) computeCellAttributes() error {
 
 	ueHeight := 1.5
 	refSignalStrength := -107.0
@@ -182,17 +183,25 @@ func (m *Manager) computeCellAttributes() {
 		delete(m.model.Cells, key)
 	}
 
-	signal.UpdateCells(cellGroup, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
+	storeCells := signal.UpdateCells(cellGroup, &m.redisStore, ueHeight, refSignalStrength, m.model.DecorrelationDistance, m.model.SnapshotId)
+	if storeCells {
+		if err := m.redisStore.AddCellGroup(context.Background(), m.model.SnapshotId, cellGroup); err != nil {
+			return fmt.Errorf("failed to store cells in cache: %v", err)
+		}
+		log.Infof("Updated CellGroup in Cache")
+	}
 	cells := make(map[string]model.Cell)
 	for ncgi, cell := range cellGroup {
 		cells[ncgi] = *cell
 	}
 	m.model.Cells = cells
+
+	return nil
 }
 
 func (m *Manager) computeUEAttributes() {
 
-	signal.InitUEs(m.model, &m.redisStore)
+	signal.PopulateUEs(m.model, &m.redisStore)
 
 	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
 	for ncgi, cell := range m.model.Cells {
@@ -340,12 +349,14 @@ func (m *Manager) LoadMetrics(ctx context.Context) error {
 }
 
 // Resume resume the simulation
-func (m *Manager) Resume() {
+func (m *Manager) Resume() error {
 	log.Info("Resuming RAN simulator...")
 
 	// _ = m.StartE2Agents()
 
-	m.computeCellAttributes()
+	if err := m.computeCellAttributes(); err != nil {
+		return err
+	}
 	m.computeUEAttributes()
 	m.initMobilityDriver()
 	m.performHandovers()
@@ -357,11 +368,18 @@ func (m *Manager) Resume() {
 		m.stopNorthboundServer()
 		_ = m.startNorthboundServer()
 	}()
+
+	return nil
 }
 
 func (m *Manager) performHandovers() {
-	for _, ue := range m.model.UEList {
-		m.mobilityDriver.GetHoCtrl().GetInputChan() <- &ue
+	ueCopies := map[string]model.UE{}
+	for imsi, ue := range m.model.UEList {
+		ueCopies[imsi] = ue
+	}
+
+	for _, ue := range ueCopies {
+		m.mobilityDriver.GetHoCtrl().GetInputChan() <- ue
 	}
 }
 

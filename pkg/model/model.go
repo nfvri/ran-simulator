@@ -5,6 +5,9 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"strconv"
 
 	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
@@ -36,6 +39,26 @@ type Model struct {
 	SnapshotId              string                  `mapstructure:"snapshotID"` //used to retrieve snapshot Cell Group and UE Group
 	CellMeasurements        []*metrics.Metric       `json:"cellMeasurements"`
 	ServiceMappings
+}
+
+func (m *Model) InitServiceMappings(ueList map[string]UE) {
+	m.CellToUEs = make(map[types.NCGI][]types.IMSI)
+	m.UEToServingCells = make(map[types.IMSI][]types.NCGI)
+
+	for _, ue := range ueList {
+		sCellNcgi := ue.Cell.NCGI
+		ueIMSI := ue.IMSI
+
+		if _, exists := m.CellToUEs[sCellNcgi]; !exists {
+			m.CellToUEs[sCellNcgi] = []types.IMSI{}
+		}
+		m.CellToUEs[sCellNcgi] = append(m.CellToUEs[sCellNcgi], ueIMSI)
+
+		if _, exists := m.UEToServingCells[ueIMSI]; !exists {
+			m.UEToServingCells[ueIMSI] = []types.NCGI{}
+		}
+		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], sCellNcgi)
+	}
 }
 
 func (m *Model) GetServedUEs(ncgi types.NCGI) []*UE {
@@ -146,45 +169,55 @@ type Channel struct {
 	LOS            bool   `mapstructure:"LOS"`
 }
 
+type CellConfig struct {
+	TxPowerDB float64 `mapstructure:"txpowerdb"`
+	Sector    Sector  `mapstructure:"sector"`
+	Channel   Channel `mapstructure:"channel"`
+	Beam      Beam    `mapstructure:"beam"`
+}
+
+type CellSignalInfo struct {
+	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
+	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
+}
+
 // Cell represents a section of coverage
 type Cell struct {
-	NCGI                 types.NCGI           `mapstructure:"ncgi"`
-	Sector               Sector               `mapstructure:"sector"`
-	Color                string               `mapstructure:"color"`
-	MaxUEs               uint32               `mapstructure:"maxUEs"`
-	Neighbors            []types.NCGI         `mapstructure:"neighbors"`
-	TxPowerDB            float64              `mapstructure:"txpowerdb"`
-	MeasurementParams    MeasurementParams    `mapstructure:"measurementParams"`
-	PCI                  uint32               `mapstructure:"pci"`
-	Earfcn               uint32               `mapstructure:"earfcn"`
-	CellType             types.CellType       `mapstructure:"cellType"`
-	Channel              Channel              `mapstructure:"channel"`
-	Beam                 Beam                 `mapstructure:"beam"`
-	RPCoverageBoundaries []CoverageBoundary   `mapstructure:"rpCoverageBoundaries"`
-	CoverageBoundaries   []CoverageBoundary   `mapstructure:"coverageBoundaries"`
-	InitialBwAllocation  map[types.IMSI][]Bwp `mapstructure:"initialBwps"`
-	Bwps                 map[string]*Bwp      `mapstructure:"bwps"`
-	RrcIdleCount         uint32
-	RrcConnectedCount    uint32
-	Cached               bool
-	ResourceAllocScheme  string
+	CellConfig
+	NCGI                types.NCGI           `mapstructure:"ncgi"`
+	Color               string               `mapstructure:"color"`
+	MaxUEs              uint32               `mapstructure:"maxUEs"`
+	Neighbors           []types.NCGI         `mapstructure:"neighbors"`
+	MeasurementParams   MeasurementParams    `mapstructure:"measurementParams"`
+	PCI                 uint32               `mapstructure:"pci"`
+	Earfcn              uint32               `mapstructure:"earfcn"`
+	CellType            types.CellType       `mapstructure:"cellType"`
+	InitialBwAllocation map[types.IMSI][]Bwp `mapstructure:"initialBwps"`
+	Bwps                map[string]*Bwp      `mapstructure:"bwps"`
+	RrcIdleCount        uint32
+	RrcConnectedCount   uint32
+	Cached              bool
+	CachedStates        map[string]*CellSignalInfo
+	CurrentStateHash    string
+	ResourceAllocScheme string
 	Grid
 }
 
-func (cell *Cell) ConfigEquivalent(otherCell *Cell) bool {
-	return cell.TxPowerDB == otherCell.TxPowerDB &&
-		cell.Channel.SSBFrequency == otherCell.Channel.SSBFrequency &&
-		cell.Channel.Environment == otherCell.Channel.Environment &&
-		cell.Channel.LOS == otherCell.Channel.LOS &&
-		cell.Beam.H3dBAngle == otherCell.Beam.H3dBAngle &&
-		cell.Beam.V3dBAngle == otherCell.Beam.V3dBAngle &&
-		cell.Beam.MaxGain == otherCell.Beam.MaxGain &&
-		cell.Beam.MaxAttenuationDB == otherCell.Beam.MaxAttenuationDB &&
-		cell.Sector.Azimuth == otherCell.Sector.Azimuth &&
-		cell.Sector.Arc == otherCell.Sector.Arc &&
-		cell.Sector.Tilt == otherCell.Sector.Tilt &&
-		cell.Sector.Center.Lat == otherCell.Sector.Center.Lat &&
-		cell.Sector.Center.Lng == otherCell.Sector.Center.Lng
+func (cell *Cell) GetCellConfig() CellConfig {
+	return CellConfig{
+		TxPowerDB: cell.TxPowerDB,
+		Sector:    cell.Sector,
+		Channel:   cell.Channel,
+		Beam:      cell.Beam,
+	}
+}
+
+func (cell *Cell) GetHashedConfig() string {
+	cellConfig, _ := json.Marshal(cell.GetCellConfig())
+	hash := sha256.New()
+	hash.Write(cellConfig)
+
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 type Beam struct {
@@ -198,7 +231,7 @@ type Beam struct {
 type Grid struct {
 	ShadowingMap []float64    `json:"shadowingMap"`
 	GridPoints   []Coordinate `json:"gridPoints"`
-	BoundingBox  BoundingBox  `json:"boundingBox"`
+	BoundingBox  *BoundingBox `json:"boundingBox"`
 }
 
 type BoundingBox struct {
@@ -206,6 +239,12 @@ type BoundingBox struct {
 	MinLng float64 `json:"minLng"`
 	MaxLat float64 `json:"maxLat"`
 	MaxLng float64 `json:"maxLng"`
+}
+
+func (bb *BoundingBox) GreaterThan(bb2 *BoundingBox) bool {
+	bbArea := (bb.MaxLat - bb.MinLat) * (bb.MaxLng - bb.MinLng)
+	bb2Area := (bb2.MaxLat - bb2.MinLat) * (bb2.MaxLng - bb2.MinLng)
+	return bbArea > bb2Area
 }
 
 type CoverageBoundary struct {
@@ -218,12 +257,13 @@ type UEType string
 
 // UECell represents UE-cell relationship
 type UECell struct {
-	ID      types.GnbID `mapstructure:"id"`
-	NCGI    types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
-	Rsrp    float64     `mapstructure:"rsrp"`
-	Rsrq    float64     `mapstructure:"rsrq"`
-	Sinr    float64     `mapstructure:"sinr"`
-	BwpRefs []*Bwp      `mapstructure:"bwpRefs"`
+	ID          types.GnbID `mapstructure:"id"`
+	NCGI        types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
+	Rsrp        float64     `mapstructure:"rsrp"`
+	Rsrq        float64     `mapstructure:"rsrq"`
+	Sinr        float64     `mapstructure:"sinr"`
+	BwpRefs     []*Bwp      `mapstructure:"bwpRefs"`
+	TotalPrbsDl int
 }
 
 type Bwp struct {

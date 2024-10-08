@@ -40,13 +40,13 @@ func Test_UpdateCellsCache(t *testing.T) {
 	cache = &redisLib.MockedRedisStore{}
 	UpdateCells(updatedCells, cache, ueHeight, -87.0, 50, "1234")
 	assert.Equal(t, 3, len(updatedCells))
-	assert.Greater(t, len(updatedCells["17660905570307"].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(updatedCells["17660905553922"].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(updatedCells["17660905537537"].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(updatedCells["17660905570307"].CachedStates[updatedCells["17660905570307"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(updatedCells["17660905553922"].CachedStates[updatedCells["17660905553922"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	assert.Greater(t, len(updatedCells["17660905537537"].CachedStates[updatedCells["17660905537537"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
 
-	assert.Greater(t, len(updatedCells["17660905570307"].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(updatedCells["17660905553922"].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(updatedCells["17660905537537"].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905570307"].CachedStates[updatedCells["17660905570307"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905553922"].CachedStates[updatedCells["17660905553922"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(updatedCells["17660905537537"].CachedStates[updatedCells["17660905537537"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
 
 	assert.Greater(t, len(updatedCells["17660905570307"].Grid.GridPoints), 100)
 	assert.Greater(t, len(updatedCells["17660905553922"].Grid.GridPoints), 100)

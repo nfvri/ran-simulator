@@ -86,23 +86,25 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell model.Cell) {
 
 func TestRayleighFading(t *testing.T) {
 	cell := model.Cell{
-		TxPowerDB: 45,
-		Sector: model.Sector{
-			Azimuth: 90,
-			Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
-			Height:  30,
-		},
-		Beam: model.Beam{
-			H3dBAngle:              65,
-			V3dBAngle:              65,
-			MaxGain:                8,
-			MaxAttenuationDB:       30,
-			VSideLobeAttenuationDB: 30,
-		},
-		Channel: model.Channel{
-			SSBFrequency: 3600,
-			LOS:          true,
-			Environment:  "urban",
+		CellConfig: model.CellConfig{
+			TxPowerDB: 45,
+			Sector: model.Sector{
+				Azimuth: 90,
+				Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
+				Height:  30,
+			},
+			Channel: model.Channel{
+				SSBFrequency: 3600,
+				LOS:          true,
+				Environment:  "urban",
+			},
+			Beam: model.Beam{
+				H3dBAngle:              65,
+				V3dBAngle:              65,
+				MaxGain:                8,
+				MaxAttenuationDB:       30,
+				VSideLobeAttenuationDB: 30,
+			},
 		},
 	}
 	pathloss := GetPathLoss(model.Coordinate{Lat: 37.979207, Lng: 23.720989}, 1.5, cell)

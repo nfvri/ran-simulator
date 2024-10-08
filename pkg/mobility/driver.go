@@ -88,6 +88,7 @@ type driver struct {
 
 // NewMobilityDriver returns a driving engine capable of "driving" UEs along pre-specified routes
 func NewMobilityDriver(m *model.Model, hoLogic string, hoCtrl handover.HOController, finishHOsChan chan bool) Driver {
+
 	return &driver{
 		m:                       m,
 		hoLogic:                 hoLogic,
@@ -182,7 +183,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	// TODO: updateServiceMappings
 	// TODO: update all ueCells metrics(rsrp,rsrq,sinr) for sCell and cCells
 	// after changing serving cell, calculate channel quality/signal strength again
-	d.UpdateUESignalStrength(hoDecision.UE.IMSI)
+	d.UpdateUECellsParams(*hoDecision.UE)
 
 	log.Infof("HO is done successfully: %v to %v", hoDecision.UE.IMSI, hoDecision.TargetCell)
 }
@@ -214,6 +215,25 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 			ueCell.Rsrp = rsrp
 		}
 
+	}
+	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = ue
+}
+
+func (d *driver) UpdateUECellsParams(ue model.UE) {
+
+	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
+	mpf := signal.RiceanFading(signal.GetRiceanK(&sCell))
+
+	ue.Cell.Rsrp = signal.Strength(ue.Location, ue.Height, mpf, sCell)
+	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, &sCell, utils.GetNeighborCells1(sCell, d.m.Cells))
+	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
+
+	for _, ueCell := range ue.Cells {
+		cell := d.m.Cells[strconv.FormatUint(uint64(ueCell.NCGI), 10)]
+		mpf := signal.RiceanFading(signal.GetRiceanK(&cell))
+		ueCell.Rsrp = signal.Strength(ue.Location, ue.Height, mpf, cell)
+		ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, &sCell, utils.GetNeighborCells1(sCell, d.m.Cells))
+		ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
 	}
 	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = ue
 }

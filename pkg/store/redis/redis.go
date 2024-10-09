@@ -18,7 +18,7 @@ type Store interface {
 	AddCellGroup(ctx context.Context, snapshotId string, cellGroupPtr map[string]*model.Cell) error
 	GetCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error)
 	DeleteCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error)
-	AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]model.UE) error
+	AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]*model.UE) error
 	GetUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error)
 	DeleteUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error)
 }
@@ -74,7 +74,7 @@ func (s *MockedRedisStore) GetCellGroup(ctx context.Context, snapshotId string) 
 func (s *MockedRedisStore) DeleteCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error) {
 	return make(map[string]model.Cell), nil
 }
-func (s *MockedRedisStore) AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]model.UE) error {
+func (s *MockedRedisStore) AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]*model.UE) error {
 	return nil
 }
 func (s *MockedRedisStore) GetUEGroup(ctx context.Context, snapshotId string) (map[string]model.UE, error) {
@@ -149,7 +149,7 @@ func (s *RedisStore) DeleteCellGroup(ctx context.Context, snapshotId string) (ma
 	return cellGroup, err
 }
 
-func (s *RedisStore) AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]model.UE) error {
+func (s *RedisStore) AddUEGroup(ctx context.Context, snapshotId string, ueGroup map[string]*model.UE) error {
 
 	ueGroupBytes, err := json.Marshal(ueGroup)
 	if err != nil {

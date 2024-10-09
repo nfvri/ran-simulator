@@ -14,6 +14,7 @@ import (
 	"time"
 
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
+	log "github.com/sirupsen/logrus"
 
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/handover"
@@ -25,10 +26,9 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
 
-var log = logging.GetLogger()
+// var log = logging.GetLogger()
 
 // Driver is an abstraction of an entity driving the UE mobility
 type Driver interface {
@@ -176,10 +176,13 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	servedUes := d.m.GetServedUEs(tCell.NCGI)
 
 	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.ServingCell != nil
-	// log.Info("tCellBWPS: %v", tCell.Bwps)
-	// for _, servedUe := range servedUes {
-	// 	log.Infof("ue Imsi: %v bwps: %v", servedUe.IMSI, servedUe.Cell.BwpRefs)
-	// }
+
+	log.Infof("\n====[BEFORE BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
+	for _, servedUe := range servedUes {
+		if len(servedUe.Cell.BwpRefs) > 0 {
+			log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
+		}
+	}
 
 	requestedBwps := []model.Bwp{}
 	if redirection {
@@ -189,6 +192,12 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	// d.cellStore.DecrementRrcConnectedCount() -> metric store
 
 	bw.AllocateBWPs(tCell, servedUes, hoDecision.UE, requestedBwps)
+	log.Infof("\n====[AFTER BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
+	for _, servedUe := range servedUes {
+		if len(servedUe.Cell.BwpRefs) > 0 {
+			log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
+		}
+	}
 	// d.m.Cells[tCellNcgiStr] = tCell
 
 	// TODO: swap servingCell, targetCell for UE (Cell, Cells)
@@ -255,7 +264,7 @@ func (d *driver) UpdateUECellsParams(ue model.UE) {
 		ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
 		ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
 	}
-	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = ue
+	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ue
 }
 
 /* ---------------------------  UNUSED FUNCTIONS ---------------------------*/
@@ -299,7 +308,7 @@ func (d *driver) reportMeasurement(imsi types.IMSI) {
 		return
 	}
 
-	d.measCtrl.GetInputChan() <- &ue
+	d.measCtrl.GetInputChan() <- ue
 }
 
 func (d *driver) lockUE(imsi types.IMSI) {

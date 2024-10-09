@@ -311,6 +311,7 @@ func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
 func BwAlloctionOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
 	for _, ue := range ues {
+		log.Infof("ue.Cell.BwpRefs, %v", ue.Cell.BwpRefs)
 		for _, bwp := range ue.Cell.BwpRefs {
 			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], *bwp)
 		}

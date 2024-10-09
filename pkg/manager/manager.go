@@ -209,6 +209,7 @@ func (m *Manager) computeUEAttributes() {
 			ue.Cell.BwpRefs = bwpPartitions[i]
 		}
 		cell.InitialBwAllocation = bw.BwAlloctionOf(servedUEs)
+		log.Infof("cell.InitialBwAllocation, %v", cell.InitialBwAllocation)
 	}
 }
 
@@ -348,6 +349,12 @@ func (m *Manager) Resume() error {
 	if err := m.computeCellAttributes(); err != nil {
 		return err
 	}
+	log.Info("\n====[IN MANAGER1]====\n")
+	for _, cell := range m.model.Cells {
+		if len(cell.Bwps) > 0 {
+			log.Infof("NCGI: %v len(bwps): %v", cell.NCGI, len(cell.Bwps))
+		}
+	}
 	m.computeUEAttributes()
 	m.initMobilityDriver()
 	m.performHandovers()
@@ -366,7 +373,7 @@ func (m *Manager) Resume() error {
 func (m *Manager) performHandovers() {
 	ueCopies := map[string]model.UE{}
 	for imsi, ue := range m.model.UEList {
-		ueCopies[imsi] = ue
+		ueCopies[imsi] = *ue
 	}
 
 	for _, ue := range ueCopies {

@@ -23,9 +23,9 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	updateCell := func(snapShotCell, cachedCell *model.Cell) {
 		shouldUpdateCellGroup = true
 		wg.Add(1)
-		go func(snapShotCell, cachedCell *model.Cell) {
+		go func(snapshotCell, cachedcell *model.Cell) {
 			defer wg.Done()
-			updateCellParams(snapShotCell, cachedCell, ueHeight, refSignalStrength, dc)
+			updateCellParams(snapshotCell, cachedcell, ueHeight, refSignalStrength, dc)
 		}(snapShotCell, cachedCell)
 	}
 
@@ -53,9 +53,11 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			continue
 		}
 
-		cachedCell.CurrentStateHash = cell.GetHashedConfig()
-		cellGroup[ncgi] = &cachedCell
-		cachedCell.Cached = true
+		cell.CachedStates = cachedCell.CachedStates
+		cell.Bwps = cachedCell.Bwps
+		cell.Grid = cachedCell.Grid
+		cell.CurrentStateHash = cell.GetHashedConfig()
+		cell.Cached = true
 		cachedCells[cell.NCGI] = struct{}{}
 
 	}

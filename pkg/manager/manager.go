@@ -208,8 +208,6 @@ func (m *Manager) computeUEAttributes() {
 		for i, ue := range servedUEs {
 			ue.Cell.BwpRefs = bwpPartitions[i]
 		}
-		// FIXME: fix empty partitions
-		// log.Infof("bwp partiotions: %v", bwpPartitions)
 		cell.InitialBwAllocation = bw.BwAlloctionOf(servedUEs)
 		log.Infof("cell.InitialBwAllocation, %v", cell.InitialBwAllocation)
 	}

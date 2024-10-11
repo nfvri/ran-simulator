@@ -19,7 +19,7 @@ const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl"
 
 func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCGI uint64, totalUEs int) error {
 
-	initialCellBwps := make(map[string]*model.Bwp, len(sCell.Bwps))
+	initialCellBwps := map[string]*model.Bwp{}
 	if len(sCell.Bwps) != 0 {
 		for index := range sCell.Bwps {
 			bwp := *sCell.Bwps[index]
@@ -36,8 +36,8 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 		cellPrbsUl = cellPrbsMap[sCellNCGI][TOTAL_PRBS_UL_METRIC]
 	}
 
-	bwpsDl := bwpsFromPRBs(sCell, cellPrbsDl, totalUEs, true)
-	bwpsUl := bwpsFromPRBs(sCell, cellPrbsUl, totalUEs, false)
+	bwpsDl := bwpsFromPRBs(cellPrbsDl, totalUEs, true)
+	bwpsUl := bwpsFromPRBs(cellPrbsUl, totalUEs, false)
 
 	if len(bwpsDl) == 0 || len(bwpsUl) == 0 {
 		if len(bwps) == 0 && sCell.Channel.BsChannelBwDL > 0 {
@@ -48,10 +48,7 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 		}
 	}
 
-	// FIXME: fix bwps{0,0,false}
-	log.Infof("\n\n=================bwpsUl======================\n\n %v", bwpsUl)
-	log.Infof("\n\n=================bwpsDl======================\n\n %v", bwpsDl)
-	sCell.Bwps = make(map[string]*model.Bwp, len(bwpsDl)+len(bwpsUl))
+	sCell.Bwps = map[string]*model.Bwp{}
 	for index := range bwpsDl {
 		sCell.Bwps[bwpsDl[index].ID] = &bwpsDl[index]
 	}
@@ -76,9 +73,9 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 
 }
 
-func bwpsFromPRBs(sCell *model.Cell, sCellPrbs, totalUEs int, downlink bool) []model.Bwp {
+func bwpsFromPRBs(sCellPrbs, totalUEs int, downlink bool) []model.Bwp {
 
-	bwps := make([]model.Bwp, len(sCell.Bwps))
+	bwps := []model.Bwp{}
 	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -208,7 +205,7 @@ func PartitionBwps(bwps map[string]*model.Bwp, k int, generateSize func(int, int
 		}
 
 		// Collect Bwp pointers for this partition
-		partitions[i] = make([]*model.Bwp, 0, partSizes[i])
+		partitions[i] = []*model.Bwp{}
 		for _, key := range keys[start:end] {
 			partitions[i] = append(partitions[i], bwps[key])
 		}

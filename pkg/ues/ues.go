@@ -27,11 +27,11 @@ const USED_PRBS_UL_PATTERN = "RRU.PrbUsedUl.([0-9]|1[0-5])"
 const USED_PRBS_DL_METRIC = "RRU.PrbUsedDl"
 const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl"
 
-func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]model.UE, bool) {
+func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]*model.UE, bool) {
 
 	cellCqiUesMap, cellPrbsMap := CreateCellInfoMaps(cellMeasurements)
 
-	var ueList map[string]model.UE
+	var ueList = map[string]*model.UE{}
 
 	ctx := context.Background()
 	ueGroup, err := cacheStore.GetUEGroup(ctx, snapshotId)
@@ -40,7 +40,6 @@ func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.
 	if err != nil {
 		uesLocations, uesSINR := GenerateUEsLocationBasedOnCQI(cellCqiUesMap, updatedCells, ueHeight, dc)
 		uesRSRP := GetUEsRsrpBasedOnLocation(uesLocations, updatedCells, ueHeight)
-		ueList = make(map[string]model.UE)
 
 		for sCellNCGI, cqiMap := range cellCqiUesMap {
 			sCell, ok := updatedCells[strconv.FormatUint(sCellNCGI, 10)]
@@ -74,12 +73,15 @@ func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.
 
 					simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, totalPrbsDl, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 					simUE.Cell.BwpRefs = bwpPartitions[i]
-					ueList[ueIMSI] = *simUE
+					ueList[ueIMSI] = simUE
 				}
 			}
 		}
 	} else {
-		ueList = ueGroup
+		for imsi := range ueGroup {
+			ue := ueGroup[imsi]
+			ueList[imsi] = &ue
+		}
 	}
 
 	log.Infof("------------- len(ueList): %d --------------", len(ueList))

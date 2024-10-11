@@ -21,12 +21,12 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 
 	initialCellBwps := make(map[string]*model.Bwp, len(sCell.Bwps))
 	if len(sCell.Bwps) != 0 {
-		for _, bwp := range sCell.Bwps {
-			initialCellBwps[bwp.ID] = bwp
+		for index := range sCell.Bwps {
+			bwp := *sCell.Bwps[index]
+			initialCellBwps[bwp.ID] = &bwp
 		}
 	}
 
-	sCell.Bwps = make(map[string]*model.Bwp)
 	bwps := []model.Bwp{}
 
 	cellPrbsDl := cellPrbsMap[sCellNCGI][USED_PRBS_DL_METRIC]
@@ -48,13 +48,18 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 		}
 	}
 
-	for _, bwp := range bwpsDl {
-		sCell.Bwps[bwp.ID] = &bwp
+	// FIXME: fix bwps{0,0,false}
+	log.Infof("\n\n=================bwpsUl======================\n\n %v", bwpsUl)
+	log.Infof("\n\n=================bwpsDl======================\n\n %v", bwpsDl)
+	sCell.Bwps = make(map[string]*model.Bwp, len(bwpsDl)+len(bwpsUl))
+	for index := range bwpsDl {
+		sCell.Bwps[bwpsDl[index].ID] = &bwpsDl[index]
 	}
-	for _, bwp := range bwpsUl {
-		bwpId, _ := strconv.Atoi(bwp.ID)
-		bwp.ID = strconv.Itoa(bwpId + len(bwpsDl))
-		sCell.Bwps[bwp.ID] = &bwp
+
+	for index := range bwpsUl {
+		bwpId, _ := strconv.Atoi(bwpsUl[index].ID)
+		bwpsUl[index].ID = strconv.Itoa(bwpId + len(bwpsDl))
+		sCell.Bwps[bwpsUl[index].ID] = &bwpsUl[index]
 	}
 
 	if len(sCell.Bwps) == 0 {
@@ -235,11 +240,12 @@ func Lognormally(remaining int, partsLeft int) int {
 
 func ReleaseBWPs(sCell *model.Cell, ue *model.UE) []model.Bwp {
 	bwps := []model.Bwp{}
-	for _, bwp := range ue.Cell.BwpRefs {
+	for index := range ue.Cell.BwpRefs {
+		bwp := ue.Cell.BwpRefs[index]
 		bwps = append(bwps, *bwp)
+		delete(sCell.Bwps, bwp.ID)
 	}
 	ue.Cell.BwpRefs = []*model.Bwp{}
-	sCell.Bwps = map[string]*model.Bwp{}
 	return bwps
 }
 
@@ -247,7 +253,8 @@ func AllocateBWPs(tCell *model.Cell, servedUEs []*model.UE, ue *model.UE, reques
 
 	if enoughBW(tCell, requestedBwps) {
 		bwpId := len(tCell.Bwps)
-		for _, bwp := range requestedBwps {
+		for index := range requestedBwps {
+			bwp := requestedBwps[index]
 			bwp.ID = strconv.Itoa(bwpId)
 			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
 			tCell.Bwps[bwp.ID] = &bwp
@@ -256,16 +263,13 @@ func AllocateBWPs(tCell *model.Cell, servedUEs []*model.UE, ue *model.UE, reques
 		return
 	}
 
-	currAlloc := map[types.IMSI][]model.Bwp{
-		ue.IMSI: requestedBwps,
-	}
 	// delete current allocation
+	servedUEs = append(servedUEs, ue)
 	for _, servedUe := range servedUEs {
-		currAlloc[servedUe.IMSI] = ReleaseBWPs(tCell, servedUe)
+		ReleaseBWPs(tCell, servedUe)
 	}
 
 	// reallocate using selected scheme
-	servedUEs = append(servedUEs, ue)
 	switch tCell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
 		pf := ProportionalFair{
@@ -280,7 +284,8 @@ func AllocateBWPs(tCell *model.Cell, servedUEs []*model.UE, ue *model.UE, reques
 func enoughBW(tCell *model.Cell, requestedBwps []model.Bwp) bool {
 	//TODO: check if UL+DL is sufficient istead of individual checks
 	requestedBWDLUe, requestedBWULUe := 0, 0
-	for _, bwp := range requestedBwps {
+	for index := range requestedBwps {
+		bwp := requestedBwps[index]
 		if bwp.Downlink {
 			requestedBWDLUe += bwp.Scs * 12 * bwp.NumberOfRBs
 		} else {
@@ -297,7 +302,8 @@ func enoughBW(tCell *model.Cell, requestedBwps []model.Bwp) bool {
 
 func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
 
-	for _, bwp := range cell.Bwps {
+	for index := range cell.Bwps {
+		bwp := cell.Bwps[index]
 		if bwp.Downlink {
 			usedBWDLCell += bwp.Scs * 12 * bwp.NumberOfRBs
 		} else {
@@ -312,8 +318,9 @@ func BwAlloctionOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
 	for _, ue := range ues {
 		log.Infof("ue.Cell.BwpRefs, %v", ue.Cell.BwpRefs)
-		for _, bwp := range ue.Cell.BwpRefs {
-			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], *bwp)
+		for index := range ue.Cell.BwpRefs {
+			bwp := *ue.Cell.BwpRefs[index]
+			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], bwp)
 		}
 	}
 	return bwAlloc

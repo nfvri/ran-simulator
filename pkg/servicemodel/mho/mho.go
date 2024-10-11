@@ -373,13 +373,10 @@ func (m *Mho) RICControl(ctx context.Context, request *e2appducontents.Riccontro
 		plmnID := types.Uint24ToUint32(plmnIDBytes)
 		nci := utils.NewNCellIDWithBytes(controlMessage.GetControlMessageFormat1().GetTargetCgi().GetNRCgi().GetNRcellIdentity().GetValue().GetValue())
 		tCellNcgi := types.ToNCGI(types.PlmnID(plmnID), types.NCI(nci.Uint64()))
-		tCell := &model.UECell{
-			ID:   types.GnbID(tCellNcgi),
-			NCGI: tCellNcgi,
-		}
+
 		hoDecision := lho.HandoverDecision{
-			UE:         &model.UE{IMSI: types.IMSI(imsi)},
-			TargetCell: tCell,
+			UE:             model.UE{IMSI: types.IMSI(imsi)},
+			TargetCellNcgi: tCellNcgi,
 		}
 		m.mobilityDriver.Handover(ctx, hoDecision)
 	}()

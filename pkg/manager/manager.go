@@ -17,6 +17,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/statistics"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/utils"
+	"github.com/sirupsen/logrus"
 
 	cellapi "github.com/nfvri/ran-simulator/pkg/api/cells"
 	metricsapi "github.com/nfvri/ran-simulator/pkg/api/metrics"
@@ -93,7 +94,7 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) initMobilityDriver() {
-	hoHandler := handover.NewA3HandoverHandler(m.model)
+	hoHandler := handover.NewA3HandoverHandler()
 	ho := handover.NewA3Handover(hoHandler)
 	hoCtrl := handover.NewHOController(handover.A3, ho)
 
@@ -116,8 +117,8 @@ func (m *Manager) initMobilityDriver() {
 func (m *Manager) Start() error {
 
 	if m.config.RedisEnabled {
-		redisHost := utils.GetEnv("REDIS_HOST", "clx1")
-		redisPort := utils.GetEnv("REDIS_PORT", "30637")
+		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
+		redisPort := utils.GetEnv("REDIS_PORT", "6398")
 		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
 		redisUECache := utils.GetEnv("REDIS_UE_CACHE_DB", "2")
 		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
@@ -161,7 +162,7 @@ func (m *Manager) Close() {
 	log.Info("Closing Manager")
 	// m.stopE2Agents()
 	m.stopNorthboundServer()
-	m.mobilityDriver.Stop(false)
+	m.mobilityDriver.Stop()
 }
 
 func (m *Manager) initMetricStore() {
@@ -203,11 +204,12 @@ func (m *Manager) computeUEAttributes() {
 			continue
 		}
 		bw.InitBWPs(cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
-
 		bwpPartitions := bw.PartitionBwps(cell.Bwps, len(servedUEs), bw.Lognormally)
 		for i, ue := range servedUEs {
 			ue.Cell.BwpRefs = bwpPartitions[i]
 		}
+		// FIXME: fix empty partitions
+		// log.Infof("bwp partiotions: %v", bwpPartitions)
 		cell.InitialBwAllocation = bw.BwAlloctionOf(servedUEs)
 		log.Infof("cell.InitialBwAllocation, %v", cell.InitialBwAllocation)
 	}
@@ -242,6 +244,7 @@ func (m *Manager) computeCellStatistics() {
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotDl", prbsTotalDl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotUl", prbsTotalUl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeDl", activeUEs)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeUl", activeUEs)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpDl", statistics.UEThpDl(prbsTotalDl, float64(len(servedUEs))))
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalUl, float64(len(servedUEs))))
 
@@ -358,7 +361,6 @@ func (m *Manager) Resume() error {
 	m.computeUEAttributes()
 	m.initMobilityDriver()
 	m.performHandovers()
-	m.waitHandoversExecution()
 	m.computeCellStatistics()
 	go func() {
 		time.Sleep(1 * time.Millisecond)
@@ -371,21 +373,22 @@ func (m *Manager) Resume() error {
 }
 
 func (m *Manager) performHandovers() {
-	ueCopies := map[string]model.UE{}
-	for imsi, ue := range m.model.UEList {
-		ueCopies[imsi] = *ue
+
+	hoUes := map[string]model.UE{}
+	for imsi := range m.model.UEList {
+		ue := *m.model.UEList[imsi]
+		hoUes[imsi] = ue
 	}
 
-	for _, ue := range ueCopies {
+	logrus.Infof("UEs for HO %v", len(hoUes))
+	for imsi := range hoUes {
+		ue := hoUes[imsi]
 		m.mobilityDriver.GetHoCtrl().GetInputChan() <- ue
 	}
-}
 
-func (m *Manager) waitHandoversExecution() {
-	m.mobilityDriver.Stop(true)
+	defer close(m.finishHOsChan)
 	for range m.finishHOsChan {
 		log.Info("HOs completed")
 		return
 	}
-
 }

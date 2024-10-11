@@ -568,13 +568,9 @@ func (c *Client) runHandover(ctx context.Context, controlHeader *e2smrcies.E2SmR
 				return err
 			}
 			ncgi := ransimtypes.NCGI(targetPrimaryCellID)
-			tCell := &model.UECell{
-				ID:   ransimtypes.GnbID(ncgi),
-				NCGI: ncgi,
-			}
 			hoDecision := lho.HandoverDecision{
-				UE:         &model.UE{IMSI: ue.IMSI},
-				TargetCell: tCell,
+				UE:             model.UE{IMSI: ue.IMSI},
+				TargetCellNcgi: ncgi,
 			}
 			c.mobilityDriver.Handover(ctx, hoDecision)
 		}

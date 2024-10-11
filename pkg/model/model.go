@@ -42,7 +42,37 @@ type Model struct {
 	ServiceMappings
 }
 
-func (m *Model) InitServiceMappings(ueList map[string]UE) {
+func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgi, targetCellINcgi types.NCGI) {
+
+	// delete ue from sourceCell
+	for index, imsi := range m.CellToUEs[sourceCellNcgi] {
+		if imsi == ueIMSI {
+			m.CellToUEs[sourceCellNcgi] = append(m.CellToUEs[sourceCellNcgi][:index], m.CellToUEs[sourceCellNcgi][index+1:]...)
+			break
+		}
+	}
+
+	// append ue to targetCell
+	if targetCellINcgi != 0 {
+		m.CellToUEs[targetCellINcgi] = append(m.CellToUEs[targetCellINcgi], ueIMSI)
+	}
+
+	// delete sourceCell from ue
+	for index, ncgi := range m.UEToServingCells[ueIMSI] {
+		if ncgi == sourceCellNcgi {
+			m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI][:index], m.UEToServingCells[ueIMSI][index+1:]...)
+			break
+		}
+	}
+
+	// append targetCell to ue
+	if targetCellINcgi != 0 {
+		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], targetCellINcgi)
+	}
+
+}
+
+func (m *Model) InitServiceMappings(ueList map[string]*UE) {
 	m.CellToUEs = make(map[types.NCGI][]types.IMSI)
 	m.UEToServingCells = make(map[types.IMSI][]types.NCGI)
 

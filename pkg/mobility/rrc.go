@@ -107,7 +107,7 @@ func (d *driver) updateFiveQI(ctx context.Context, imsi types.IMSI) {
 		} else {
 			ue.FiveQi = newFiveQi
 		}
-		log.Debugf("FiveQI value for UE % was updated on %v", ue.IMSI, ue.FiveQi)
+		log.Debugf("FiveQI value for UE %v was updated on %v", ue.IMSI, ue.FiveQi)
 
 		err = d.ueStore.UpdateUE(ctx, imsi, newFiveQi, true)
 		if err != nil {

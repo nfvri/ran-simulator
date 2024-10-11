@@ -57,7 +57,6 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 		cell.Bwps = cachedCell.Bwps
 		cell.Grid = cachedCell.Grid
 		cell.CurrentStateHash = cell.GetHashedConfig()
-		cell.Cached = true
 		cachedCells[cell.NCGI] = struct{}{}
 
 	}
@@ -143,7 +142,8 @@ func PopulateUEs(m *model.Model, redisStore redisLib.Store) {
 	}
 
 	m.UEList = make(map[string]*model.UE)
-	for imsi, ue := range ueList {
+	for imsi := range ueList {
+		ue := ueList[imsi]
 		m.UEList[imsi] = &ue
 	}
 	log.Infof("len(m.UEList): %v", len(m.UEList))

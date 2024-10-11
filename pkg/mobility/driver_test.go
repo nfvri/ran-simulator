@@ -67,7 +67,7 @@ func TestDriver(t *testing.T) {
 		}
 	}
 
-	driver.Stop(false)
+	driver.Stop()
 }
 
 func TestRouteGeneration(t *testing.T) {
@@ -106,5 +106,5 @@ func TestRouteGeneration(t *testing.T) {
 		}
 	}
 
-	driver.Stop(false)
+	driver.Stop()
 }

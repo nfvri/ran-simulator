@@ -1,5 +1,7 @@
 package statistics
 
+import "math"
+
 // DRB.MeanActiveUeDl calculates the mean number of active UEs in downlink.
 func MeanActiveUeDl(activeUeCounts []int) float64 {
 	sum := 0
@@ -27,11 +29,23 @@ func MeanActiveUeDlQOS(activeUeCounts map[int]int, cqi int) float64 {
 
 // DRB.UEThpDl calculates the UE throughput in downlink.
 func UEThpDl(totalDataDl int, duration float64) float64 {
+	if totalDataDl == 0.0 && duration == 0.0 {
+		return 0
+	}
+	if duration == 0.0 {
+		return math.MaxFloat64
+	}
 	return float64(totalDataDl) / duration
 }
 
 // DRB.UEThpUl calculates the UE throughput in uplink.
 func UEThpUl(totalDataUl int, duration float64) float64 {
+	if totalDataUl == 0.0 && duration == 0.0 {
+		return 0
+	}
+	if duration == 0.0 {
+		return math.MaxFloat64
+	}
 	return float64(totalDataUl) / duration
 }
 

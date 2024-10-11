@@ -6,6 +6,7 @@ package handover
 
 import (
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
 
@@ -35,10 +36,9 @@ type HOController interface {
 
 // HandoverDecision struct has handover decision information
 type HandoverDecision struct {
-	UE          *model.UE
-	ServingCell *model.Cell
-	TargetCell  *model.UECell
-	Feasible    bool
+	UE             model.UE
+	SourceCellNcgi types.NCGI
+	TargetCellNcgi types.NCGI
 }
 
 // HOType is the type of handover - currently it is string
@@ -74,7 +74,7 @@ func (h *hoController) startA3HandoverHandler() {
 func (h *hoController) forwardReportToA3HandoverHandler(handler A3Handover) {
 	for ue := range h.inputChan {
 		logHoCtrl.Debugf("[input] Measurement report for HO decision: %v", ue)
-		handler.PushMeasurementEventA3(&ue)
+		handler.PushMeasurementEventA3(ue)
 	}
 }
 

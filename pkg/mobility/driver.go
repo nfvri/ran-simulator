@@ -7,7 +7,6 @@ package mobility
 
 import (
 	"context"
-	"math"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -36,7 +35,7 @@ type Driver interface {
 	Start(ctx context.Context)
 
 	// Stop stops the driving engine
-	Stop(notifyAfterFinish bool)
+	Stop()
 
 	// GetHoCtrl
 	GetHoCtrl() handover.HOController
@@ -65,6 +64,11 @@ type Driver interface {
 	AddRrcChan(ch chan model.UE)
 }
 
+type hoCounter struct {
+	sync.RWMutex
+	hosRemaining int
+}
+
 type driver struct {
 	m                       *model.Model
 	cellStore               cells.Store
@@ -84,6 +88,7 @@ type driver struct {
 	rrcStateChangesDisabled bool
 	wayPointRoute           bool
 	finishHOsChan           chan bool
+	hoCounter
 }
 
 // NewMobilityDriver returns a driving engine capable of "driving" UEs along pre-specified routes
@@ -96,6 +101,7 @@ func NewMobilityDriver(m *model.Model, hoLogic string, hoCtrl handover.HOControl
 		rrcStateChangesDisabled: m.RrcStateChangesDisabled,
 		wayPointRoute:           m.WayPointRoute,
 		hoCtrl:                  hoCtrl,
+		hoCounter:               hoCounter{hosRemaining: len(m.UEList)},
 		finishHOsChan:           finishHOsChan,
 	}
 }
@@ -120,9 +126,9 @@ func (d *driver) Start(ctx context.Context) {
 
 }
 
-func (d *driver) Stop(notifyAfterFinish bool) {
+func (d *driver) Stop() {
 	log.Info("Driver stopping")
-	d.stopLocalHO <- notifyAfterFinish
+	d.stopLocalHO <- true
 }
 
 func (d *driver) GetHoCtrl() handover.HOController {
@@ -136,13 +142,17 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 		case hoDecision := <-d.hoCtrl.GetOutputChan():
 			log.Debugf("Received HO Decision: %v", hoDecision)
 			d.Handover(ctx, hoDecision)
-			// TODO: delete ue.BwpRefs and sCell.BWPs from cell but not transfer them
-			// and ue.Rrcstatus_RRCSTATUS_IDLE
-		case notifyAfterFinish := <-d.stopLocalHO:
-			log.Info("local HO stopped")
-			if notifyAfterFinish {
+			d.hoCounter.Lock()
+			d.hoCounter.hosRemaining--
+			if d.hoCounter.hosRemaining == 0 {
+				d.hoCounter.Unlock()
 				d.finishHOsChan <- true
+				return
 			}
+			d.hoCounter.Unlock()
+
+		case <-d.stopLocalHO:
+			log.Info("local HO stopped")
 			return
 		}
 	}
@@ -151,69 +161,106 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 // Handover handovers ue to target cell
 func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecision) {
 
-	// log.Infof("Handover() imsi:%v, tCell:%v", hoDecision.UE.IMSI, hoDecision.TargetCell)
+	log.Debug("---------------------------------- ")
+	log.Debugf("handover:  ue: %v [scell: %v ==> tcell: %v]",
+		hoDecision.UE.IMSI,
+		hoDecision.SourceCellNcgi,
+		hoDecision.TargetCellNcgi,
+	)
+	log.Debug("---------------------------------- ")
 
 	// Update RRC state on handover
-	if hoDecision.UE.Cell.NCGI == hoDecision.TargetCell.NCGI {
-		// log.Infof("Duplicate HO skipped imsi%d, cgi:%v", hoDecision.UE.IMSI, hoDecision.TargetCell)
+	if hoDecision.UE.Cell.NCGI == hoDecision.TargetCellNcgi {
 		return
 	}
 
 	if hoDecision.UE.RrcState != e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED {
-		// log.Warnf("HO skipped for not connected UE %d", hoDecision.UE.IMSI)
 		return
 	}
 
-	tCellNcgiStr := strconv.FormatUint(uint64(hoDecision.TargetCell.NCGI), 10)
+	sCellNcgiStr := strconv.FormatUint(uint64(hoDecision.SourceCellNcgi), 10)
+	sCell := d.m.Cells[sCellNcgiStr]
+	imsiStr := strconv.FormatUint(uint64(hoDecision.UE.IMSI), 10)
+	ue := d.m.UEList[imsiStr]
+
+	sCell.Lock()
+	defer sCell.Unlock()
+	d.m.ServiceMappings.Lock()
+	defer d.m.ServiceMappings.Unlock()
+
+	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.SourceCellNcgi != 0
+	requestedBwps := utils.If(redirection, bw.ReleaseBWPs(sCell, ue), []model.Bwp{})
+
+	log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
+	log.Debugf("UEToServingCells[ue]: %v, len(UEToServingCells): %v, ueServCell: %v",
+		d.m.UEToServingCells[hoDecision.UE.IMSI], len(d.m.UEToServingCells), ue.Cell.NCGI)
+
+	if hoDecision.TargetCellNcgi == 0 {
+		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
+		d.m.UpdateServiceMappings(ue.IMSI, sCell.NCGI, hoDecision.TargetCellNcgi)
+		log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
+		log.Debugf("UEToServingCells[ue]: %v", d.m.UEToServingCells[hoDecision.UE.IMSI])
+		return
+	}
+
+	tCellNcgiStr := strconv.FormatUint(uint64(hoDecision.TargetCellNcgi), 10)
 	tCell := d.m.Cells[tCellNcgiStr]
 
 	tCell.Lock()
 	defer tCell.Unlock()
 
-	d.m.ServiceMappings.Lock()
-	defer d.m.ServiceMappings.Unlock()
-
 	servedUes := d.m.GetServedUEs(tCell.NCGI)
 
-	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.ServingCell != nil
+	// log.Infof("\n====[BEFORE BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
+	// for _, servedUe := range servedUes {
+	// 	if len(servedUe.Cell.BwpRefs) > 0 {
+	// 		log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
+	// 	}
+	// }
+	d.UpdateUECells(sCell.NCGI, tCell.NCGI, ue)
+	d.UpdateUECellsParams(*ue)
+	bw.AllocateBWPs(tCell, servedUes, ue, requestedBwps)
+	d.m.UpdateServiceMappings(ue.IMSI, sCell.NCGI, tCell.NCGI)
 
-	log.Infof("\n====[BEFORE BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
-	for _, servedUe := range servedUes {
-		if len(servedUe.Cell.BwpRefs) > 0 {
-			log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
-		}
-	}
+	log.Debug("Handover COMPLETE")
+	log.Debugf("len(CellToUEs[tCell]): %v", len(d.m.CellToUEs[hoDecision.TargetCellNcgi]))
+	log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
+	log.Debugf("UEToServingCells[ue]: %v", d.m.UEToServingCells[hoDecision.UE.IMSI])
+	log.Debug("==================================================================")
+	// log.Infof("\n====[AFTER BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
+	// for _, servedUe := range servedUes {
+	// 	if len(servedUe.Cell.BwpRefs) > 0 {
+	// 		log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
+	// 	}
+	// }
 
-	requestedBwps := []model.Bwp{}
-	if redirection {
-		requestedBwps = bw.ReleaseBWPs(hoDecision.ServingCell, hoDecision.UE)
-	}
-	// d.cellStore.IncrementRrcConnectedCount() -> metric store
-	// d.cellStore.DecrementRrcConnectedCount() -> metric store
-
-	bw.AllocateBWPs(tCell, servedUes, hoDecision.UE, requestedBwps)
-	log.Infof("\n====[AFTER BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
-	for _, servedUe := range servedUes {
-		if len(servedUe.Cell.BwpRefs) > 0 {
-			log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
-		}
-	}
-	// d.m.Cells[tCellNcgiStr] = tCell
-
-	// TODO: swap servingCell, targetCell for UE (Cell, Cells)
-	// TODO: updateServiceMappings
 	// TODO: update all ueCells metrics(rsrp,rsrq,sinr) for sCell and cCells
 	// after changing serving cell, calculate channel quality/signal strength again
-	d.UpdateUECellsParams(*hoDecision.UE)
 
 	// log.Infof("HO is done successfully: %v to %v", hoDecision.UE.IMSI, hoDecision.TargetCell)
+}
+
+func (d *driver) UpdateUECells(sCellNCGI, tCellNCGI types.NCGI, ue *model.UE) {
+
+	ue.Cells = append(ue.Cells, ue.Cell)
+	tCellIndex := -1
+	for index := range ue.Cells {
+		nCell := ue.Cells[index]
+		if nCell.NCGI == tCellNCGI {
+			ue.Cell = nCell
+			tCellIndex = index
+			break
+		}
+	}
+	ue.Cells = append(ue.Cells[:tCellIndex], ue.Cells[tCellIndex+1:]...)
+
 }
 
 // UpdateUESignalStrength updates UE signal strength
 func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 	ue, ok := d.m.UEList[strconv.FormatUint(uint64(imsi), 10)]
 	if !ok {
-		log.Warn("Unable to find UE %d", imsi)
+		log.Warnf("Unable to find UE %d", imsi)
 		return
 	}
 	ncgiStr := strconv.FormatUint(uint64(ue.Cell.NCGI), 10)
@@ -222,47 +269,37 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 	if sCell == nil {
 		log.Infof("modelCells: ")
 		for ncgi := range d.m.Cells {
-			log.Info("ncgi: %v", ncgi)
+			log.Infof("ncgi: %v", ncgi)
 		}
 		return
 	}
-	if !sCell.Cached {
-		mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
-		rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell)
-		ue.Cell.Rsrp = rsrp
+
+	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
+	rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell)
+	ue.Cell.Rsrp = rsrp
+
+	for index := range ue.Cells {
+		cell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
+		mpf := signal.RiceanFading(signal.GetRiceanK(cell))
+		rsrp := signal.Strength(ue.Location, ue.Height, mpf, cell)
+		ue.Cells[index].Rsrp = rsrp
 	}
-
-	for _, ueCell := range ue.Cells {
-		cell := d.m.Cells[strconv.FormatUint(uint64(ueCell.NCGI), 10)]
-		if !sCell.Cached {
-			mpf := signal.RiceanFading(signal.GetRiceanK(cell))
-			rsrp := signal.Strength(ue.Location, ue.Height, mpf, cell)
-			if rsrp == math.Inf(-1) || math.IsNaN(rsrp) {
-				continue
-			}
-
-			ueCell.Rsrp = rsrp
-		}
-
-	}
-	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = ue
 }
 
 func (d *driver) UpdateUECellsParams(ue model.UE) {
 
 	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
 	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
-
 	ue.Cell.Rsrp = signal.Strength(ue.Location, ue.Height, mpf, sCell)
 	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
 	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
 
-	for _, ueCell := range ue.Cells {
-		cell := d.m.Cells[strconv.FormatUint(uint64(ueCell.NCGI), 10)]
+	for index := range ue.Cells {
+		cell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
 		mpf := signal.RiceanFading(signal.GetRiceanK(cell))
-		ueCell.Rsrp = signal.Strength(ue.Location, ue.Height, mpf, cell)
-		ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
-		ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
+		ue.Cells[index].Rsrp = signal.Strength(ue.Location, ue.Height, mpf, cell)
+		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, cell, utils.GetNeighborCells(cell, d.m.Cells))
+		ue.Cells[index].Rsrq = signal.RSRQ(ue.Cells[index].Sinr, ue.Cells[index].TotalPrbsDl)
 	}
 	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ue
 }
@@ -299,7 +336,7 @@ func (d *driver) linkMeasCtrlHoCtrl() {
 func (d *driver) reportMeasurement(imsi types.IMSI) {
 	ue, ok := d.m.UEList[strconv.FormatUint(uint64(imsi), 10)]
 	if !ok {
-		log.Warn("Unable to find UE %d", imsi)
+		log.Warnf("Unable to find UE %d", imsi)
 		return
 	}
 
@@ -373,7 +410,7 @@ func (d *driver) updateUEPosition(ctx context.Context, route *model.Route) {
 	// Get the UE
 	ue, ok := d.m.UEList[strconv.FormatUint(uint64(route.IMSI), 10)]
 	if !ok {
-		log.Warn("Unable to find UE %d", route.IMSI)
+		log.Warnf("Unable to find UE %d", route.IMSI)
 		return
 	}
 

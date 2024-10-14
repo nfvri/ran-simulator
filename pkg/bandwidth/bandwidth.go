@@ -27,8 +27,6 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 		}
 	}
 
-	bwps := []model.Bwp{}
-
 	cellPrbsDl := cellPrbsMap[sCellNCGI][USED_PRBS_DL_METRIC]
 	cellPrbsUl := cellPrbsMap[sCellNCGI][USED_PRBS_UL_METRIC]
 	if cellPrbsDl == 0 && cellPrbsUl == 0 {
@@ -39,16 +37,14 @@ func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCG
 	bwpsDl := bwpsFromPRBs(cellPrbsDl, totalUEs, true)
 	bwpsUl := bwpsFromPRBs(cellPrbsUl, totalUEs, false)
 
-	if len(bwpsDl) == 0 || len(bwpsUl) == 0 {
-		if len(bwps) == 0 && sCell.Channel.BsChannelBwDL > 0 {
-			bwpsDl = bwpsFromBW(sCell.Channel.BsChannelBwDL, totalUEs, true)
-		}
-		if len(bwps) == 0 && sCell.Channel.BsChannelBwUL > 0 {
-			bwpsUl = bwpsFromBW(sCell.Channel.BsChannelBwUL, totalUEs, false)
-		}
+	if len(bwpsDl) == 0 && sCell.Channel.BsChannelBwDL > 0 {
+		bwpsDl = bwpsFromBW(sCell.Channel.BsChannelBwDL, totalUEs, true)
+	}
+	if len(bwpsUl) == 0 && sCell.Channel.BsChannelBwUL > 0 {
+		bwpsUl = bwpsFromBW(sCell.Channel.BsChannelBwUL, totalUEs, false)
 	}
 
-	sCell.Bwps = map[string]*model.Bwp{}
+	sCell.Bwps = make(map[string]*model.Bwp, len(bwpsDl)+len(bwpsUl))
 	for index := range bwpsDl {
 		sCell.Bwps[bwpsDl[index].ID] = &bwpsDl[index]
 	}
@@ -236,7 +232,7 @@ func Lognormally(remaining int, partsLeft int) int {
 }
 
 func ReleaseBWPs(sCell *model.Cell, ue *model.UE) []model.Bwp {
-	bwps := []model.Bwp{}
+	bwps := make([]model.Bwp, 0, len(ue.Cell.BwpRefs))
 	for index := range ue.Cell.BwpRefs {
 		bwp := ue.Cell.BwpRefs[index]
 		bwps = append(bwps, *bwp)
@@ -314,7 +310,7 @@ func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
 func BwAlloctionOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
 	for _, ue := range ues {
-		log.Infof("ue.Cell.BwpRefs, %v", ue.Cell.BwpRefs)
+		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(ue.Cell.BwpRefs))
 		for index := range ue.Cell.BwpRefs {
 			bwp := *ue.Cell.BwpRefs[index]
 			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], bwp)

@@ -145,7 +145,7 @@ SINR_POINTS_LOOP:
 		}
 	}
 
-	return utils.SortCoordinatesByBearing(cell.Sector.Center, sinrPoints)
+	return sinrPoints
 }
 
 func calculateNoisePower(bandwidthHz float64, cellType types.CellType) float64 {

@@ -124,11 +124,11 @@ func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]
 			totalPrbsUl, _ := strconv.Atoi(metric.GetValue())
 			cellPrbsMap[metric.EntityID][TOTAL_PRBS_UL_METRIC] = totalPrbsUl
 		}
-		if matchesPattern(metric.Key, USED_PRBS_DL_PATTERN) {
+		if MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN) {
 			usedPrbsDl, _ := strconv.Atoi(metric.GetValue())
 			cellPrbsMap[metric.EntityID][USED_PRBS_DL_METRIC] += usedPrbsDl
 		}
-		if matchesPattern(metric.Key, USED_PRBS_UL_PATTERN) {
+		if MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN) {
 			usedPrbsUl, _ := strconv.Atoi(metric.GetValue())
 			cellPrbsMap[metric.EntityID][USED_PRBS_UL_METRIC] += usedPrbsUl
 		}
@@ -136,7 +136,7 @@ func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]
 	return cellCQIUEsMap, cellPrbsMap
 }
 
-func matchesPattern(metric, p string) bool {
+func MatchesPattern(metric, p string) bool {
 	r, err := regexp.Compile(p)
 	if err != nil {
 		return false

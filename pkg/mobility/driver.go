@@ -263,42 +263,33 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 		log.Warnf("Unable to find UE %d", imsi)
 		return
 	}
-	ncgiStr := strconv.FormatUint(uint64(ue.Cell.NCGI), 10)
-	// log.Infof("ncgiStr: %v", ncgiStr)
-	sCell := d.m.Cells[ncgiStr]
-	if sCell == nil {
-		log.Infof("modelCells: ")
-		for ncgi := range d.m.Cells {
-			log.Infof("ncgi: %v", ncgi)
-		}
-		return
-	}
 
-	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
-	rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell)
-	ue.Cell.Rsrp = rsrp
+	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
+	ue.Cell.Rsrp = calculateRSRP(ue, sCell)
 
 	for index := range ue.Cells {
-		cell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
-		mpf := signal.RiceanFading(signal.GetRiceanK(cell))
-		rsrp := signal.Strength(ue.Location, ue.Height, mpf, cell)
-		ue.Cells[index].Rsrp = rsrp
+		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
+		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell)
 	}
+}
+
+func calculateRSRP(ue *model.UE, sCell *model.Cell) float64 {
+	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
+	return signal.Strength(ue.Location, ue.Height, mpf, sCell)
 }
 
 func (d *driver) UpdateUECellsParams(ue model.UE) {
 
 	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
-	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
-	ue.Cell.Rsrp = signal.Strength(ue.Location, ue.Height, mpf, sCell)
+	ue.Cell.Rsrp = calculateRSRP(&ue, sCell)
 	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
 	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
+	ue.FiveQi = signal.GetCQI(ue.Cell.Sinr)
 
 	for index := range ue.Cells {
-		cell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
-		mpf := signal.RiceanFading(signal.GetRiceanK(cell))
-		ue.Cells[index].Rsrp = signal.Strength(ue.Location, ue.Height, mpf, cell)
-		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, cell, utils.GetNeighborCells(cell, d.m.Cells))
+		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
+		ue.Cells[index].Rsrp = calculateRSRP(&ue, nCell)
+		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, utils.GetNeighborCells(nCell, d.m.Cells))
 		ue.Cells[index].Rsrq = signal.RSRQ(ue.Cells[index].Sinr, ue.Cells[index].TotalPrbsDl)
 	}
 	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ue

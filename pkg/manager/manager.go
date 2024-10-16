@@ -17,7 +17,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/statistics"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	"github.com/sirupsen/logrus"
 
 	cellapi "github.com/nfvri/ran-simulator/pkg/api/cells"
 	metricsapi "github.com/nfvri/ran-simulator/pkg/api/metrics"
@@ -216,6 +215,10 @@ func (m *Manager) computeUEAttributes() {
 func (m *Manager) computeCellStatistics() {
 	ctx := context.Background()
 
+	totalactiveUEs := 0
+	totalPrbsTotalDl := 0
+	totalPrbsTotalUl := 0
+
 	for _, cell := range m.model.Cells {
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 		prbsTotalDl := 0
@@ -238,7 +241,9 @@ func (m *Manager) computeCellStatistics() {
 				}
 			}
 		}
-
+		totalactiveUEs += activeUEs
+		totalPrbsTotalDl += prbsTotalDl
+		totalPrbsTotalUl += prbsTotalUl
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotDl", prbsTotalDl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotUl", prbsTotalUl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeDl", activeUEs)
@@ -247,7 +252,11 @@ func (m *Manager) computeCellStatistics() {
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalUl, float64(len(servedUEs))))
 
 	}
-
+	m.metricsStore.Set(ctx, uint64(1), "SECTOR_RRU.PrbTotDl", totalPrbsTotalDl)
+	m.metricsStore.Set(ctx, uint64(1), "SECTOR_RRU.PrbTotUl", totalPrbsTotalUl)
+	m.metricsStore.Set(ctx, uint64(1), "SECTOR_AVG_DRB.UEThpDl", statistics.UEThpUl(totalPrbsTotalDl, float64(totalactiveUEs)))
+	m.metricsStore.Set(ctx, uint64(1), "SECTOR_AVG_DRB.UEThpUl", statistics.UEThpUl(totalPrbsTotalUl, float64(totalactiveUEs)))
+	m.metricsStore.Set(ctx, uint64(1), "SECTOR_DRB.MeanActiveUeDl", totalactiveUEs)
 }
 
 // startSouthboundServer starts the northbound gRPC server
@@ -344,7 +353,6 @@ func (m *Manager) LoadMetrics(ctx context.Context) error {
 // Resume resume the simulation
 func (m *Manager) Resume() error {
 	log.Info("Resuming RAN simulator...")
-
 	// _ = m.StartE2Agents()
 
 	if err := m.computeCellAttributes(); err != nil {
@@ -378,7 +386,6 @@ func (m *Manager) performHandovers() {
 		hoUes[imsi] = ue
 	}
 
-	logrus.Infof("UEs for HO %v", len(hoUes))
 	for imsi := range hoUes {
 		ue := hoUes[imsi]
 		m.mobilityDriver.GetHoCtrl().GetInputChan() <- ue

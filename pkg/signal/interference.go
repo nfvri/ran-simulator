@@ -42,6 +42,26 @@ func GetSINR(cqi int) float64 {
 	sinr := lowerBound + math.Abs(rand.Float64()*(upperBound-lowerBound))
 	return sinr
 }
+
+func GetCQI(sinr float64) int {
+	if sinr < CQItoSINRmap[0] {
+		return 1
+	}
+
+	if sinr > CQItoSINRmap[15] {
+		return 15
+	}
+
+	for cqi, lowerBound := range CQItoSINRmap {
+		upperBound := CQItoSINRmap[cqi+1]
+		if sinr >= lowerBound && sinr < upperBound {
+			return cqi + 1
+		}
+	}
+
+	return -1
+}
+
 func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, dc float64, simModelCells map[string]*model.Cell) []model.Coordinate {
 
 	cell, ok := simModelCells[strconv.FormatUint(ncgi, 10)]

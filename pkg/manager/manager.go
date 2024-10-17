@@ -32,7 +32,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	uesstore "github.com/nfvri/ran-simulator/pkg/store/ues"
-	ues "github.com/nfvri/ran-simulator/pkg/ues"
 	e2smmho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"google.golang.org/grpc"
@@ -195,7 +194,7 @@ func (m *Manager) computeUEAttributes() {
 
 	signal.PopulateUEs(m.model, &m.redisStore)
 
-	_, cellPrbsMap := ues.CreateCellInfoMaps(m.model.CellMeasurements)
+	_, cellPrbsMap := bw.CreateCellInfoMaps(m.model.CellMeasurements)
 	for ncgi := range m.model.Cells {
 		cell := m.model.Cells[ncgi]
 		servedUEs := m.model.GetServedUEs(cell.NCGI)

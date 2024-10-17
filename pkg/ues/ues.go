@@ -2,9 +2,7 @@ package ues
 
 import (
 	"context"
-	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
@@ -18,18 +16,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const ACTIVE_UES_METRIC = "DRB.MeanActiveUeDl."
-const TOTAL_PRBS_DL_METRIC = "RRU.PrbAvailDl"
-const TOTAL_PRBS_UL_METRIC = "RRU.PrbAvailUl"
-const USED_PRBS_DL_PATTERN = "RRU.PrbUsedDl.([0-9]|1[0-5])"
-const USED_PRBS_UL_PATTERN = "RRU.PrbUsedUl.([0-9]|1[0-5])"
-
-const USED_PRBS_DL_METRIC = "RRU.PrbUsedDl"
-const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl"
-
 func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]*model.UE, bool) {
 
-	cellCqiUesMap, cellPrbsMap := CreateCellInfoMaps(cellMeasurements)
+	cellCqiUesMap, cellPrbsMap := bw.CreateCellInfoMaps(cellMeasurements)
 
 	var ueList = map[string]*model.UE{}
 
@@ -68,7 +57,7 @@ func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.
 					ueRSRP := uesRSRP[sCellNCGI][cqi][i]
 					ueLocation := uesLocations[sCellNCGI][cqi][i]
 					ueNeighbors := GetUeNeighbors(ueLocation, sCell, updatedCells, ueHeight, cellPrbsMap)
-					totalPrbsDl := cellPrbsMap[sCellNCGI][TOTAL_PRBS_DL_METRIC]
+					totalPrbsDl := cellPrbsMap[sCellNCGI][bw.TOTAL_PRBS_DL_METRIC]
 					ueRSRQ := signal.RSRQ(ueSINR, totalPrbsDl)
 
 					simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, totalPrbsDl, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
@@ -87,61 +76,6 @@ func InitUEs(cellMeasurements []*metrics.Metric, updatedCells map[string]*model.
 	log.Infof("------------- len(ueList): %d --------------", len(ueList))
 	log.Infof("---------------- Updated UEs -----------------")
 	return ueList, storeInCache
-}
-
-func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]int, map[uint64]map[string]int) {
-	//cellPrbsMap[NCGI][CQI]
-	cellCQIUEsMap := map[uint64]map[int]int{}
-	//cellPrbsMap[NCGI][MetricName]
-	cellPrbsMap := map[uint64]map[string]int{}
-	for _, metric := range cellMeasurements {
-		if _, ok := cellPrbsMap[metric.EntityID]; !ok {
-			cellPrbsMap[metric.EntityID] = map[string]int{}
-		}
-		if strings.Contains(metric.Key, ACTIVE_UES_METRIC) {
-
-			cqi, err := strconv.Atoi(metric.Key[len(ACTIVE_UES_METRIC):])
-			if err != nil {
-				log.Errorf("Error converting CQI level to integer: %v", err)
-				continue
-			}
-
-			if _, exists := cellCQIUEsMap[metric.EntityID]; !exists {
-				cellCQIUEsMap[metric.EntityID] = make(map[int]int)
-			}
-			numUEs, _ := strconv.Atoi(metric.GetValue())
-
-			// Metrics in the list are ordered chronologically
-			// from oldest at the beginning to newest at the end.
-			// Keep the latest metric
-			cellCQIUEsMap[metric.EntityID][cqi] = numUEs
-		}
-		if metric.Key == TOTAL_PRBS_DL_METRIC {
-			totalPrbsDl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][TOTAL_PRBS_DL_METRIC] = totalPrbsDl
-		}
-		if metric.Key == TOTAL_PRBS_UL_METRIC {
-			totalPrbsUl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][TOTAL_PRBS_UL_METRIC] = totalPrbsUl
-		}
-		if MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN) {
-			usedPrbsDl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][USED_PRBS_DL_METRIC] += usedPrbsDl
-		}
-		if MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN) {
-			usedPrbsUl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][USED_PRBS_UL_METRIC] += usedPrbsUl
-		}
-	}
-	return cellCQIUEsMap, cellPrbsMap
-}
-
-func MatchesPattern(metric, p string) bool {
-	r, err := regexp.Compile(p)
-	if err != nil {
-		return false
-	}
-	return r.MatchString(metric)
 }
 
 func GenerateUEsLocationBasedOnCQI(cellCqiUesMap map[uint64]map[int]int, simModelCells map[string]*model.Cell, ueHeight, dc float64) (map[uint64]map[int][]model.Coordinate, map[uint64]map[int]float64) {
@@ -259,7 +193,7 @@ func GetUeNeighbors(point model.Coordinate, sCell *model.Cell, simModelCells map
 				Rsrp:        rsrp,
 				Rsrq:        rsrq,
 				Sinr:        sinr,
-				TotalPrbsDl: cellPrbsMap[uint64(nCell.NCGI)][TOTAL_PRBS_DL_METRIC],
+				TotalPrbsDl: cellPrbsMap[uint64(nCell.NCGI)][bw.TOTAL_PRBS_DL_METRIC],
 			}
 			ueNeighbors = append(ueNeighbors, ueCell)
 		}

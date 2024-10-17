@@ -3,16 +3,27 @@ package bandwidth
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	PROPORTIONAL_FAIR = "PF"
-	ROUND_ROBIN       = "RR"
+	PROPORTIONAL_FAIR    = "PF"
+	ROUND_ROBIN          = "RR"
+	USED_PRBS_DL_PATTERN = "RRU.PrbUsedDl.([0-9]|1[0-5])"
+	USED_PRBS_UL_PATTERN = "RRU.PrbUsedUl.([0-9]|1[0-5])"
+	TOTAL_PRBS_DL_METRIC = "RRU.PrbAvailDl"
+	TOTAL_PRBS_UL_METRIC = "RRU.PrbAvailUl"
+	USED_PRBS_DL_METRIC  = "RRU.PrbUsedDl"
+	USED_PRBS_UL_METRIC  = "RRU.PrbUsedUl"
+	ACTIVE_UES_METRIC    = "DRB.MeanActiveUeDl."
 )
 
 type AllocationStrategy interface {
@@ -132,4 +143,144 @@ func (s *ProportionalFair) reallocateBWPs(totalRBs int, bwPercentage float64, ue
 		}
 	}
 	return newBWPs, nil
+}
+
+func ReallocateUsedPRBs(cellMeasurements []*metrics.Metric, cellReqLoadMetric metrics.Metric, cqiPRBsMap map[uint64]map[int]float64, isDownlink bool) (newMetric *metrics.Metric) {
+	prbsPerCQI, cqiIndexedPrbsExist := cqiPRBsMap[cellReqLoadMetric.EntityID]
+	if cqiIndexedPrbsExist {
+		newAllocation := ProportionalFairPrbs(prbsPerCQI, cellReqLoadMetric.Value)
+		for metricIndex, metricValue := range newAllocation {
+			cellMeasurements[metricIndex].Value = strconv.FormatFloat(metricValue, 'f', -1, 64)
+		}
+
+	} else {
+		// add the cell UsedPRBs in a single,newly created, CQI-indexed level --RR
+
+		metricValue, err := strconv.ParseFloat(cellReqLoadMetric.Value, 64)
+		if err != nil {
+			return
+		}
+		if isDownlink {
+			newMetric = &metrics.Metric{
+				EntityID: cellReqLoadMetric.EntityID,
+				Key:      USED_PRBS_DL_METRIC + ".7",
+				Value:    strconv.FormatFloat(metricValue, 'f', -1, 64),
+			}
+		} else {
+			newMetric = &metrics.Metric{
+				EntityID: cellReqLoadMetric.EntityID,
+				Key:      USED_PRBS_UL_METRIC + ".7",
+				Value:    strconv.FormatFloat(metricValue, 'f', -1, 64),
+			}
+		}
+	}
+
+	return
+}
+
+func ProportionalFairPrbs(cqiPRBsMap map[int]float64, prbsToAllocate string) map[int]float64 {
+	totalPrbs := 0.0
+
+	result := make(map[int]float64, len(cqiPRBsMap))
+
+	numPRBsToAllocate, err := strconv.ParseFloat(prbsToAllocate, 64)
+	if err != nil {
+		return result
+	}
+
+	for _, numPRBs := range cqiPRBsMap {
+		totalPrbs += numPRBs
+	}
+	for cqi, numPRBs := range cqiPRBsMap {
+		result[cqi] = float64(int((numPRBs / totalPrbs) * numPRBsToAllocate))
+	}
+
+	return result
+}
+
+func CreateUsedPrbsMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]float64, map[uint64]map[int]float64) {
+	//cqiPRBsDlMap[NCGI][metricIndex]#PRBs
+	cqiPRBsDlMap := map[uint64]map[int]float64{}
+
+	//cqiPRBsUlMap[NCGI][metricIndex]#PRBs
+	cqiPRBsUlMap := map[uint64]map[int]float64{}
+
+	for metricIndex, metric := range cellMeasurements {
+		if MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN) {
+			if _, ok := cqiPRBsDlMap[metric.EntityID]; !ok {
+				cqiPRBsDlMap[metric.EntityID] = map[int]float64{}
+			}
+			value, err := strconv.ParseFloat(metric.Value, 64)
+			if err != nil {
+				continue
+			}
+			cqiPRBsDlMap[metric.EntityID][metricIndex] = value
+		}
+		if MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN) {
+			if _, ok := cqiPRBsUlMap[metric.EntityID]; !ok {
+				cqiPRBsUlMap[metric.EntityID] = map[int]float64{}
+			}
+			value, err := strconv.ParseFloat(metric.Value, 64)
+			if err != nil {
+				continue
+			}
+			cqiPRBsUlMap[metric.EntityID][metricIndex] = value
+		}
+	}
+	return cqiPRBsDlMap, cqiPRBsUlMap
+}
+
+func MatchesPattern(metric, p string) bool {
+	r, err := regexp.Compile(p)
+	if err != nil {
+		return false
+	}
+	return r.MatchString(metric)
+}
+
+func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]int, map[uint64]map[string]int) {
+	//cellPrbsMap[NCGI][CQI]
+	cellCQIUEsMap := map[uint64]map[int]int{}
+	//cellPrbsMap[NCGI][MetricName]
+	cellPrbsMap := map[uint64]map[string]int{}
+	for _, metric := range cellMeasurements {
+		if _, ok := cellPrbsMap[metric.EntityID]; !ok {
+			cellPrbsMap[metric.EntityID] = map[string]int{}
+		}
+		if strings.Contains(metric.Key, ACTIVE_UES_METRIC) {
+
+			cqi, err := strconv.Atoi(metric.Key[len(ACTIVE_UES_METRIC):])
+			if err != nil {
+				log.Errorf("Error converting CQI level to integer: %v", err)
+				continue
+			}
+
+			if _, exists := cellCQIUEsMap[metric.EntityID]; !exists {
+				cellCQIUEsMap[metric.EntityID] = make(map[int]int)
+			}
+			numUEs, _ := strconv.Atoi(metric.GetValue())
+
+			// Metrics in the list are ordered chronologically
+			// from oldest at the beginning to newest at the end.
+			// Keep the latest metric
+			cellCQIUEsMap[metric.EntityID][cqi] = numUEs
+		}
+		if metric.Key == TOTAL_PRBS_DL_METRIC {
+			totalPrbsDl, _ := strconv.Atoi(metric.GetValue())
+			cellPrbsMap[metric.EntityID][TOTAL_PRBS_DL_METRIC] = totalPrbsDl
+		}
+		if metric.Key == TOTAL_PRBS_UL_METRIC {
+			totalPrbsUl, _ := strconv.Atoi(metric.GetValue())
+			cellPrbsMap[metric.EntityID][TOTAL_PRBS_UL_METRIC] = totalPrbsUl
+		}
+		if MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN) {
+			usedPrbsDl, _ := strconv.Atoi(metric.GetValue())
+			cellPrbsMap[metric.EntityID][USED_PRBS_DL_METRIC] += usedPrbsDl
+		}
+		if MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN) {
+			usedPrbsUl, _ := strconv.Atoi(metric.GetValue())
+			cellPrbsMap[metric.EntityID][USED_PRBS_UL_METRIC] += usedPrbsUl
+		}
+	}
+	return cellCQIUEsMap, cellPrbsMap
 }

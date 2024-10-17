@@ -12,11 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const TOTAL_PRBS_DL_METRIC = "RRU.PrbAvailDl"
-const TOTAL_PRBS_UL_METRIC = "RRU.PrbAvailUl"
-const USED_PRBS_DL_METRIC = "RRU.PrbUsedDl"
-const USED_PRBS_UL_METRIC = "RRU.PrbUsedUl"
-
 func InitBWPs(sCell *model.Cell, cellPrbsMap map[uint64]map[string]int, sCellNCGI uint64, totalUEs int) error {
 
 	initialCellBwps := map[string]*model.Bwp{}

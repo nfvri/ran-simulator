@@ -7,10 +7,12 @@ package signal
 
 import (
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )
@@ -71,13 +73,17 @@ func Test_GenerateUEsLocations(t *testing.T) {
 	}
 
 	for sCellNCGI, cqiMap := range cellCqiUesMap {
-
+		sCell, ok := m.Cells[strconv.FormatUint(sCellNCGI, 10)]
+		if !ok {
+			continue
+		}
 		if _, exists := uesLocations[sCellNCGI]; !exists {
 			uesLocations[sCellNCGI] = make(map[int][]model.Coordinate)
 		}
 		for cqi, numUEs := range cqiMap {
 			ueSINR := GetSINR(cqi)
-			ueLocationForCqi := GenerateUEsLocations(sCellNCGI, numUEs, cqi, ueSINR, ueHeight, 50, m.Cells)
+			neighborCells := utils.GetNeighborCells(sCell, m.Cells)
+			ueLocationForCqi := GetSinrPoints(ueHeight, sCell, neighborCells, ueSINR, 200, numUEs, cqi)
 			assert.Equal(t, numUEs, len(ueLocationForCqi))
 		}
 	}

@@ -194,7 +194,7 @@ func (m *Manager) computeUEAttributes() {
 
 	signal.PopulateUEs(m.model, &m.redisStore)
 
-	_, cellPrbsMap := bw.CreateCellInfoMaps(m.model.CellMeasurements)
+	_, prbMeasPerCell := bw.CreateCellInfoMaps(m.model.CellMeasurements)
 	for ncgi := range m.model.Cells {
 		cell := m.model.Cells[ncgi]
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
@@ -202,12 +202,8 @@ func (m *Manager) computeUEAttributes() {
 			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
 			continue
 		}
-		bw.InitBWPs(cell, cellPrbsMap, uint64(cell.NCGI), len(servedUEs))
-		bwpPartitions := bw.PartitionBwps(cell.Bwps, len(servedUEs), bw.Lognormally)
-		for i, ue := range servedUEs {
-			ue.Cell.BwpRefs = bwpPartitions[i]
-		}
-		cell.InitialBwAllocation = bw.BwAlloctionOf(servedUEs)
+		bw.InitBWPs(cell, prbMeasPerCell[uint64(cell.NCGI)], servedUEs)
+		cell.InitialBwAllocation = bw.BwAllocationOf(servedUEs)
 	}
 }
 

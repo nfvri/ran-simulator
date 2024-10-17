@@ -3,7 +3,6 @@ package signal
 import (
 	"math"
 	"math/rand"
-	"strconv"
 
 	"github.com/davidkleiven/gononlin/nonlin"
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -60,19 +59,6 @@ func GetCQI(sinr float64) int {
 	}
 
 	return -1
-}
-
-func GenerateUEsLocations(ncgi uint64, numUes, cqi int, sinr, ueHeight, dc float64, simModelCells map[string]*model.Cell) []model.Coordinate {
-
-	cell, ok := simModelCells[strconv.FormatUint(ncgi, 10)]
-	if !ok {
-		return []model.Coordinate{}
-	}
-	neighborCells := utils.GetNeighborCells(cell, simModelCells)
-
-	ueLocations := GetSinrPoints(ueHeight, cell, neighborCells, sinr, dc, numUes, cqi)
-
-	return ueLocations
 }
 
 func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {

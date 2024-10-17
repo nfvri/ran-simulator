@@ -34,7 +34,6 @@ type AllocationStrategy interface {
 // PROPORTIONAL FAIR
 // ==========================================================
 type ProportionalFair struct {
-	UeBwMaxDecPerc      float64
 	InitialBwAllocation map[types.IMSI][]model.Bwp
 	CurrBwAllocation    map[types.IMSI][]model.Bwp
 }
@@ -94,22 +93,36 @@ ALLOCATION:
 func (s *ProportionalFair) getUeRates(ues []*model.UE) (ueRatesDL, ueRatesUL map[types.IMSI]float64, totalRateDL, totalRateUL float64) {
 	ueRatesDL = make(map[types.IMSI]float64)
 	ueRatesUL = make(map[types.IMSI]float64)
-	for _, ue := range ues {
-		for _, bwp := range s.CurrBwAllocation[ue.IMSI] {
-			if bwp.Downlink {
-				ueRatesDL[ue.IMSI] += float64(bwp.NumberOfRBs)
-			} else {
-				ueRatesUL[ue.IMSI] += float64(bwp.NumberOfRBs)
+	existingAllocation := len(s.CurrBwAllocation) > 0
+
+	if existingAllocation {
+		for _, ue := range ues {
+			for _, bwp := range s.CurrBwAllocation[ue.IMSI] {
+				if bwp.Downlink {
+					ueRatesDL[ue.IMSI] += float64(bwp.NumberOfRBs)
+				} else {
+					ueRatesUL[ue.IMSI] += float64(bwp.NumberOfRBs)
+				}
 			}
+			totalRateDL += ueRatesDL[ue.IMSI]
+			totalRateUL += ueRatesUL[ue.IMSI]
 		}
+		return
+	}
+
+	sumCQIs := 0
+	for _, ue := range ues {
+		sumCQIs += ue.FiveQi
+	}
+	for _, ue := range ues {
 		totalRateDL += ueRatesDL[ue.IMSI]
 		totalRateUL += ueRatesUL[ue.IMSI]
 	}
+
 	return
 }
 
-// reallocateBWPs adjusts the BWPs for the UE based on available bandwidth,
-// ensuring that no BWP loses more than s.UeBwMaxDecPerc of its previously allocated bandwidth.
+// reallocateBWPs adjusts the BWPs for the UE based on available bandwidth
 func (s *ProportionalFair) reallocateBWPs(totalRBs int, bwPercentage float64, ue *model.UE, downlink bool) ([]*model.Bwp, error) {
 
 	var uePreviousRBs int
@@ -121,12 +134,6 @@ func (s *ProportionalFair) reallocateBWPs(totalRBs int, bwPercentage float64, ue
 	}
 
 	ueNewRBs := int(float64(totalRBs) * (bwPercentage / 100))
-	rbsDecreasePerc := float64(uePreviousRBs) - float64(ueNewRBs)/float64(uePreviousRBs)
-
-	if rbsDecreasePerc > s.UeBwMaxDecPerc {
-		return nil, fmt.Errorf("reallocation not feasible! max degrade percentage %v violated", s.UeBwMaxDecPerc)
-	}
-
 	newBWPs := make([]*model.Bwp, len(previousBWPs))
 	ueAllocatedRbs := 0
 	for i, bwp := range previousBWPs {
@@ -240,12 +247,12 @@ func MatchesPattern(metric, p string) bool {
 
 func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]int, map[uint64]map[string]int) {
 	//cellPrbsMap[NCGI][CQI]
-	cellCQIUEsMap := map[uint64]map[int]int{}
-	//cellPrbsMap[NCGI][MetricName]
-	cellPrbsMap := map[uint64]map[string]int{}
+	numUEsPerCQIByCell := map[uint64]map[int]int{}
+	//prbMeasPerCell[NCGI][MetricName]
+	prbMeasPerCell := map[uint64]map[string]int{}
 	for _, metric := range cellMeasurements {
-		if _, ok := cellPrbsMap[metric.EntityID]; !ok {
-			cellPrbsMap[metric.EntityID] = map[string]int{}
+		if _, ok := prbMeasPerCell[metric.EntityID]; !ok {
+			prbMeasPerCell[metric.EntityID] = map[string]int{}
 		}
 		if strings.Contains(metric.Key, ACTIVE_UES_METRIC) {
 
@@ -255,32 +262,32 @@ func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]
 				continue
 			}
 
-			if _, exists := cellCQIUEsMap[metric.EntityID]; !exists {
-				cellCQIUEsMap[metric.EntityID] = make(map[int]int)
+			if _, exists := numUEsPerCQIByCell[metric.EntityID]; !exists {
+				numUEsPerCQIByCell[metric.EntityID] = make(map[int]int)
 			}
 			numUEs, _ := strconv.Atoi(metric.GetValue())
 
 			// Metrics in the list are ordered chronologically
 			// from oldest at the beginning to newest at the end.
 			// Keep the latest metric
-			cellCQIUEsMap[metric.EntityID][cqi] = numUEs
+			numUEsPerCQIByCell[metric.EntityID][cqi] = numUEs
 		}
 		if metric.Key == TOTAL_PRBS_DL_METRIC {
 			totalPrbsDl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][TOTAL_PRBS_DL_METRIC] = totalPrbsDl
+			prbMeasPerCell[metric.EntityID][TOTAL_PRBS_DL_METRIC] = totalPrbsDl
 		}
 		if metric.Key == TOTAL_PRBS_UL_METRIC {
 			totalPrbsUl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][TOTAL_PRBS_UL_METRIC] = totalPrbsUl
+			prbMeasPerCell[metric.EntityID][TOTAL_PRBS_UL_METRIC] = totalPrbsUl
 		}
 		if MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN) {
 			usedPrbsDl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][USED_PRBS_DL_METRIC] += usedPrbsDl
+			prbMeasPerCell[metric.EntityID][USED_PRBS_DL_METRIC] += usedPrbsDl
 		}
 		if MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN) {
 			usedPrbsUl, _ := strconv.Atoi(metric.GetValue())
-			cellPrbsMap[metric.EntityID][USED_PRBS_UL_METRIC] += usedPrbsUl
+			prbMeasPerCell[metric.EntityID][USED_PRBS_UL_METRIC] += usedPrbsUl
 		}
 	}
-	return cellCQIUEsMap, cellPrbsMap
+	return numUEsPerCQIByCell, prbMeasPerCell
 }

@@ -219,7 +219,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	// }
 	d.UpdateUECells(sCell.NCGI, tCell.NCGI, ue)
 	d.UpdateUECellsParams(*ue)
-	bw.AllocateBWPs(tCell, servedUes, ue, requestedBwps)
+	bw.ReallocateBW(ue, requestedBwps, tCell, servedUes)
 	d.m.UpdateServiceMappings(ue.IMSI, sCell.NCGI, tCell.NCGI)
 
 	log.Debug("Handover COMPLETE")

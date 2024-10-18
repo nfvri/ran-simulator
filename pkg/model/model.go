@@ -217,16 +217,15 @@ type CellSignalInfo struct {
 type Cell struct {
 	sync.RWMutex
 	CellConfig
-	NCGI                types.NCGI           `mapstructure:"ncgi"`
-	Color               string               `mapstructure:"color"`
-	MaxUEs              uint32               `mapstructure:"maxUEs"`
-	Neighbors           []types.NCGI         `mapstructure:"neighbors"`
-	MeasurementParams   MeasurementParams    `mapstructure:"measurementParams"`
-	PCI                 uint32               `mapstructure:"pci"`
-	Earfcn              uint32               `mapstructure:"earfcn"`
-	CellType            types.CellType       `mapstructure:"cellType"`
-	InitialBwAllocation map[types.IMSI][]Bwp `mapstructure:"initialBwps"`
-	Bwps                map[string]*Bwp      `mapstructure:"bwps"`
+	NCGI                types.NCGI        `mapstructure:"ncgi"`
+	Color               string            `mapstructure:"color"`
+	MaxUEs              uint32            `mapstructure:"maxUEs"`
+	Neighbors           []types.NCGI      `mapstructure:"neighbors"`
+	MeasurementParams   MeasurementParams `mapstructure:"measurementParams"`
+	PCI                 uint32            `mapstructure:"pci"`
+	Earfcn              uint32            `mapstructure:"earfcn"`
+	CellType            types.CellType    `mapstructure:"cellType"`
+	Bwps                map[string]*Bwp   `mapstructure:"bwps"`
 	RrcIdleCount        uint32
 	RrcConnectedCount   uint32
 	Cached              bool

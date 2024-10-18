@@ -3,6 +3,7 @@ package bandwidth
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
@@ -58,6 +59,8 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 		return
 	}
 
+	currAlloc := BwAllocationOf(servedUEs)
+
 	// delete current allocation
 	servedUEs = append(servedUEs, ue)
 	for _, servedUe := range servedUEs {
@@ -68,8 +71,8 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 	switch tCell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
 		pf := ProportionalFair{
-			InitialBwAllocation: tCell.InitialBwAllocation,
-			CurrBwAllocation:    BwAllocationOf(servedUEs),
+			PrevBwAllocation: currAlloc,
+			ReqBwAllocation:  BwAllocationOf(servedUEs),
 		}
 		pf.apply(tCell, servedUEs)
 	}
@@ -78,27 +81,40 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 func AllocateBW(cell *model.Cell, cellPrbMeas map[string]int, servedUEs []*model.UE) {
 	// Infer BWP allocation from cell prb measurements
 	// pick used prbs if found else resort to total available
-	cellPrbsDl, usedPRBsDLExist := cellPrbMeas[USED_PRBS_DL_METRIC]
-	cellPrbsUl, usedPRBsULExist := cellPrbMeas[USED_PRBS_UL_METRIC]
-	if !usedPRBsDLExist {
-		cellPrbsDl = cellPrbMeas[TOTAL_PRBS_DL_METRIC]
-	}
-	if !usedPRBsULExist {
-		cellPrbsUl = cellPrbMeas[TOTAL_PRBS_UL_METRIC]
-	}
+	cellUsedPRBsDLPerCQI, cellUsedPRBsULPerCQI := getUsedPRBsPerCQI(cellPrbMeas)
 
 	// reallocate using selected scheme
 	switch cell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
 		pf := ProportionalFair{
-			UsedPRBsDL:  cellPrbsDl,
-			UsedPRBsUL:  cellPrbsUl,
-			TotalPRBsDL: cellPrbMeas[TOTAL_PRBS_DL_METRIC],
-			TotalPRBsUL: cellPrbMeas[TOTAL_PRBS_DL_METRIC],
+			UsedPRBsDLPerCQI: cellUsedPRBsDLPerCQI,
+			UsedPRBsULPerCQI: cellUsedPRBsULPerCQI,
+			TotalPRBsDL:      cellPrbMeas[TOTAL_PRBS_DL_METRIC],
+			TotalPRBsUL:      cellPrbMeas[TOTAL_PRBS_DL_METRIC],
 		}
 		pf.apply(cell, servedUEs)
 	}
 
+}
+
+func getUsedPRBsPerCQI(cellPrbMeas map[string]int) (map[int]int, map[int]int) {
+	cellUsedPRBsDL := map[int]int{}
+	cellUsedPRBsUL := map[int]int{}
+	for metricName, numPrbs := range cellPrbMeas {
+		cqi, err := strconv.Atoi(strings.Split(metricName, ".")[2])
+		if err != nil {
+			log.Errorf("Error converting CQI level to integer: %v", err)
+			continue
+		}
+		switch {
+		case MatchesPattern(metricName, USED_PRBS_DL_PATTERN):
+			cellUsedPRBsDL[cqi] = numPrbs
+
+		case MatchesPattern(metricName, USED_PRBS_UL_PATTERN):
+			cellUsedPRBsUL[cqi] = numPrbs
+		}
+	}
+	return cellUsedPRBsDL, cellUsedPRBsUL
 }
 
 func enoughBW(tCell *model.Cell, requestedBwps []model.Bwp) bool {

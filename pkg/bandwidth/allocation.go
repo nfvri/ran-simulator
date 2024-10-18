@@ -38,30 +38,33 @@ type AllocationStrategy interface {
 // PROPORTIONAL FAIR
 // ==========================================================
 type ProportionalFair struct {
-	UsedPRBsDL          int
-	UsedPRBsUL          int
-	TotalPRBsDL         int
-	TotalPRBsUL         int
-	InitialBwAllocation map[types.IMSI][]model.Bwp
-	CurrBwAllocation    map[types.IMSI][]model.Bwp
+	UsedPRBsDLPerCQI map[int]int
+	UsedPRBsULPerCQI map[int]int
+	TotalPRBsDL      int
+	TotalPRBsUL      int
+	PrevBwAllocation map[types.IMSI][]model.Bwp
+	ReqBwAllocation  map[types.IMSI][]model.Bwp
 }
 
 // apply applies Proportional Fair scheduling to assign BWPs to UEs for both downlink and uplink
 // ensuring total bandwidth limits are respected
 func (s *ProportionalFair) apply(cell *model.Cell, ues []*model.UE) {
 
-	existingAllocation := len(s.CurrBwAllocation) > 0
-	totalRBsDL := s.UsedPRBsDL
-	totalRBsUL := s.UsedPRBsUL
-	if s.UsedPRBsDL != 0 && s.UsedPRBsUL != 0 {
+	existingAllocation := len(s.PrevBwAllocation) > 0
+	totalBWDL := int(cell.Channel.BsChannelBwDL) * 10e5
+	totalBWUL := int(cell.Channel.BsChannelBwUL) * 10e5
 
+	//TODO:
+	if !existingAllocation {
+		if len(s.UsedPRBsDLPerCQI) != 0 && len(s.UsedPRBsULPerCQI) != 0 {
+			// totalRBsDL = s.UsedPRBsDLPerCQI
+			// totalRBsUL = s.UsedPRBsULPerCQI
+
+		}
 	}
-	// totalRBsDL := int(cell.Channel.BsChannelBwDL)
-	// totalRBsUL := int(cell.Channel.BsChannelBwUL)
 
 	// TODO:
-	// for usedPRB -> rand.Norm(avgSCS, min((avgSCS-15)/2, (120-avgSCS)/2))
-	// SCS ~ avgSCS
+	// for usedPRB -> draw from dist with mean=avgSCS
 	// cellBW := 15000000.0
 	// usedPRBs := 20.0
 	// totalPRBs := 50.0
@@ -82,7 +85,7 @@ func (s *ProportionalFair) apply(cell *model.Cell, ues []*model.UE) {
 
 	// fmt.Printf("AVG_SCS: %.2f\n", averageSCS/1000)
 	// fmt.Printf("utilizedBW: %.2f", utilizedBW/1000)
-	if totalRBsDL == 0 && totalRBsUL == 0 {
+	if totalBWDL == 0 && totalBWUL == 0 {
 		fmt.Println("No bandwidth available for allocation.")
 		return
 	}
@@ -91,99 +94,108 @@ func (s *ProportionalFair) apply(cell *model.Cell, ues []*model.UE) {
 		return ues[i].FiveQi > ues[j].FiveQi
 	})
 
-	ueRatesDL, ueRatesUL, totalRateDL, totalRateUL := s.getUeRates(ues, existingAllocation)
+	var ueRatesDL, ueRatesUL map[types.IMSI]float64
+	if existingAllocation {
+		ueRatesDL, ueRatesUL = s.getUeRates(ues)
+	} else {
+		ueRatesDL, ueRatesUL = s.getUeRatesBasedOnCQI(ues)
+	}
 
-	allocatedRBsDL := 0
+	allocatedBWDL := 0
 	allocatedRBsUL := 0
 ALLOCATION:
 	for _, ue := range ues {
-		ueBWPercDL := ueRatesDL[ue.IMSI] / totalRateDL
-		ueBWPercUL := ueRatesUL[ue.IMSI] / totalRateUL
+		log.Infof("UE %v: ueBWPercDL = %.2f, ueBWPercUL = %.2f\n", ue.IMSI, ueRatesDL[ue.IMSI], ueRatesUL[ue.IMSI])
 
-		log.Infof("UE %v: ueBWPercDL = %.2f, ueBWPercUL = %.2f\n", ue.IMSI, ueBWPercDL, ueBWPercUL)
-
-		remainingRBsDL := totalRBsDL - allocatedRBsDL
-		remainingRBsUL := totalRBsUL - allocatedRBsUL
-		if remainingRBsDL >= 0 {
-			allocatedBWPsDL, err := s.reallocateBWPs(totalRBsDL, ueBWPercDL, ue, true)
-			if err != nil {
-				log.Warnf("could not allocate downlink bw for ue: %v, %v", ue.IMSI, err)
-				break ALLOCATION
-			}
-			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, allocatedBWPsDL...)
+		// downlink
+		allocatedBWPsDL, err := s.reallocateBWPs(totalBWDL, ueRatesDL[ue.IMSI], ue, true)
+		if err != nil {
+			log.Warnf("could not allocate downlink bw for ue: %v, %v", ue.IMSI, err)
+			break ALLOCATION
 		}
-		if remainingRBsUL >= 0 {
-			allocatedBWPsUL, err := s.reallocateBWPs(totalRBsUL, ueBWPercUL, ue, false)
-			if err != nil {
-				log.Warnf("could not allocate uplink bw for ue: %v, %v", ue.IMSI, err)
-				break ALLOCATION
-			}
-			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, allocatedBWPsUL...)
+		ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, allocatedBWPsDL...)
 
+		// uplink
+		allocatedBWPsUL, err := s.reallocateBWPs(totalBWUL, ueRatesUL[ue.IMSI], ue, false)
+		if err != nil {
+			log.Warnf("could not allocate uplink bw for ue: %v, %v", ue.IMSI, err)
+			break ALLOCATION
 		}
+		ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, allocatedBWPsUL...)
+
 		log.Infof("Assigned BWPs to UE %v (Downlink + Uplink): %v\n", ue.IMSI, ue.Cell.BwpRefs)
 	}
 
-	log.Infof("Total Downlink RBs Allocated: %d / %d\n", allocatedRBsDL, totalRBsDL)
-	log.Infof("Total Uplink RBs Allocated: %d / %d\n", allocatedRBsUL, totalRBsUL)
+	log.Infof("Total Downlink RBs Allocated: %d / %d\n", allocatedBWDL, totalBWDL)
+	log.Infof("Total Uplink RBs Allocated: %d / %d\n", allocatedRBsUL, totalBWUL)
 }
 
-func (s *ProportionalFair) getUeRates(ues []*model.UE, existingAllocation bool) (ueRatesDL, ueRatesUL map[types.IMSI]float64, totalRateDL, totalRateUL float64) {
+func (s *ProportionalFair) getUeRates(ues []*model.UE) (ueRatesDL, ueRatesUL map[types.IMSI]float64) {
 	ueRatesDL = make(map[types.IMSI]float64)
 	ueRatesUL = make(map[types.IMSI]float64)
+	cellRequestedBWDL := 0.0
+	cellRequestedBWUL := 0.0
 
-	if existingAllocation {
-		for _, ue := range ues {
-			for _, bwp := range s.CurrBwAllocation[ue.IMSI] {
-				if bwp.Downlink {
-					ueRatesDL[ue.IMSI] += float64(bwp.NumberOfRBs)
-				} else {
-					ueRatesUL[ue.IMSI] += float64(bwp.NumberOfRBs)
-				}
+	for _, ue := range ues {
+		for _, bwp := range s.ReqBwAllocation[ue.IMSI] {
+			if bwp.Downlink {
+				ueRatesDL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+			} else {
+				ueRatesUL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
 			}
-			totalRateDL += ueRatesDL[ue.IMSI]
-			totalRateUL += ueRatesUL[ue.IMSI]
 		}
-		return
+		cellRequestedBWDL += ueRatesDL[ue.IMSI]
+		cellRequestedBWUL += ueRatesUL[ue.IMSI]
 	}
 
-	sumCQIs := 0
 	for _, ue := range ues {
-		sumCQIs += ue.FiveQi
-	}
-	for _, ue := range ues {
-		totalRateDL += ueRatesDL[ue.IMSI]
-		totalRateUL += ueRatesUL[ue.IMSI]
+		ueRatesDL[ue.IMSI] = ueRatesDL[ue.IMSI] / cellRequestedBWDL
+		ueRatesDL[ue.IMSI] = ueRatesUL[ue.IMSI] / cellRequestedBWUL
 	}
 
 	return
 }
 
-// reallocateBWPs adjusts the BWPs for the UE based on available bandwidth
-func (s *ProportionalFair) reallocateBWPs(totalRBs int, bwPercentage float64, ue *model.UE, downlink bool) ([]*model.Bwp, error) {
+func (s *ProportionalFair) getUeRatesBasedOnCQI(ues []*model.UE) (ueRatesDL, ueRatesUL map[types.IMSI]float64) {
+	ueRatesDL = make(map[types.IMSI]float64)
+	ueRatesUL = make(map[types.IMSI]float64)
+	sumCQIs := 0
 
-	var uePreviousRBs int
-	previousBWPs := s.InitialBwAllocation[ue.IMSI]
-	for _, bwp := range s.InitialBwAllocation[ue.IMSI] {
-		if bwp.Downlink == downlink {
-			uePreviousRBs += bwp.NumberOfRBs
-		}
+	for _, ue := range ues {
+		sumCQIs += ue.FiveQi
 	}
 
-	ueNewRBs := int(float64(totalRBs) * (bwPercentage / 100))
-	newBWPs := make([]*model.Bwp, len(previousBWPs))
-	ueAllocatedRbs := 0
+	for _, ue := range ues {
+		ueRatesDL[ue.IMSI] = float64(ue.FiveQi / sumCQIs)
+		ueRatesUL[ue.IMSI] = float64(ue.FiveQi / sumCQIs)
+	}
+
+	return ueRatesDL, ueRatesUL
+}
+
+// reallocateBWPs adjusts the BWPs for the UE based on available bandwidth
+func (s *ProportionalFair) reallocateBWPs(totalBW int, ueRate float64, ue *model.UE, downlink bool) ([]*model.Bwp, error) {
+
+	ueNewBW := int(float64(totalBW) * ueRate)
+	ueAllocatedBW := 0.0
+
+	newBWPs := []*model.Bwp{}
+	previousBWPs := s.PrevBwAllocation[ue.IMSI]
+	remaingBW := float64(ueNewBW)
 	for i, bwp := range previousBWPs {
-		remaingRbs := float64(ueNewRBs - ueAllocatedRbs)
-		rbsToAllocate := int(math.Min(remaingRbs, float64(bwp.NumberOfRBs)))
+		remaingBW -= ueAllocatedBW
+		remainingPRBs := remaingBW / (12 * float64(bwp.Scs))
+		rbsToAllocate := math.Min(remainingPRBs, float64(bwp.NumberOfRBs))
+
+		// TODO: if prbs to allocate < 1 check if SCS can be reduced so as to fit an additional bwp
 		if rbsToAllocate > 0 {
 			newBWPs[i] = &model.Bwp{
 				ID:          bwp.ID,
 				Scs:         bwp.Scs,
-				NumberOfRBs: rbsToAllocate,
+				NumberOfRBs: int(rbsToAllocate),
 				Downlink:    downlink,
 			}
-			ueAllocatedRbs += rbsToAllocate
+			ueAllocatedBW += float64(int(rbsToAllocate) * 12 * bwp.Scs)
 		}
 	}
 	return newBWPs, nil

@@ -205,7 +205,6 @@ func (m *Manager) computeUEAttributes() {
 			continue
 		}
 		bw.InitBWPs(cell, prbMeasPerCell[uint64(cell.NCGI)], servedUEs)
-		cell.InitialBwAllocation = bw.BwAllocationOf(servedUEs)
 	}
 }
 

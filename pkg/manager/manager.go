@@ -194,7 +194,9 @@ func (m *Manager) computeUEAttributes() {
 
 	signal.PopulateUEs(m.model, &m.redisStore)
 
-	_, prbMeasPerCell := bw.CreateCellInfoMaps(m.model.CellMeasurements)
+	numUEsPerCQIByCell, prbMeasPerCell := bw.CreateCellInfoMaps(m.model.CellMeasurements)
+	bw.DisagregateCellUsedPRBs(prbMeasPerCell, numUEsPerCQIByCell)
+
 	for ncgi := range m.model.Cells {
 		cell := m.model.Cells[ncgi]
 		servedUEs := m.model.GetServedUEs(cell.NCGI)

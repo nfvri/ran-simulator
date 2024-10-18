@@ -15,15 +15,19 @@ import (
 )
 
 const (
-	PROPORTIONAL_FAIR    = "PF"
-	ROUND_ROBIN          = "RR"
-	USED_PRBS_DL_PATTERN = "RRU.PrbUsedDl.([0-9]|1[0-5])"
-	USED_PRBS_UL_PATTERN = "RRU.PrbUsedUl.([0-9]|1[0-5])"
+	PROPORTIONAL_FAIR = "PF"
+	ROUND_ROBIN       = "RR"
+
 	TOTAL_PRBS_DL_METRIC = "RRU.PrbAvailDl"
 	TOTAL_PRBS_UL_METRIC = "RRU.PrbAvailUl"
+
+	USED_PRBS_DL_PATTERN = "RRU.PrbUsedDl.([0-9]|1[0-5])"
 	USED_PRBS_DL_METRIC  = "RRU.PrbUsedDl"
+	USED_PRBS_UL_PATTERN = "RRU.PrbUsedUl.([0-9]|1[0-5])"
 	USED_PRBS_UL_METRIC  = "RRU.PrbUsedUl"
-	ACTIVE_UES_METRIC    = "DRB.MeanActiveUeDl."
+
+	ACTIVE_UES_METRIC  = "DRB.MeanActiveUeDl"
+	ACTIVE_UES_PATTERN = "DRB.MeanActiveUeDl.([0-9]|1[0-5])"
 )
 
 type AllocationStrategy interface {
@@ -152,57 +156,25 @@ func (s *ProportionalFair) reallocateBWPs(totalRBs int, bwPercentage float64, ue
 	return newBWPs, nil
 }
 
-func ReallocateUsedPRBs(cellMeasurements []*metrics.Metric, cellReqLoadMetric metrics.Metric, cqiPRBsMap map[uint64]map[int]float64, isDownlink bool) (newMetric *metrics.Metric) {
+func ReallocateUsedPRBs(cellMeasurements []*metrics.Metric, cellReqLoadMetric metrics.Metric, cqiPRBsMap map[uint64]map[int]float64) {
 	prbsPerCQI, cqiIndexedPrbsExist := cqiPRBsMap[cellReqLoadMetric.EntityID]
 	if cqiIndexedPrbsExist {
-		newAllocation := ProportionalFairPrbs(prbsPerCQI, cellReqLoadMetric.Value)
-		for metricIndex, metricValue := range newAllocation {
-			cellMeasurements[metricIndex].Value = strconv.FormatFloat(metricValue, 'f', -1, 64)
-		}
-
-	} else {
-		// add the cell UsedPRBs in a single,newly created, CQI-indexed level --RR
-
-		metricValue, err := strconv.ParseFloat(cellReqLoadMetric.Value, 64)
+		numPRBsToAllocate, err := strconv.ParseFloat(cellReqLoadMetric.Value, 64)
 		if err != nil {
 			return
 		}
-		if isDownlink {
-			newMetric = &metrics.Metric{
-				EntityID: cellReqLoadMetric.EntityID,
-				Key:      USED_PRBS_DL_METRIC + ".7",
-				Value:    strconv.FormatFloat(metricValue, 'f', -1, 64),
-			}
-		} else {
-			newMetric = &metrics.Metric{
-				EntityID: cellReqLoadMetric.EntityID,
-				Key:      USED_PRBS_UL_METRIC + ".7",
-				Value:    strconv.FormatFloat(metricValue, 'f', -1, 64),
-			}
+
+		totalPrbs := 0.0
+		for _, numPRBs := range prbsPerCQI {
+			totalPrbs += numPRBs
 		}
+
+		for metricIndex, numPRBs := range prbsPerCQI {
+			metricNewValue := float64(int((numPRBs / totalPrbs) * numPRBsToAllocate))
+			cellMeasurements[metricIndex].Value = strconv.FormatFloat(metricNewValue, 'f', -1, 64)
+		}
+
 	}
-
-	return
-}
-
-func ProportionalFairPrbs(cqiPRBsMap map[int]float64, prbsToAllocate string) map[int]float64 {
-	totalPrbs := 0.0
-
-	result := make(map[int]float64, len(cqiPRBsMap))
-
-	numPRBsToAllocate, err := strconv.ParseFloat(prbsToAllocate, 64)
-	if err != nil {
-		return result
-	}
-
-	for _, numPRBs := range cqiPRBsMap {
-		totalPrbs += numPRBs
-	}
-	for cqi, numPRBs := range cqiPRBsMap {
-		result[cqi] = float64(int((numPRBs / totalPrbs) * numPRBsToAllocate))
-	}
-
-	return result
 }
 
 func CreateUsedPrbsMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]float64, map[uint64]map[int]float64) {
@@ -245,7 +217,7 @@ func MatchesPattern(metric, p string) bool {
 	return r.MatchString(metric)
 }
 
-func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]int, map[uint64]map[string]int) {
+func CreateCellInfoMaps1(cellMeasurements []*metrics.Metric) (map[uint64]map[int]int, map[uint64]map[string]int) {
 	//cellPrbsMap[NCGI][CQI]
 	numUEsPerCQIByCell := map[uint64]map[int]int{}
 	//prbMeasPerCell[NCGI][MetricName]
@@ -290,4 +262,140 @@ func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]
 		}
 	}
 	return numUEsPerCQIByCell, prbMeasPerCell
+}
+
+func CreateCellInfoMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[string]int, map[uint64]map[string]int) {
+	// cellPrbsMap[NCGI][MetricName]
+	cellUEsMap := map[uint64]map[string]int{}
+	cellPrbsMap := map[uint64]map[string]int{}
+
+	for _, metric := range cellMeasurements {
+		if _, exists := cellPrbsMap[metric.EntityID]; !exists {
+			cellPrbsMap[metric.EntityID] = map[string]int{}
+		}
+		if _, exists := cellUEsMap[metric.EntityID]; !exists {
+			cellUEsMap[metric.EntityID] = map[string]int{}
+		}
+
+		value, _ := strconv.Atoi(metric.GetValue())
+
+		switch {
+		case metric.Key == ACTIVE_UES_METRIC:
+			cellUEsMap[metric.EntityID][ACTIVE_UES_METRIC] = value
+
+		case MatchesPattern(metric.Key, ACTIVE_UES_PATTERN):
+			cellUEsMap[metric.EntityID][metric.Key] = value
+
+		case metric.Key == TOTAL_PRBS_DL_METRIC:
+			cellPrbsMap[metric.EntityID][TOTAL_PRBS_DL_METRIC] = value
+
+		case metric.Key == TOTAL_PRBS_UL_METRIC:
+			cellPrbsMap[metric.EntityID][TOTAL_PRBS_UL_METRIC] = value
+
+		case metric.Key == USED_PRBS_DL_METRIC:
+			cellPrbsMap[metric.EntityID][USED_PRBS_DL_METRIC] = value
+
+		case MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN):
+			cellPrbsMap[metric.EntityID][metric.Key] = value
+
+		case metric.Key == USED_PRBS_UL_METRIC:
+			cellPrbsMap[metric.EntityID][USED_PRBS_UL_METRIC] = value
+
+		case MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN):
+			cellPrbsMap[metric.EntityID][metric.Key] = value
+		}
+	}
+
+	return cellUEsMap, cellPrbsMap
+}
+
+func DisagregateCellUes(cellUEsMap map[uint64]map[string]int) {
+	for cellNCGI, numUEsMetrics := range cellUEsMap {
+		if len(numUEsMetrics) == 1 {
+			numCellUEs, onlyCellUEsExists := numUEsMetrics[ACTIVE_UES_METRIC]
+			if onlyCellUEsExists {
+				uesPerCQI := numCellUEs / 15
+				for cqi := 1; cqi <= 15; cqi++ {
+					metricName := ACTIVE_UES_METRIC + "." + strconv.Itoa(cqi)
+					cellUEsMap[cellNCGI][metricName] = uesPerCQI
+				}
+			}
+		}
+	}
+}
+
+func DisagregateCellUsedPRBs(cellPRBsMap, cellUEsMap map[uint64]map[string]int) {
+	cellUsedPRBsDL := map[uint64]map[string]int{}
+	cellUsedPRBsUL := map[uint64]map[string]int{}
+	for cellNCGI, prbsMetrics := range cellPRBsMap {
+		for metricName, numPrbs := range prbsMetrics {
+			switch {
+			case MatchesPattern(metricName, USED_PRBS_DL_PATTERN) || metricName == USED_PRBS_DL_METRIC:
+				if _, exists := cellUsedPRBsDL[cellNCGI]; !exists {
+					cellUsedPRBsDL[cellNCGI] = map[string]int{}
+				}
+				cellUsedPRBsDL[cellNCGI][metricName] = numPrbs
+
+			case MatchesPattern(metricName, USED_PRBS_UL_PATTERN) || metricName == USED_PRBS_UL_METRIC:
+				if _, exists := cellUsedPRBsUL[cellNCGI]; !exists {
+					cellUsedPRBsUL[cellNCGI] = map[string]int{}
+				}
+				cellUsedPRBsUL[cellNCGI][metricName] = numPrbs
+			}
+		}
+	}
+
+	for cellNCGI, usedPRBsDLMetrics := range cellUsedPRBsDL {
+
+		if len(usedPRBsDLMetrics) == 1 {
+			cellUsedPRBsDL, onlyCellUsedPRBsDLExists := usedPRBsDLMetrics[USED_PRBS_DL_METRIC]
+			if onlyCellUsedPRBsDLExists {
+				sumCQI, numUEsPerCQI := getCQIInfo(cellNCGI, cellUEsMap)
+				for cqi := 1; cqi <= 15; cqi++ {
+					metricName := USED_PRBS_DL_METRIC + "." + strconv.Itoa(cqi)
+					usedPRBsDlForCQI := ((numUEsPerCQI[cqi] * cqi) / sumCQI) * cellUsedPRBsDL
+					if usedPRBsDlForCQI > 0 {
+						cellPRBsMap[cellNCGI][metricName] = usedPRBsDlForCQI
+					}
+				}
+			}
+		}
+
+	}
+
+	for cellNCGI, usedPRBsULMetrics := range cellUsedPRBsUL {
+
+		if len(usedPRBsULMetrics) == 1 {
+			cellUsedPRBsUL, onlyCellUsedPRBsULExists := usedPRBsULMetrics[USED_PRBS_UL_METRIC]
+			if onlyCellUsedPRBsULExists {
+				sumCQI, numUEsPerCQI := getCQIInfo(cellNCGI, cellUEsMap)
+				for cqi := 1; cqi <= 15; cqi++ {
+					metricName := USED_PRBS_UL_METRIC + "." + strconv.Itoa(cqi)
+					usedPRBsUlForCQI := ((numUEsPerCQI[cqi] * cqi) / sumCQI) * cellUsedPRBsUL
+					if usedPRBsUlForCQI > 0 {
+						cellPRBsMap[cellNCGI][metricName] = usedPRBsUlForCQI
+					}
+				}
+			}
+		}
+
+	}
+
+}
+
+func getCQIInfo(cellNCGI uint64, cellUEsMap map[uint64]map[string]int) (int, map[int]int) {
+	sumCQI := 0
+	numUEsPerCQI := map[int]int{}
+	for metricName, numUEs := range cellUEsMap[cellNCGI] {
+		if metricName != ACTIVE_UES_METRIC {
+			cqi, err := strconv.Atoi(strings.Split(metricName, ".")[2])
+			if err != nil {
+				log.Errorf("Error converting CQI level to integer: %v", err)
+				continue
+			}
+			sumCQI += numUEs * cqi
+			numUEsPerCQI[cqi] = numUEs
+		}
+	}
+	return sumCQI, numUEsPerCQI
 }

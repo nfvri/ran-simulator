@@ -78,17 +78,24 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 func AllocateBW(cell *model.Cell, cellPrbMeas map[string]int, servedUEs []*model.UE) {
 	// Infer BWP allocation from cell prb measurements
 	// pick used prbs if found else resort to total available
-	cellPrbsDl := cellPrbMeas[USED_PRBS_DL_METRIC]
-	cellPrbsUl := cellPrbMeas[USED_PRBS_UL_METRIC]
-	if cellPrbsDl == 0 && cellPrbsUl == 0 {
+	cellPrbsDl, usedPRBsDLExist := cellPrbMeas[USED_PRBS_DL_METRIC]
+	cellPrbsUl, usedPRBsULExist := cellPrbMeas[USED_PRBS_UL_METRIC]
+	if !usedPRBsDLExist {
 		cellPrbsDl = cellPrbMeas[TOTAL_PRBS_DL_METRIC]
+	}
+	if !usedPRBsULExist {
 		cellPrbsUl = cellPrbMeas[TOTAL_PRBS_UL_METRIC]
 	}
 
 	// reallocate using selected scheme
 	switch cell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
-		pf := ProportionalFair{}
+		pf := ProportionalFair{
+			UsedPRBsDL:  cellPrbsDl,
+			UsedPRBsUL:  cellPrbsUl,
+			TotalPRBsDL: cellPrbMeas[TOTAL_PRBS_DL_METRIC],
+			TotalPRBsUL: cellPrbMeas[TOTAL_PRBS_DL_METRIC],
+		}
 		pf.apply(cell, servedUEs)
 	}
 

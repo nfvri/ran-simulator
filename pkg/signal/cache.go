@@ -141,10 +141,10 @@ func PopulateUEs(m *model.Model, redisStore redisLib.Store) {
 		return
 	}
 
-	m.UEList = make(map[string]*model.UE)
+	m.UEs = make(map[string]*model.UE)
 	for imsi := range ueList {
 		ue := ueList[imsi]
-		m.UEList[imsi] = &ue
+		m.UEs[imsi] = &ue
 	}
-	log.Infof("len(m.UEList): %v", len(m.UEList))
+	log.Infof("len(m.UEList): %v", len(m.UEs))
 }

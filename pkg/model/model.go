@@ -31,7 +31,7 @@ type Model struct {
 	InitialRrcState         string                  `mapstructure:"initialRrcState" yaml:"initialRrcState"`
 	UECount                 uint                    `mapstructure:"ueCount" yaml:"ueCount"`
 	UECountPerCell          uint                    `mapstructure:"ueCountPerCell" yaml:"ueCountPerCell"`
-	UEList                  map[string]*UE          `mapstructure:"ues" yaml:"ues"`
+	UEs                     map[string]*UE          `mapstructure:"ues" yaml:"ues"`
 	Plmn                    string                  `mapstructure:"plmnID" yaml:"plmnID"`
 	PlmnID                  types.PlmnID            `mapstructure:"plmnNumber" yaml:"plmnNumber"` // overridden and derived post-load from "Plmn" field
 	APIKey                  string                  `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
@@ -96,7 +96,7 @@ func (m *Model) GetServedUEs(ncgi types.NCGI) []*UE {
 	servedUEs := []*UE{}
 	for _, imsi := range m.CellToUEs[ncgi] {
 		imsiStr := strconv.Itoa(int(imsi))
-		ue := m.UEList[imsiStr]
+		ue := m.UEs[imsiStr]
 		servedUEs = append(servedUEs, ue)
 	}
 	return servedUEs

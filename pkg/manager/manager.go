@@ -106,7 +106,7 @@ func (m *Manager) initMobilityDriver() {
 	)
 	ctx := context.Background()
 	m.mobilityDriver.Start(ctx)
-	for _, ue := range m.model.UEList {
+	for _, ue := range m.model.UEs {
 		m.mobilityDriver.UpdateUESignalStrength(ue.IMSI)
 	}
 }
@@ -194,7 +194,7 @@ func (m *Manager) computeUEAttributes() {
 
 	signal.PopulateUEs(m.model, &m.redisStore)
 
-	numUEsPerCQIByCell, prbMeasPerCell := bw.CreateCellInfoMaps(m.model.CellMeasurements)
+	numUEsPerCQIByCell, prbMeasPerCell := bw.UtilizationInfoByCell(m.model.CellMeasurements)
 	bw.DisagregateCellUsedPRBs(prbMeasPerCell, numUEsPerCQIByCell)
 
 	for ncgi := range m.model.Cells {
@@ -241,6 +241,7 @@ func (m *Manager) computeCellStatistics() {
 		totalactiveUEs += activeUEs
 		totalPrbsTotalDl += prbsTotalDl
 		totalPrbsTotalUl += prbsTotalUl
+		//TODO: per CQI metrics
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotDl", prbsTotalDl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotUl", prbsTotalUl)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeDl", activeUEs)
@@ -378,8 +379,8 @@ func (m *Manager) Resume() error {
 func (m *Manager) performHandovers() {
 
 	hoUes := map[string]model.UE{}
-	for imsi := range m.model.UEList {
-		ue := *m.model.UEList[imsi]
+	for imsi := range m.model.UEs {
+		ue := *m.model.UEs[imsi]
 		hoUes[imsi] = ue
 	}
 

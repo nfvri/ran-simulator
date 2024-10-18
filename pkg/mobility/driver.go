@@ -101,7 +101,7 @@ func NewMobilityDriver(m *model.Model, hoLogic string, hoCtrl handover.HOControl
 		rrcStateChangesDisabled: m.RrcStateChangesDisabled,
 		wayPointRoute:           m.WayPointRoute,
 		hoCtrl:                  hoCtrl,
-		hoCounter:               hoCounter{hosRemaining: len(m.UEList)},
+		hoCounter:               hoCounter{hosRemaining: len(m.UEs)},
 		finishHOsChan:           finishHOsChan,
 	}
 }
@@ -181,7 +181,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	sCellNcgiStr := strconv.FormatUint(uint64(hoDecision.SourceCellNcgi), 10)
 	sCell := d.m.Cells[sCellNcgiStr]
 	imsiStr := strconv.FormatUint(uint64(hoDecision.UE.IMSI), 10)
-	ue := d.m.UEList[imsiStr]
+	ue := d.m.UEs[imsiStr]
 
 	sCell.Lock()
 	defer sCell.Unlock()
@@ -258,7 +258,7 @@ func (d *driver) UpdateUECells(sCellNCGI, tCellNCGI types.NCGI, ue *model.UE) {
 
 // UpdateUESignalStrength updates UE signal strength
 func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
-	ue, ok := d.m.UEList[strconv.FormatUint(uint64(imsi), 10)]
+	ue, ok := d.m.UEs[strconv.FormatUint(uint64(imsi), 10)]
 	if !ok {
 		log.Warnf("Unable to find UE %d", imsi)
 		return
@@ -292,7 +292,7 @@ func (d *driver) UpdateUECellsParams(ue model.UE) {
 		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, utils.GetNeighborCells(nCell, d.m.Cells))
 		ue.Cells[index].Rsrq = signal.RSRQ(ue.Cells[index].Sinr, ue.Cells[index].TotalPrbsDl)
 	}
-	d.m.UEList[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ue
+	d.m.UEs[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ue
 }
 
 /* ---------------------------  UNUSED FUNCTIONS ---------------------------*/
@@ -325,7 +325,7 @@ func (d *driver) linkMeasCtrlHoCtrl() {
 }
 
 func (d *driver) reportMeasurement(imsi types.IMSI) {
-	ue, ok := d.m.UEList[strconv.FormatUint(uint64(imsi), 10)]
+	ue, ok := d.m.UEs[strconv.FormatUint(uint64(imsi), 10)]
 	if !ok {
 		log.Warnf("Unable to find UE %d", imsi)
 		return
@@ -399,7 +399,7 @@ func (d *driver) initializeUEPosition(ctx context.Context, route *model.Route) {
 
 func (d *driver) updateUEPosition(ctx context.Context, route *model.Route) {
 	// Get the UE
-	ue, ok := d.m.UEList[strconv.FormatUint(uint64(route.IMSI), 10)]
+	ue, ok := d.m.UEs[strconv.FormatUint(uint64(route.IMSI), 10)]
 	if !ok {
 		log.Warnf("Unable to find UE %d", route.IMSI)
 		return

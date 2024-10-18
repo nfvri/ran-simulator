@@ -19,11 +19,11 @@ import (
 
 func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]*model.UE, bool) {
 
-	numUEsPerCQIByCell, prbMeasPerCell := bw.CreateCellInfoMaps(cellMeasurements)
+	numUEsPerCQIByCell, prbMeasPerCell := bw.UtilizationInfoByCell(cellMeasurements)
 	bw.DisagregateCellUes(numUEsPerCQIByCell)
 	bw.DisagregateCellUsedPRBs(prbMeasPerCell, numUEsPerCQIByCell)
 
-	var ueList = map[string]*model.UE{}
+	var ues = map[string]*model.UE{}
 	ctx := context.Background()
 	ueGroup, err := cacheStore.GetUEGroup(ctx, snapshotId)
 	storeInCache := snapshotId != "" && err != nil
@@ -31,9 +31,9 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 	if err == nil {
 		for imsi := range ueGroup {
 			ue := ueGroup[imsi]
-			ueList[imsi] = &ue
+			ues[imsi] = &ue
 		}
-		return ueList, storeInCache
+		return ues, storeInCache
 	}
 
 	for sCellNCGI, numUEsPerCQI := range numUEsPerCQIByCell {
@@ -43,8 +43,8 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 			continue
 		}
 
-		uesLocationsPerCQI := GenerateUEsLocationBasedOnCQI(sCell, numUEsPerCQI, cells, ueHeight, dc)
-		uesRSRPPerCQI := GetUEsRsrpBasedOnLocation(sCell, uesLocationsPerCQI, cells, ueHeight)
+		ueLocationsPerCQI := GenerateUELocationsBasedOnCQI(sCell, numUEsPerCQI, cells, ueHeight, dc)
+		ueRSRPsPerCQI := GetUERsrpsBasedOnLocation(sCell, ueLocationsPerCQI, cells, ueHeight)
 
 		totalUEs := 0
 		for _, numUEs := range numUEsPerCQI {
@@ -67,31 +67,31 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 			}
 			ueSINR := signal.GetSINR(cqi)
 			for i := 0; i < numUEs; i++ {
-				if len(uesLocationsPerCQI[cqi]) <= i {
+				if len(ueLocationsPerCQI[cqi]) <= i {
 					log.Error("number of ue locations generated is smaller than the required")
 					break
 				}
 
-				ueRSRP := uesRSRPPerCQI[cqi][i]
-				ueLocation := uesLocationsPerCQI[cqi][i]
+				ueRSRP := ueRSRPsPerCQI[cqi][i]
+				ueLocation := ueLocationsPerCQI[cqi][i]
 				ueNeighbors := InitUeNeighbors(ueLocation, sCell, cells, ueHeight, prbMeasPerCell)
 				totalPrbsDl := prbMeasPerCell[sCellNCGI][bw.TOTAL_PRBS_DL_METRIC]
 				ueRSRQ := signal.RSRQ(ueSINR, totalPrbsDl)
 
-				simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ueList)+1, cqi, totalPrbsDl, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
-				ueList[ueIMSI] = simUE
+				simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ues)+1, cqi, totalPrbsDl, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
+				ues[ueIMSI] = simUE
 				cellServedUEs = append(cellServedUEs, simUE)
 			}
 		}
 		bw.InitBWPs(sCell, prbMeasPerCell[sCellNCGI], cellServedUEs)
 	}
 
-	log.Infof("------------- len(ueList): %d --------------", len(ueList))
+	log.Infof("------------- len(ues): %d --------------", len(ues))
 	log.Infof("---------------- Updated UEs -----------------")
-	return ueList, storeInCache
+	return ues, storeInCache
 }
 
-func GenerateUEsLocationBasedOnCQI(sCell *model.Cell, numUesPerCQI map[string]int, cells map[string]*model.Cell, ueHeight, dc float64) (uesLocationsPerCQI map[int][]model.Coordinate) {
+func GenerateUELocationsBasedOnCQI(sCell *model.Cell, numUesPerCQI map[string]int, cells map[string]*model.Cell, ueHeight, dc float64) (uesLocationsPerCQI map[int][]model.Coordinate) {
 
 	uesSINR := make(map[int]float64)
 	uesLocationsPerCQI = make(map[int][]model.Coordinate)
@@ -122,7 +122,7 @@ func GenerateUEsLocationBasedOnCQI(sCell *model.Cell, numUesPerCQI map[string]in
 	return
 }
 
-func GetUEsRsrpBasedOnLocation(sCell *model.Cell, uesLocationsPerCQI map[int][]model.Coordinate, cells map[string]*model.Cell, ueHeight float64) (uesRSRPPerCQI map[int][]float64) {
+func GetUERsrpsBasedOnLocation(sCell *model.Cell, uesLocationsPerCQI map[int][]model.Coordinate, cells map[string]*model.Cell, ueHeight float64) (uesRSRPPerCQI map[int][]float64) {
 
 	uesRSRPPerCQI = make(map[int][]float64)
 	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))

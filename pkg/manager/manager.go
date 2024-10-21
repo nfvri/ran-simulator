@@ -194,8 +194,31 @@ func (m *Manager) computeUEAttributes() {
 
 	signal.PopulateUEs(m.model, &m.redisStore)
 
-	numUEsPerCQIByCell, prbMeasPerCell := bw.UtilizationInfoByCell(m.model.CellMeasurements)
-	bw.DisagregateCellUsedPRBs(prbMeasPerCell, numUEsPerCQIByCell)
+	numUEsByCell, prbMeasPerCell := bw.UtilizationInfoByCell(m.model.CellMeasurements)
+	numUEsPerCQIByCell := bw.DisagregateCellUes(numUEsByCell)
+	usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell := bw.GetUsedPRBsPerCQIByCell(prbMeasPerCell, numUEsPerCQIByCell)
+
+	// for sCellNCGI, numUEsPerCQI := range numUEsPerCQIByCell {
+	// 	log.Infof("popCell: %v -- numUEsPerCQI: %v\n\n", sCellNCGI, numUEsPerCQI)
+	// }
+	// for sCellNCGI, prbMeas := range prbMeasPerCell {
+	// 	log.Infof("popCell: %v -- prbMeas: %v\n\n", sCellNCGI, prbMeas)
+	// }
+
+	// for sCellNCGI, usedPRBsDL := range usedPRBsDLPerCQIByCell {
+	// 	sum := 0
+	// 	for _, numPRBs := range usedPRBsDL {
+	// 		sum += numPRBs
+	// 	}
+	// 	log.Infof("popCell: %v -- usedPrbsDl: %v", sCellNCGI, sum)
+	// }
+	// for sCellNCGI, usedPRBsUL := range usedPRBsULPerCQIByCell {
+	// 	sum := 0
+	// 	for _, numPRBs := range usedPRBsUL {
+	// 		sum += numPRBs
+	// 	}
+	// 	log.Infof("popCell: %v -- usedPrbsUl: %v", sCellNCGI, sum)
+	// }
 
 	for ncgi := range m.model.Cells {
 		cell := m.model.Cells[ncgi]
@@ -204,7 +227,12 @@ func (m *Manager) computeUEAttributes() {
 			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
 			continue
 		}
-		bw.InitBWPs(cell, prbMeasPerCell[uint64(cell.NCGI)], servedUEs)
+		usedPRBsDLPerCQI := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)]
+		usedPRBsULPerCQI := usedPRBsULPerCQIByCell[uint64(cell.NCGI)]
+		totalPRBsDL := prbMeasPerCell[uint64(cell.NCGI)][bw.TOTAL_PRBS_DL_METRIC]
+		totalPRBsUL := prbMeasPerCell[uint64(cell.NCGI)][bw.TOTAL_PRBS_UL_METRIC]
+
+		bw.InitBWPs(cell, usedPRBsDLPerCQI, usedPRBsULPerCQI, totalPRBsDL, totalPRBsUL, servedUEs)
 	}
 }
 

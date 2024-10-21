@@ -187,11 +187,11 @@ func If[T any](cond bool, vtrue, vfalse T) T {
 	return vfalse
 }
 
-func GetNeighborCells(cell *model.Cell, simModelCells map[string]*model.Cell) []*model.Cell {
+func GetNeighborCells(cell *model.Cell, cells map[string]*model.Cell) []*model.Cell {
 
 	neighborCells := []*model.Cell{}
 	for _, ncgi := range cell.Neighbors {
-		nCell, ok := simModelCells[strconv.FormatUint(uint64(ncgi), 10)]
+		nCell, ok := cells[strconv.FormatUint(uint64(ncgi), 10)]
 		if !ok {
 			continue
 		}

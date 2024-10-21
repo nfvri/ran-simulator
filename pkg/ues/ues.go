@@ -3,7 +3,6 @@ package ues
 import (
 	"context"
 	"strconv"
-	"strings"
 	"sync"
 
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
@@ -19,9 +18,31 @@ import (
 
 func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]*model.UE, bool) {
 
-	numUEsPerCQIByCell, prbMeasPerCell := bw.UtilizationInfoByCell(cellMeasurements)
-	bw.DisagregateCellUes(numUEsPerCQIByCell)
-	bw.DisagregateCellUsedPRBs(prbMeasPerCell, numUEsPerCQIByCell)
+	numUEsByCell, prbMeasPerCell := bw.UtilizationInfoByCell(cellMeasurements)
+	numUEsPerCQIByCell := bw.DisagregateCellUes(numUEsByCell)
+	usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell := bw.GetUsedPRBsPerCQIByCell(prbMeasPerCell, numUEsPerCQIByCell)
+
+	for sCellNCGI, numUEsPerCQI := range numUEsPerCQIByCell {
+		log.Infof("Cell: %v -- numUEsPerCQI: %v\n\n", sCellNCGI, numUEsPerCQI)
+	}
+	for sCellNCGI, prbMeas := range prbMeasPerCell {
+		log.Infof("Cell: %v -- prbMeas: %v\n\n", sCellNCGI, prbMeas)
+	}
+
+	for sCellNCGI, usedPRBsDL := range usedPRBsDLPerCQIByCell {
+		sum := 0
+		for _, numPRBs := range usedPRBsDL {
+			sum += numPRBs
+		}
+		log.Infof("Cell: %v -- usedPrbsDl: %v", sCellNCGI, sum)
+	}
+	for sCellNCGI, usedPRBsUL := range usedPRBsULPerCQIByCell {
+		sum := 0
+		for _, numPRBs := range usedPRBsUL {
+			sum += numPRBs
+		}
+		log.Infof("Cell: %v -- usedPrbsUl: %v", sCellNCGI, sum)
+	}
 
 	var ues = map[string]*model.UE{}
 	ctx := context.Background()
@@ -56,15 +77,8 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		}
 
 		cellServedUEs := []*model.UE{}
-		for metricName, numUEs := range numUEsPerCQI {
-			if metricName == bw.USED_PRBS_DL_METRIC || metricName == bw.USED_PRBS_UL_METRIC {
-				continue
-			}
-			cqi, err := strconv.Atoi(strings.Split(metricName, ".")[2])
-			if err != nil {
-				log.Errorf("Error converting CQI level to integer: %v", err)
-				continue
-			}
+		for cqi, numUEs := range numUEsPerCQI {
+
 			ueSINR := signal.GetSINR(cqi)
 			for i := 0; i < numUEs; i++ {
 				if len(ueLocationsPerCQI[cqi]) <= i {
@@ -83,7 +97,12 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 				cellServedUEs = append(cellServedUEs, simUE)
 			}
 		}
-		bw.InitBWPs(sCell, prbMeasPerCell[sCellNCGI], cellServedUEs)
+		usedPRBsDLPerCQI := usedPRBsDLPerCQIByCell[sCellNCGI]
+		usedPRBsULPerCQI := usedPRBsULPerCQIByCell[sCellNCGI]
+		totalPRBsDL := prbMeasPerCell[sCellNCGI][bw.TOTAL_PRBS_DL_METRIC]
+		totalPRBsUL := prbMeasPerCell[sCellNCGI][bw.TOTAL_PRBS_UL_METRIC]
+
+		bw.InitBWPs(sCell, usedPRBsDLPerCQI, usedPRBsULPerCQI, totalPRBsDL, totalPRBsUL, cellServedUEs)
 	}
 
 	log.Infof("------------- len(ues): %d --------------", len(ues))
@@ -91,30 +110,20 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 	return ues, storeInCache
 }
 
-func GenerateUELocationsBasedOnCQI(sCell *model.Cell, numUesPerCQI map[string]int, cells map[string]*model.Cell, ueHeight, dc float64) (uesLocationsPerCQI map[int][]model.Coordinate) {
+func GenerateUELocationsBasedOnCQI(sCell *model.Cell, numUesPerCQI map[int]int, cells map[string]*model.Cell, ueHeight, dc float64) (uesLocationsPerCQI map[int][]model.Coordinate) {
 
-	uesSINR := make(map[int]float64)
-	uesLocationsPerCQI = make(map[int][]model.Coordinate)
-
+	uesLocationsPerCQI = make(map[int][]model.Coordinate, 15)
+	mtx := sync.RWMutex{}
 	var wg sync.WaitGroup
-	for metricName, numUEs := range numUesPerCQI {
-		if metricName == bw.USED_PRBS_DL_METRIC || metricName == bw.USED_PRBS_UL_METRIC {
-			continue
-		}
-
-		cqi, err := strconv.Atoi(strings.Split(metricName, ".")[2])
-		if err != nil {
-			log.Errorf("Error converting CQI level to integer: %v", err)
-			continue
-		}
-
+	for cqi, numUEs := range numUesPerCQI {
 		wg.Add(1)
 		go func(CQI, numUEs int) {
 			defer wg.Done()
 			ueSINR := signal.GetSINR(CQI)
 			neighborCells := utils.GetNeighborCells(sCell, cells)
+			mtx.Lock()
 			uesLocationsPerCQI[CQI] = signal.GetSinrPoints(ueHeight, sCell, neighborCells, ueSINR, dc, numUEs, CQI)
-			uesSINR[CQI] = ueSINR
+			mtx.Unlock()
 		}(cqi, numUEs)
 	}
 	wg.Wait()
@@ -170,7 +179,7 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, sinr, rsrp, 
 	return ue, ueIMSI
 }
 
-func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, cells map[string]*model.Cell, ueHeight float64, cellPrbsMap map[uint64]map[string]int) []*model.UECell {
+func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, cells map[string]*model.Cell, ueHeight float64, prbMeasPerCell map[uint64]map[string]int) []*model.UECell {
 	ueNeighbors := []*model.UECell{}
 
 	neighborCells := utils.GetNeighborCells(sCell, cells)
@@ -188,7 +197,7 @@ func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, cells map[string
 				Rsrp:        rsrp,
 				Rsrq:        rsrq,
 				Sinr:        sinr,
-				TotalPrbsDl: cellPrbsMap[uint64(nCell.NCGI)][bw.TOTAL_PRBS_DL_METRIC],
+				TotalPrbsDl: prbMeasPerCell[uint64(nCell.NCGI)][bw.TOTAL_PRBS_DL_METRIC],
 			}
 			ueNeighbors = append(ueNeighbors, ueCell)
 		}

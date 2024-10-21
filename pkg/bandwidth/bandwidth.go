@@ -3,14 +3,13 @@ package bandwidth
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
 )
 
-func InitBWPs(sCell *model.Cell, cellPrbMeas map[string]int, ues []*model.UE) error {
+func InitBWPs(sCell *model.Cell, usedPRBsDLPerCQI, usedPRBsULPerCQI map[int]int, totalPRBsDL, totalPRBsUL int, ues []*model.UE) error {
 
 	// Existing BWPs from topology
 	existingCellBwps := map[string]*model.Bwp{}
@@ -22,7 +21,7 @@ func InitBWPs(sCell *model.Cell, cellPrbMeas map[string]int, ues []*model.UE) er
 		return nil
 	}
 
-	AllocateBW(sCell, cellPrbMeas, ues)
+	AllocateBW(sCell, usedPRBsDLPerCQI, usedPRBsULPerCQI, totalPRBsDL, totalPRBsUL, ues)
 
 	if len(sCell.Bwps) == 0 {
 		err := fmt.Errorf("failed to initialize BWPs for simulation")
@@ -78,43 +77,22 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 	}
 }
 
-func AllocateBW(cell *model.Cell, cellPrbMeas map[string]int, servedUEs []*model.UE) {
+func AllocateBW(cell *model.Cell, usedPRBsDLPerCQI, usedPRBsULPerCQI map[int]int, totalPRBsDL, totalPRBsUL int, servedUEs []*model.UE) {
 	// Infer BWP allocation from cell prb measurements
 	// pick used prbs if found else resort to total available
-	cellUsedPRBsDLPerCQI, cellUsedPRBsULPerCQI := getUsedPRBsPerCQI(cellPrbMeas)
 
 	// reallocate using selected scheme
 	switch cell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
 		pf := ProportionalFair{
-			UsedPRBsDLPerCQI: cellUsedPRBsDLPerCQI,
-			UsedPRBsULPerCQI: cellUsedPRBsULPerCQI,
-			TotalPRBsDL:      cellPrbMeas[TOTAL_PRBS_DL_METRIC],
-			TotalPRBsUL:      cellPrbMeas[TOTAL_PRBS_DL_METRIC],
+			UsedPRBsULPerCQI: usedPRBsULPerCQI,
+			UsedPRBsDLPerCQI: usedPRBsDLPerCQI,
+			TotalPRBsDL:      totalPRBsDL,
+			TotalPRBsUL:      totalPRBsUL,
 		}
 		pf.apply(cell, servedUEs)
 	}
 
-}
-
-func getUsedPRBsPerCQI(cellPrbMeas map[string]int) (map[int]int, map[int]int) {
-	cellUsedPRBsDL := map[int]int{}
-	cellUsedPRBsUL := map[int]int{}
-	for metricName, numPrbs := range cellPrbMeas {
-		cqi, err := strconv.Atoi(strings.Split(metricName, ".")[2])
-		if err != nil {
-			log.Errorf("Error converting CQI level to integer: %v", err)
-			continue
-		}
-		switch {
-		case MatchesPattern(metricName, USED_PRBS_DL_PATTERN):
-			cellUsedPRBsDL[cqi] = numPrbs
-
-		case MatchesPattern(metricName, USED_PRBS_UL_PATTERN):
-			cellUsedPRBsUL[cqi] = numPrbs
-		}
-	}
-	return cellUsedPRBsDL, cellUsedPRBsUL
 }
 
 func enoughBW(tCell *model.Cell, requestedBwps []model.Bwp) bool {

@@ -285,14 +285,14 @@ func (d *driver) UpdateUECellsParams(ue *model.UE) {
 	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
 	ue.Cell.Rsrp = calculateRSRP(ue, sCell)
 	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
-	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.TotalPrbsDl)
+	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.AvailPrbsDl)
 	ue.FiveQi = signal.GetCQI(ue.Cell.Sinr)
 
 	for index := range ue.Cells {
 		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
 		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell)
 		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, utils.GetNeighborCells(nCell, d.m.Cells))
-		ue.Cells[index].Rsrq = signal.RSRQ(ue.Cells[index].Sinr, ue.Cells[index].TotalPrbsDl)
+		ue.Cells[index].Rsrq = signal.RSRQ(ue.Cells[index].Sinr, ue.Cells[index].AvailPrbsDl)
 	}
 	ueCopy := *ue
 	d.m.UEs[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ueCopy

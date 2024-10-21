@@ -295,7 +295,7 @@ type UECell struct {
 	Rsrq        float64     `mapstructure:"rsrq"`
 	Sinr        float64     `mapstructure:"sinr"`
 	BwpRefs     []*Bwp      `mapstructure:"bwpRefs"`
-	TotalPrbsDl int
+	AvailPrbsDl int
 }
 
 type Bwp struct {

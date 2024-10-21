@@ -9,7 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitBWPs(sCell *model.Cell, usedPRBsDLPerCQI, usedPRBsULPerCQI map[int]int, totalPRBsDL, totalPRBsUL int, ues []*model.UE) error {
+type CQIStats struct {
+	NumUEs     int
+	UsedPRBsDL int
+	UsedPRBsUL int
+}
+
+func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, ues []*model.UE) error {
 
 	// Existing BWPs from topology
 	existingCellBwps := map[string]*model.Bwp{}
@@ -21,7 +27,7 @@ func InitBWPs(sCell *model.Cell, usedPRBsDLPerCQI, usedPRBsULPerCQI map[int]int,
 		return nil
 	}
 
-	AllocateBW(sCell, usedPRBsDLPerCQI, usedPRBsULPerCQI, totalPRBsDL, totalPRBsUL, ues)
+	AllocateBW(sCell, statsPerCQI, availPRBsDL, availPRBsUL, ues)
 
 	if len(sCell.Bwps) == 0 {
 		err := fmt.Errorf("failed to initialize BWPs for simulation")
@@ -77,18 +83,17 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 	}
 }
 
-func AllocateBW(cell *model.Cell, usedPRBsDLPerCQI, usedPRBsULPerCQI map[int]int, totalPRBsDL, totalPRBsUL int, servedUEs []*model.UE) {
+func AllocateBW(cell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
 	// Infer BWP allocation from cell prb measurements
 	// pick used prbs if found else resort to total available
 
-	// reallocate using selected scheme
+	// allocate using selected scheme
 	switch cell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
 		pf := ProportionalFair{
-			UsedPRBsULPerCQI: usedPRBsULPerCQI,
-			UsedPRBsDLPerCQI: usedPRBsDLPerCQI,
-			TotalPRBsDL:      totalPRBsDL,
-			TotalPRBsUL:      totalPRBsUL,
+			StatsPerCQI: statsPerCQI,
+			AvailPRBsDL: availPRBsDL,
+			AvailPRBsUL: availPRBsUL,
 		}
 		pf.apply(cell, servedUEs)
 	}
@@ -138,4 +143,8 @@ func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 		}
 	}
 	return bwAlloc
+}
+
+func ToHz(MHz float64) float64 {
+	return MHz * 1e6
 }

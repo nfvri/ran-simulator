@@ -227,12 +227,21 @@ func (m *Manager) computeUEAttributes() {
 			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
 			continue
 		}
-		usedPRBsDLPerCQI := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)]
-		usedPRBsULPerCQI := usedPRBsULPerCQIByCell[uint64(cell.NCGI)]
-		totalPRBsDL := prbMeasPerCell[uint64(cell.NCGI)][bw.TOTAL_PRBS_DL_METRIC]
-		totalPRBsUL := prbMeasPerCell[uint64(cell.NCGI)][bw.TOTAL_PRBS_UL_METRIC]
 
-		bw.InitBWPs(cell, usedPRBsDLPerCQI, usedPRBsULPerCQI, totalPRBsDL, totalPRBsUL, servedUEs)
+		statsPerCQI := map[int]bw.CQIStats{}
+		for cqi, numUEs := range numUEsPerCQIByCell[uint64(cell.NCGI)] {
+			if numUEs > 0 {
+				statsPerCQI[cqi] = bw.CQIStats{
+					NumUEs:     numUEs,
+					UsedPRBsDL: usedPRBsDLPerCQIByCell[uint64(cell.NCGI)][cqi],
+					UsedPRBsUL: usedPRBsULPerCQIByCell[uint64(cell.NCGI)][cqi],
+				}
+			}
+		}
+		availPRBsDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
+		availPRBsUL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_UL_METRIC]
+
+		bw.InitBWPs(cell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
 	}
 }
 
@@ -243,40 +252,60 @@ func (m *Manager) computeCellStatistics() {
 	totalPrbsTotalDl := 0
 	totalPrbsTotalUl := 0
 
+	prbsUsedDLPerCQI := map[int]int{}
+	prbsUsedULPerCQI := map[int]int{}
+
 	for _, cell := range m.model.Cells {
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
-		prbsTotalDl := 0
-		prbsTotalUl := 0
+		prbsUsedDl := 0
+		prbsUsedUl := 0
 		activeUEs := 0
 
 		if len(cell.Bwps) == 0 {
 			log.Warnf("cell %v Bwps: %v", cell.NCGI, cell.Bwps)
 		}
+
 		for _, ue := range servedUEs {
+
+			if _, ok := prbsUsedDLPerCQI[ue.FiveQi]; !ok {
+				prbsUsedDLPerCQI[ue.FiveQi] = 0
+			}
+			if _, ok := prbsUsedULPerCQI[ue.FiveQi]; !ok {
+				prbsUsedULPerCQI[ue.FiveQi] = 0
+			}
+
 			if ue.RrcState == e2smmho.Rrcstatus_RRCSTATUS_CONNECTED {
 				activeUEs++
 			}
 
 			for _, bwp := range ue.Cell.BwpRefs {
 				if bwp.Downlink {
-					prbsTotalDl += bwp.NumberOfRBs
+					prbsUsedDl += bwp.NumberOfRBs
+					prbsUsedDLPerCQI[ue.FiveQi] += bwp.NumberOfRBs
 				} else {
-					prbsTotalUl += bwp.NumberOfRBs
+					prbsUsedUl += bwp.NumberOfRBs
+					prbsUsedULPerCQI[ue.FiveQi] += bwp.NumberOfRBs
 				}
 			}
 		}
 		totalactiveUEs += activeUEs
-		totalPrbsTotalDl += prbsTotalDl
-		totalPrbsTotalUl += prbsTotalUl
-		//TODO: per CQI metrics
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotDl", prbsTotalDl)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "RRU.PrbTotUl", prbsTotalUl)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeDl", activeUEs)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.MeanActiveUeUl", activeUEs)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpDl", statistics.UEThpDl(prbsTotalDl, float64(len(servedUEs))))
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), "DRB.UEThpUl", statistics.UEThpUl(prbsTotalUl, float64(len(servedUEs))))
+		totalPrbsTotalDl += prbsUsedDl
+		totalPrbsTotalUl += prbsUsedUl
 
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_PRBS_DL_METRIC, prbsUsedDl)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_PRBS_UL_METRIC, prbsUsedUl)
+		for cqi, prbsDl := range prbsUsedDLPerCQI {
+			m.metricsStore.Set(ctx, uint64(cell.NCGI), fmt.Sprintf(bw.USED_PRBS_DL_METRIC+".%d", cqi), prbsDl)
+		}
+		for cqi, prbsUl := range prbsUsedULPerCQI {
+			m.metricsStore.Set(ctx, uint64(cell.NCGI), fmt.Sprintf(bw.USED_PRBS_UL_METRIC+".%d", cqi), prbsUl)
+		}
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_DL_METRIC, activeUEs)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_UL_METRIC, activeUEs)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_DL_METRIC, statistics.UEThpDl(prbsUsedDl, float64(len(servedUEs))))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_UL_METRIC, statistics.UEThpUl(prbsUsedUl, float64(len(servedUEs))))
 	}
+
 	m.metricsStore.Set(ctx, uint64(1), "SECTOR_RRU.PrbTotDl", totalPrbsTotalDl)
 	m.metricsStore.Set(ctx, uint64(1), "SECTOR_RRU.PrbTotUl", totalPrbsTotalUl)
 	m.metricsStore.Set(ctx, uint64(1), "SECTOR_AVG_DRB.UEThpDl", statistics.UEThpUl(totalPrbsTotalDl, float64(totalactiveUEs)))

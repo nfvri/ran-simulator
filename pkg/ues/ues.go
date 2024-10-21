@@ -77,8 +77,8 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		}
 
 		cellServedUEs := []*model.UE{}
+		statsPerCQI := map[int]bw.CQIStats{}
 		for cqi, numUEs := range numUEsPerCQI {
-
 			ueSINR := signal.GetSINR(cqi)
 			for i := 0; i < numUEs; i++ {
 				if len(ueLocationsPerCQI[cqi]) <= i {
@@ -89,20 +89,26 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 				ueRSRP := ueRSRPsPerCQI[cqi][i]
 				ueLocation := ueLocationsPerCQI[cqi][i]
 				ueNeighbors := InitUeNeighbors(ueLocation, sCell, cells, ueHeight, prbMeasPerCell)
-				totalPrbsDl := prbMeasPerCell[sCellNCGI][bw.TOTAL_PRBS_DL_METRIC]
+				totalPrbsDl := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
 				ueRSRQ := signal.RSRQ(ueSINR, totalPrbsDl)
 
 				simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ues)+1, cqi, totalPrbsDl, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 				ues[ueIMSI] = simUE
 				cellServedUEs = append(cellServedUEs, simUE)
 			}
-		}
-		usedPRBsDLPerCQI := usedPRBsDLPerCQIByCell[sCellNCGI]
-		usedPRBsULPerCQI := usedPRBsULPerCQIByCell[sCellNCGI]
-		totalPRBsDL := prbMeasPerCell[sCellNCGI][bw.TOTAL_PRBS_DL_METRIC]
-		totalPRBsUL := prbMeasPerCell[sCellNCGI][bw.TOTAL_PRBS_UL_METRIC]
 
-		bw.InitBWPs(sCell, usedPRBsDLPerCQI, usedPRBsULPerCQI, totalPRBsDL, totalPRBsUL, cellServedUEs)
+			if numUEs > 0 {
+				statsPerCQI[cqi] = bw.CQIStats{
+					NumUEs:     numUEs,
+					UsedPRBsDL: usedPRBsDLPerCQIByCell[sCellNCGI][cqi],
+					UsedPRBsUL: usedPRBsULPerCQIByCell[sCellNCGI][cqi],
+				}
+			}
+		}
+		availPRBsDL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
+		availPRBsUL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_UL_METRIC]
+
+		bw.InitBWPs(sCell, statsPerCQI, availPRBsDL, availPRBsUL, cellServedUEs)
 	}
 
 	log.Infof("------------- len(ues): %d --------------", len(ues))
@@ -159,7 +165,7 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, sinr, rsrp, 
 		Rsrq:        rsrq,
 		Rsrp:        rsrp,
 		Sinr:        sinr,
-		TotalPrbsDl: totalPrbsDl,
+		AvailPrbsDl: totalPrbsDl,
 	}
 
 	ue := &model.UE{
@@ -197,7 +203,7 @@ func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, cells map[string
 				Rsrp:        rsrp,
 				Rsrq:        rsrq,
 				Sinr:        sinr,
-				TotalPrbsDl: prbMeasPerCell[uint64(nCell.NCGI)][bw.TOTAL_PRBS_DL_METRIC],
+				AvailPrbsDl: prbMeasPerCell[uint64(nCell.NCGI)][bw.AVAIL_PRBS_DL_METRIC],
 			}
 			ueNeighbors = append(ueNeighbors, ueCell)
 		}

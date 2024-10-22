@@ -195,7 +195,7 @@ func (m *Manager) computeUEAttributes() {
 	signal.PopulateUEs(m.model, &m.redisStore)
 
 	numUEsByCell, prbMeasPerCell := bw.UtilizationInfoByCell(m.model.CellMeasurements)
-	numUEsPerCQIByCell := bw.DisagregateCellUes(numUEsByCell)
+	numUEsPerCQIByCell := bw.GetNumUEsPerCQIByCell(numUEsByCell)
 	usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell := bw.GetUsedPRBsPerCQIByCell(prbMeasPerCell, numUEsPerCQIByCell)
 
 	// for sCellNCGI, numUEsPerCQI := range numUEsPerCQIByCell {

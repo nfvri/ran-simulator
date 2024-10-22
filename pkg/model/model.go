@@ -225,7 +225,7 @@ type Cell struct {
 	PCI                 uint32            `mapstructure:"pci"`
 	Earfcn              uint32            `mapstructure:"earfcn"`
 	CellType            types.CellType    `mapstructure:"cellType"`
-	Bwps                map[string]*Bwp   `mapstructure:"bwps"`
+	Bwps                map[uint64]*Bwp   `mapstructure:"bwps"`
 	RrcIdleCount        uint32
 	RrcConnectedCount   uint32
 	Cached              bool
@@ -299,7 +299,7 @@ type UECell struct {
 }
 
 type Bwp struct {
-	ID          string `mapstructure:"id"`
+	ID          uint64 `mapstructure:"id"`
 	Scs         int    `mapstructure:"scs"`
 	NumberOfRBs int    `mapstructure:"numberOfRBs"`
 	Downlink    bool   `mapstructure:"downlink"`

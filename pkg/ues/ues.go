@@ -19,7 +19,7 @@ import (
 func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]*model.UE, bool) {
 
 	numUEsByCell, prbMeasPerCell := bw.UtilizationInfoByCell(cellMeasurements)
-	numUEsPerCQIByCell := bw.DisagregateCellUes(numUEsByCell)
+	numUEsPerCQIByCell := bw.GetNumUEsPerCQIByCell(numUEsByCell)
 	usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell := bw.GetUsedPRBsPerCQIByCell(prbMeasPerCell, numUEsPerCQIByCell)
 
 	for sCellNCGI, numUEsPerCQI := range numUEsPerCQIByCell {

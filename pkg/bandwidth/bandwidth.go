@@ -15,7 +15,7 @@ type CQIStats struct {
 	UsedPRBsUL int
 }
 
-func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, ues []*model.UE) error {
+func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) error {
 
 	// Existing BWPs from topology
 	existingCellBwps := map[string]*model.Bwp{}
@@ -27,7 +27,7 @@ func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, avai
 		return nil
 	}
 
-	AllocateBW(sCell, statsPerCQI, availPRBsDL, availPRBsUL, ues)
+	AllocateBW(sCell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
 
 	if len(sCell.Bwps) == 0 {
 		err := fmt.Errorf("failed to initialize BWPs for simulation")

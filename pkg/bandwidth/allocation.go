@@ -3,12 +3,10 @@ package bandwidth
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
@@ -40,7 +38,7 @@ const (
 )
 
 type AllocationStrategy interface {
-	apply(cell *model.Cell, ues []*model.UE)
+	apply(cell *model.Cell, servedUEs []*model.UE)
 }
 
 // ==========================================================
@@ -56,7 +54,7 @@ type ProportionalFair struct {
 
 // apply applies Proportional Fair scheduling to assign BWPs to UEs for both downlink and uplink
 // ensuring total bandwidth limits are respected
-func (s *ProportionalFair) apply(cell *model.Cell, ues []*model.UE) {
+func (s *ProportionalFair) apply(cell *model.Cell, servedUEs []*model.UE) {
 
 	existingAllocation := len(s.PrevBwAllocation) > 0
 	totalBWDL := ToHz(float64(cell.Channel.BsChannelBwDL))
@@ -75,13 +73,13 @@ func (s *ProportionalFair) apply(cell *model.Cell, ues []*model.UE) {
 
 	// Assign bw in descending order of CQI
 	// i.e. highest QOS first
-	sort.SliceStable(ues, func(i, j int) bool {
-		return ues[i].FiveQi > ues[j].FiveQi
+	sort.SliceStable(servedUEs, func(i, j int) bool {
+		return servedUEs[i].FiveQi > servedUEs[j].FiveQi
 	})
 	if existingAllocation {
-		s.reallocateBW(ues, availBWDL, availBWUL)
+		s.reallocateBW(servedUEs, availBWDL, availBWUL)
 	} else {
-		s.allocateBW(ues, availBWDL, availBWUL)
+		s.allocateBW(servedUEs, availBWDL, availBWUL)
 	}
 
 	if availBWDL == 0 && availBWUL == 0 {
@@ -91,28 +89,87 @@ func (s *ProportionalFair) apply(cell *model.Cell, ues []*model.UE) {
 
 }
 
-func (s *ProportionalFair) allocateBW(ues []*model.UE, availBWDL, availBWUL int) {
+func (s *ProportionalFair) allocateBW(servedUEs []*model.UE, availBWDL, availBWUL int) {
+	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
 
-	sumCQIs := 0
-	for _, ue := range ues {
-		sumCQIs += ue.FiveQi
+	for index := range servedUEs {
+		ue := servedUEs[index]
+		ue.Cell.BwpRefs = []*model.Bwp{}
 	}
 
-	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
+	s.generateUsedPRBsIfMissing(availBWDL, availBWUL, scsOptions)
+
+	sumCQIs := 0.0
+	for _, ue := range servedUEs {
+		sumCQIs += float64(ue.FiveQi)
+	}
+
 	for cqi, cqiStats := range s.StatsPerCQI {
 
-		availBWDLCQI := cqi * cqiStats.NumUEs * availBWDL
-		availBWULCQI := cqi * cqiStats.NumUEs * availBWUL
+		availBWDLCQI := int((float64(cqi * cqiStats.NumUEs * availBWDL)) / sumCQIs)
+		availBWULCQI := int((float64(cqi * cqiStats.NumUEs * availBWUL)) / sumCQIs)
 
-		generateBWPs(availBWDLCQI, cqiStats.UsedPRBsDL, scsOptions, ues)
-		generateBWPs(availBWULCQI, cqiStats.UsedPRBsUL, scsOptions, ues)
+		cqiBwps := generateBWPs(availBWDLCQI, cqiStats.UsedPRBsDL, scsOptions)
+		cqiBwpsUL := generateBWPs(availBWULCQI, cqiStats.UsedPRBsUL, scsOptions)
 
+		lenCqiBwps := len(cqiBwps)
+		for key, ulBwp := range cqiBwpsUL {
+			newKey := lenCqiBwps + key
+			ulBwp.ID = strconv.Itoa(newKey)
+			cqiBwps[newKey] = ulBwp
+		}
+
+		allocateBWPsToUEs(cqiBwps, servedUEs, cqi)
 	}
 
 }
 
-func generateBWPs(remaingBW int, usedPRBs int, scsOptions []int, ues []*model.UE) {
-	cqiBwps := make(map[int]model.Bwp)
+func (s *ProportionalFair) generateUsedPRBsIfMissing(availBWDL int, availBWUL int, scsOptions []int) {
+	sumPRBsDL := 0
+	sumPRBsUL := 0
+	for _, cqiStats := range s.StatsPerCQI {
+		sumPRBsDL += cqiStats.UsedPRBsDL
+		sumPRBsUL += cqiStats.UsedPRBsUL
+	}
+	if sumPRBsDL == 0 {
+		numUEsPerCQI := map[int]int{}
+		for cqi, cqiStats := range s.StatsPerCQI {
+			numUEsPerCQI[cqi] = cqiStats.NumUEs
+		}
+
+		usedBWDL := float64(availBWDL)
+		// BWprb := 12 * SCSprb
+		usedPRBsDL := int(usedBWDL / (12.0 * float64(scsOptions[0])))
+		usedPRBsDLPerCQI := DisagregateCellUsedPRBs(numUEsPerCQI, usedPRBsDL)
+
+		for cqi := range s.StatsPerCQI {
+			cqiStats := s.StatsPerCQI[cqi]
+			cqiStats.UsedPRBsDL = usedPRBsDLPerCQI[cqi]
+			s.StatsPerCQI[cqi] = cqiStats
+		}
+	}
+
+	if sumPRBsUL == 0 {
+		numUEsPerCQI := map[int]int{}
+		for cqi, cqiStats := range s.StatsPerCQI {
+			numUEsPerCQI[cqi] = cqiStats.NumUEs
+		}
+		usedBWUL := float64(availBWUL)
+
+		// BWprb := 12 * SCSprb
+		usedPRBsUL := int(usedBWUL / (12.0 * float64(scsOptions[0])))
+		usedPRBsULPerCQI := DisagregateCellUsedPRBs(numUEsPerCQI, usedPRBsUL)
+
+		for cqi := range s.StatsPerCQI {
+			cqiStats := s.StatsPerCQI[cqi]
+			cqiStats.UsedPRBsUL = usedPRBsULPerCQI[cqi]
+			s.StatsPerCQI[cqi] = cqiStats
+		}
+	}
+}
+
+func generateBWPs(remaingBW int, usedPRBs int, scsOptions []int) (cqiBwps map[int]model.Bwp) {
+	cqiBwps = make(map[int]model.Bwp)
 	lastSCSIndex := make(map[int]int)
 	for remaingBW > 0 {
 		for i := 0; i < usedPRBs; i++ {
@@ -128,24 +185,27 @@ func generateBWPs(remaingBW int, usedPRBs int, scsOptions []int, ues []*model.UE
 		}
 	}
 
+	return
+}
+
+func allocateBWPsToUEs(cqiBwps map[int]model.Bwp, servedUEs []*model.UE, cqi int) {
 	bwpsToAllocate := len(cqiBwps)
 	for bwpsToAllocate > 0 {
-		for index := range ues {
-			ue := ues[index]
-			if len(ue.Cell.BwpRefs) == 0 {
-				ue.Cell.BwpRefs = []*model.Bwp{}
+		for index := range servedUEs {
+			ue := servedUEs[index]
+			if ue.FiveQi == cqi {
+				bwp := cqiBwps[len(cqiBwps)-bwpsToAllocate]
+				ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
+				bwpsToAllocate--
 			}
-			bwp := cqiBwps[len(cqiBwps)-bwpsToAllocate]
-			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
-			bwpsToAllocate--
 		}
 	}
 }
 
-func (s *ProportionalFair) reallocateBW(ues []*model.UE, availBWDL int, availBWUL int) {
-	ueRatesDL, ueRatesUL := s.getUeRates(ues)
+func (s *ProportionalFair) reallocateBW(servedUEs []*model.UE, availBWDL int, availBWUL int) {
+	ueRatesDL, ueRatesUL := s.getUeRates(servedUEs)
 ALLOCATION:
-	for _, ue := range ues {
+	for _, ue := range servedUEs {
 		log.Infof("UE %v: ueBWPercDL = %.2f, ueBWPercUL = %.2f\n", ue.IMSI, ueRatesDL[ue.IMSI], ueRatesUL[ue.IMSI])
 
 		allocatedBWPsDL, err := s.reallocateBWPs(availBWDL, ueRatesDL[ue.IMSI], ue, true)
@@ -166,13 +226,13 @@ ALLOCATION:
 	}
 }
 
-func (s *ProportionalFair) getUeRates(ues []*model.UE) (ueRatesDL, ueRatesUL map[types.IMSI]float64) {
+func (s *ProportionalFair) getUeRates(servedUEs []*model.UE) (ueRatesDL, ueRatesUL map[types.IMSI]float64) {
 	ueRatesDL = make(map[types.IMSI]float64)
 	ueRatesUL = make(map[types.IMSI]float64)
 	cellRequestedBWDL := 0.0
 	cellRequestedBWUL := 0.0
 
-	for _, ue := range ues {
+	for _, ue := range servedUEs {
 		for _, bwp := range s.ReqBwAllocation[ue.IMSI] {
 			if bwp.Downlink {
 				ueRatesDL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
@@ -184,7 +244,7 @@ func (s *ProportionalFair) getUeRates(ues []*model.UE) (ueRatesDL, ueRatesUL map
 		cellRequestedBWUL += ueRatesUL[ue.IMSI]
 	}
 
-	for _, ue := range ues {
+	for _, ue := range servedUEs {
 		ueRatesDL[ue.IMSI] = ueRatesDL[ue.IMSI] / cellRequestedBWDL
 		ueRatesDL[ue.IMSI] = ueRatesUL[ue.IMSI] / cellRequestedBWUL
 	}
@@ -406,15 +466,13 @@ func GetUsedPRBsPerCQIByCell(prbMeasPerCell map[uint64]map[string]int, numUEsPer
 		}
 	}
 
-	usedPRBsDLPerCQIByCell := DisagregateCellUsedPRBs(cellUsedPRBsDL, numUEsPerCQIByCell, USED_PRBS_DL_METRIC, USED_PRBS_DL_PATTERN)
-	usedPRBsULPerCQIByCell := DisagregateCellUsedPRBs(cellUsedPRBsUL, numUEsPerCQIByCell, USED_PRBS_UL_METRIC, USED_PRBS_UL_PATTERN)
+	usedPRBsDLPerCQIByCell := ConvertMetricKeyToCQIKey(cellUsedPRBsDL, numUEsPerCQIByCell, USED_PRBS_DL_METRIC, USED_PRBS_DL_PATTERN)
+	usedPRBsULPerCQIByCell := ConvertMetricKeyToCQIKey(cellUsedPRBsUL, numUEsPerCQIByCell, USED_PRBS_UL_METRIC, USED_PRBS_UL_PATTERN)
 
 	return usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell
 }
 
-// DisagregateCellUsedPRBs only when no CQI Indexed Metrics exist and the Cell Metric exists.
-// If CQI Indexed Metrics exist then, use them and ignore Cell Metric
-func DisagregateCellUsedPRBs(cellUsedPRBs map[uint64]map[string]int, numUEsPerCQIByCell map[uint64]map[int]int, cellMetricName, cqiIndexedMetricPattern string) (usedPRBsPerCQIByCell map[uint64]map[int]int) {
+func ConvertMetricKeyToCQIKey(cellUsedPRBs map[uint64]map[string]int, numUEsPerCQIByCell map[uint64]map[int]int, cellMetricName, cqiIndexedMetricPattern string) (usedPRBsPerCQIByCell map[uint64]map[int]int) {
 	usedPRBsPerCQIByCell = map[uint64]map[int]int{}
 
 	for cellNCGI, usedPRBsMetrics := range cellUsedPRBs {
@@ -422,31 +480,7 @@ func DisagregateCellUsedPRBs(cellUsedPRBs map[uint64]map[string]int, numUEsPerCQ
 		prbsToAllocate, onlyCellMetricExists := usedPRBsMetrics[cellMetricName]
 		// only Cell Metric exists
 		if len(usedPRBsMetrics) == 1 && onlyCellMetricExists {
-			sumCQI := 0
-			for cqi, numUEs := range numUEsPerCQIByCell[cellNCGI] {
-				sumCQI += numUEs * cqi
-			}
-			if sumCQI == 0 {
-				log.Warnf("sum cqi for cell's ues is 0")
-				return
-			}
-			remainingPRBs := prbsToAllocate
-			for cqi := 1; cqi <= 15; cqi++ {
-				usedPRBsDlForCQI := int((float64((numUEsPerCQIByCell[cellNCGI][cqi] * cqi)) / float64(sumCQI)) * float64(prbsToAllocate))
-				if usedPRBsDlForCQI > 0 {
-					usedPRBsPerCQIByCell[cellNCGI][cqi] = usedPRBsDlForCQI
-					remainingPRBs -= usedPRBsDlForCQI
-				}
-			}
-			for remainingPRBs > 0 {
-				for cqi := 1; cqi <= 15; cqi++ {
-					if numUEsPerCQIByCell[cellNCGI][cqi] > 0 && remainingPRBs > 0 {
-						usedPRBsPerCQIByCell[cellNCGI][cqi]++
-						remainingPRBs--
-					}
-				}
-			}
-
+			usedPRBsPerCQIByCell[cellNCGI] = DisagregateCellUsedPRBs(numUEsPerCQIByCell[cellNCGI], prbsToAllocate)
 		} else {
 			for metricName, numPrbs := range usedPRBsMetrics {
 				if MatchesPattern(metricName, cqiIndexedMetricPattern) {
@@ -463,60 +497,34 @@ func DisagregateCellUsedPRBs(cellUsedPRBs map[uint64]map[string]int, numUEsPerCQ
 	return
 }
 
-func bwpsFromBW(bwMHz uint32, totalUEs int, downlink bool) []model.Bwp {
+// DisagregateCellUsedPRBs only when no CQI Indexed Metrics exist and the Cell Metric exists.
+// If CQI Indexed Metrics exist then, use them and ignore Cell Metric
+func DisagregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (usedPRBsPerCQI map[int]int) {
+	usedPRBsPerCQI = map[int]int{}
+	sumCQI := 0
+	for cqi, numUEs := range numUEsPerCQI {
+		sumCQI += numUEs * cqi
+	}
+	if sumCQI == 0 {
+		log.Warnf("sum cqi for cell's ues is 0")
+		return
+	}
 
-	totalAvailableBwHz := int(bwMHz) * 1e6
-	bwps := []model.Bwp{}
-
-	// SCS options in kHz
-	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
-
-	// Seed the random number generator
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	// Minimum PRBs constraint
-	const minPRBs = 1
-
-	bwpCount := 0
-	allocatedBW := 0
-	// Calculate the target bandwidth per UE
-	bwPerUE := totalAvailableBwHz / totalUEs
-
-	for remainingBW := totalAvailableBwHz; remainingBW >= scsOptions[0]*12; remainingBW -= allocatedBW {
-
-		// Randomly select an SCS
-		scs := scsOptions[r.Intn(len(scsOptions))]
-		maxPRBs := int(math.Max(float64(bwPerUE/(scs*12)), float64(1)))
-
-		// Randomly select the number of PRBs ensuring it meets the minimum constraint
-		allocatedPrbs := r.Intn(maxPRBs-minPRBs+1) + minPRBs
-		allocatedBW = allocatedPrbs * scs * 12
-
-		// Ensure allocatedBW does not exceed the remaining bandwidth
-		if allocatedBW > remainingBW {
-			allocatedBW = 0
-			continue
+	remainingPRBs := prbsToAllocate
+	for cqi := 1; cqi <= 15; cqi++ {
+		usedPRBsDlForCQI := int((float64((numUEsPerCQI[cqi] * cqi)) / float64(sumCQI)) * float64(prbsToAllocate))
+		if usedPRBsDlForCQI > 0 {
+			usedPRBsPerCQI[cqi] = usedPRBsDlForCQI
+			remainingPRBs -= usedPRBsDlForCQI
 		}
-
-		bwps = append(bwps, model.Bwp{
-			ID:          strconv.Itoa(bwpCount),
-			NumberOfRBs: allocatedPrbs,
-			Scs:         scs,
-			Downlink:    downlink,
-		})
-		bwpCount++
 	}
-
-	// Check for total bandwidth correctness
-	totalAllocatedBW := 0
-	for _, alloc := range bwps {
-		totalAllocatedBW += alloc.NumberOfRBs * alloc.Scs * 12
+	for remainingPRBs > 0 {
+		for cqi := 1; cqi <= 15; cqi++ {
+			if numUEsPerCQI[cqi] > 0 && remainingPRBs > 0 {
+				usedPRBsPerCQI[cqi]++
+				remainingPRBs--
+			}
+		}
 	}
-	if totalAllocatedBW+scsOptions[0]*12 >= totalAvailableBwHz {
-		log.Info("Allocation successful, total bandwidth covered.")
-	} else {
-		log.Infof("Allocation mismatch: allocated %d Hz, expected %d Hz\n", totalAllocatedBW, totalAvailableBwHz)
-	}
-
-	return bwps
+	return
 }

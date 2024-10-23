@@ -78,6 +78,7 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 	// reallocate using selected scheme
 	switch tCell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
+	default:
 		pf := ProportionalFair{
 			Cell:             tCell,
 			ServedUEs:        servedUEs,
@@ -95,6 +96,7 @@ func AllocateBW(cell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, ava
 	// allocate using selected scheme
 	switch cell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
+	default:
 		pf := ProportionalFair{
 			Cell:        cell,
 			ServedUEs:   servedUEs,

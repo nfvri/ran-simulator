@@ -67,14 +67,6 @@ func (s *ProportionalFair) apply() {
 	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
 
-	if s.AvailPRBsDL != 0 {
-		availBWDL = s.AvailPRBsDL
-	}
-
-	if s.AvailPRBsUL != 0 {
-		availBWUL = s.AvailPRBsUL
-	}
-
 	if availBWDL == 0 && availBWUL == 0 {
 		fmt.Println("No bandwidth available for allocation.")
 		return
@@ -85,6 +77,33 @@ func (s *ProportionalFair) apply() {
 		return
 	}
 
+	sumPRBsDL := 0
+	sumPRBsUL := 0
+	for _, cqiStats := range s.StatsPerCQI {
+		sumPRBsDL += cqiStats.UsedPRBsDL
+		sumPRBsUL += cqiStats.UsedPRBsUL
+	}
+
+	if s.AvailPRBsDL != 0 && sumPRBsDL != 0 {
+		availBWDL = int(float64(sumPRBsDL) * float64(availBWDL) / float64(s.AvailPRBsDL))
+	}
+	if s.AvailPRBsUL != 0 && sumPRBsUL != 0 {
+		availBWUL = int(float64(sumPRBsUL) * float64(availBWUL) / float64(s.AvailPRBsUL))
+	}
+	if sumPRBsDL == 0 {
+		s.generateUsedPRBs(availBWDL, true)
+	}
+	if sumPRBsUL == 0 {
+		s.generateUsedPRBs(availBWUL, true)
+	}
+	log.Infof("--------------------")
+	log.Infof("ncgi: %v", s.Cell.NCGI)
+	log.Infof("availBWDL: %v", availBWDL)
+	log.Infof("sumPRBsDL: %v", sumPRBsDL)
+	log.Infof("\n  s.StatsPerCQI: %v \n\n", s.StatsPerCQI)
+	log.Infof("availBWUL: %v", availBWUL)
+	log.Infof("sumPRBsUL: %v", sumPRBsUL)
+	log.Infof("--------------------")
 	s.allocateBW(availBWDL, availBWUL)
 
 }
@@ -95,8 +114,6 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 		ue := s.ServedUEs[index]
 		ue.Cell.BwpRefs = []*model.Bwp{}
 	}
-
-	s.generateUsedPRBsIfMissing(availBWDL, availBWUL)
 
 	sumCQIs := 0.0
 	for _, ue := range s.ServedUEs {
@@ -130,47 +147,26 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 
 }
 
-func (s *ProportionalFair) generateUsedPRBsIfMissing(availBWDLHz int, availBWULHz int) {
-	sumPRBsDL := 0
-	sumPRBsUL := 0
-	for _, cqiStats := range s.StatsPerCQI {
-		sumPRBsDL += cqiStats.UsedPRBsDL
-		sumPRBsUL += cqiStats.UsedPRBsUL
-	}
-	if sumPRBsDL == 0 {
-		numUEsPerCQI := map[int]int{}
-		for cqi, cqiStats := range s.StatsPerCQI {
-			numUEsPerCQI[cqi] = cqiStats.NumUEs
-		}
+func (s *ProportionalFair) generateUsedPRBs(availBWHz int, downlink bool) {
 
-		usedBWDLHz := float64(availBWDLHz)
-		// BWprb := 12 * SCSprb
-		usedPRBsDL := int(usedBWDLHz / float64(12*s.ScsOptionsHz[0]))
-		usedPRBsDLPerCQI := DisagregateCellUsedPRBs(numUEsPerCQI, usedPRBsDL)
-
-		for cqi := range s.StatsPerCQI {
-			cqiStats := s.StatsPerCQI[cqi]
-			cqiStats.UsedPRBsDL = usedPRBsDLPerCQI[cqi]
-			s.StatsPerCQI[cqi] = cqiStats
-		}
+	numUEsPerCQI := map[int]int{}
+	for cqi, cqiStats := range s.StatsPerCQI {
+		numUEsPerCQI[cqi] = cqiStats.NumUEs
 	}
 
-	if sumPRBsUL == 0 {
-		numUEsPerCQI := map[int]int{}
-		for cqi, cqiStats := range s.StatsPerCQI {
-			numUEsPerCQI[cqi] = cqiStats.NumUEs
-		}
-		usedBWULHz := float64(availBWULHz)
+	usedBWHz := float64(availBWHz)
+	// BWprb := 12 * SCSprb
+	usedPRBs := int(usedBWHz / float64(12*s.ScsOptionsHz[0]))
+	usedPRBsPerCQI := DisagregateCellUsedPRBs(numUEsPerCQI, usedPRBs)
 
-		// BWprb := 12 * SCSprb
-		usedPRBsUL := int(usedBWULHz / (12.0 * float64(s.ScsOptionsHz[0])))
-		usedPRBsULPerCQI := DisagregateCellUsedPRBs(numUEsPerCQI, usedPRBsUL)
-
-		for cqi := range s.StatsPerCQI {
-			cqiStats := s.StatsPerCQI[cqi]
-			cqiStats.UsedPRBsUL = usedPRBsULPerCQI[cqi]
-			s.StatsPerCQI[cqi] = cqiStats
+	for cqi := range s.StatsPerCQI {
+		cqiStats := s.StatsPerCQI[cqi]
+		if downlink {
+			cqiStats.UsedPRBsDL = usedPRBsPerCQI[cqi]
+		} else {
+			cqiStats.UsedPRBsUL = usedPRBsPerCQI[cqi]
 		}
+		s.StatsPerCQI[cqi] = cqiStats
 	}
 }
 
@@ -200,8 +196,12 @@ BW_PARTITION:
 
 func allocateBWPsToUEs(cqiBwps []*model.Bwp, servedUEs []*model.UE, cqi int) {
 	bwpsToAllocate := len(cqiBwps)
+BW_ALLOCATION:
 	for bwpsToAllocate > 0 {
 		for index := range servedUEs {
+			if bwpsToAllocate == 0 {
+				break BW_ALLOCATION
+			}
 			ue := servedUEs[index]
 			if ue.FiveQi == cqi {
 				bwp := *cqiBwps[len(cqiBwps)-bwpsToAllocate]

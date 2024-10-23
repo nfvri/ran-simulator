@@ -42,37 +42,42 @@ func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, avai
 
 }
 
-func ReleaseBWPs(sCell *model.Cell, ue *model.UE) []model.Bwp {
-	bwps := make([]model.Bwp, 0, len(ue.Cell.BwpRefs))
+func ReleaseBWPs(sCell *model.Cell, ue *model.UE) []*model.Bwp {
+	bwps := make([]*model.Bwp, 0, len(ue.Cell.BwpRefs))
 	for index := range ue.Cell.BwpRefs {
-		bwp := ue.Cell.BwpRefs[index]
-		bwps = append(bwps, *bwp)
+		bwp := *ue.Cell.BwpRefs[index]
+		bwps = append(bwps, &bwp)
 		delete(sCell.Bwps, bwp.ID)
 	}
 	ue.Cell.BwpRefs = []*model.Bwp{}
 	return bwps
 }
 
-func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, servedUEs []*model.UE) {
+func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, servedUEs []*model.UE) {
 
 	if enoughBW(tCell, requestedBwps) {
 		bwpId := len(tCell.Bwps)
 		for index := range requestedBwps {
 			bwp := requestedBwps[index]
 			bwp.ID = uint64(bwpId)
-			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
-			tCell.Bwps[bwp.ID] = &bwp
+			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, bwp)
+			tCell.Bwps[bwp.ID] = bwp
 			bwpId++
 		}
 		return
 	}
 
 	currAlloc := BwAllocationOf(servedUEs)
+	ue.Cell.BwpRefs = requestedBwps
+	// augment allocation with new ue
+	servedUEs = append(servedUEs, ue)
+	reqAlloc := BwAllocationOf(servedUEs)
 
 	// delete current allocation
-	servedUEs = append(servedUEs, ue)
-	for _, servedUe := range servedUEs {
-		ReleaseBWPs(tCell, servedUe)
+	tCell.Bwps = map[uint64]*model.Bwp{}
+	for index := range servedUEs {
+		servedUE := servedUEs[index]
+		servedUE.Cell.BwpRefs = []*model.Bwp{}
 	}
 
 	// reallocate using selected scheme
@@ -83,7 +88,7 @@ func ReallocateBW(ue *model.UE, requestedBwps []model.Bwp, tCell *model.Cell, se
 			Cell:             tCell,
 			ServedUEs:        servedUEs,
 			PrevBwAllocation: currAlloc,
-			ReqBwAllocation:  BwAllocationOf(servedUEs),
+			ReqBwAllocation:  reqAlloc,
 		}
 		pf.apply()
 	}
@@ -109,7 +114,7 @@ func AllocateBW(cell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, ava
 
 }
 
-func enoughBW(tCell *model.Cell, requestedBwps []model.Bwp) bool {
+func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
 	//TODO: check if UL+DL is sufficient istead of individual checks
 	requestedBWDLUe, requestedBWULUe := 0, 0
 	for index := range requestedBwps {

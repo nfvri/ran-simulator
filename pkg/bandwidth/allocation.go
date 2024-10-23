@@ -1,11 +1,11 @@
 package bandwidth
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
@@ -68,41 +68,45 @@ func (s *ProportionalFair) apply() {
 	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
 
 	if availBWDL == 0 && availBWUL == 0 {
-		fmt.Println("No bandwidth available for allocation.")
+		log.Warn("[PF] No bandwidth available for allocation.")
 		return
 	}
 
 	if existingAllocation {
+		log.Warn("[PF] Existing allocation found")
 		s.reallocateBW(availBWDL, availBWUL)
 		return
 	}
 
-	sumPRBsDL := 0
-	sumPRBsUL := 0
+	usedPRBsDL := 0
+	usedPRBsUL := 0
 	for _, cqiStats := range s.StatsPerCQI {
-		sumPRBsDL += cqiStats.UsedPRBsDL
-		sumPRBsUL += cqiStats.UsedPRBsUL
+		usedPRBsDL += cqiStats.UsedPRBsDL
+		usedPRBsUL += cqiStats.UsedPRBsUL
 	}
 
-	if s.AvailPRBsDL != 0 && sumPRBsDL != 0 {
-		availBWDL = int(float64(sumPRBsDL) * float64(availBWDL) / float64(s.AvailPRBsDL))
+	// Update available BW based on current utilization
+	if s.AvailPRBsDL != 0 && usedPRBsDL != 0 {
+		utilizationDL := float64(usedPRBsDL) / float64(s.AvailPRBsDL)
+		availBWDL = int(utilizationDL * float64(availBWDL))
 	}
-	if s.AvailPRBsUL != 0 && sumPRBsUL != 0 {
-		availBWUL = int(float64(sumPRBsUL) * float64(availBWUL) / float64(s.AvailPRBsUL))
+	if s.AvailPRBsUL != 0 && usedPRBsUL != 0 {
+		utilizationUL := float64(usedPRBsUL) / float64(s.AvailPRBsUL)
+		availBWUL = int(utilizationUL * float64(availBWUL))
 	}
-	if sumPRBsDL == 0 {
+
+	if usedPRBsDL == 0 {
 		s.generateUsedPRBs(availBWDL, true)
 	}
-	if sumPRBsUL == 0 {
+	if usedPRBsUL == 0 {
 		s.generateUsedPRBs(availBWUL, true)
 	}
 	log.Infof("--------------------")
-	log.Infof("ncgi: %v", s.Cell.NCGI)
-	log.Infof("availBWDL: %v", availBWDL)
-	log.Infof("sumPRBsDL: %v", sumPRBsDL)
-	log.Infof("\n  s.StatsPerCQI: %v \n\n", s.StatsPerCQI)
-	log.Infof("availBWUL: %v", availBWUL)
-	log.Infof("sumPRBsUL: %v", sumPRBsUL)
+	log.Infof("[PF] ncgi: %v", s.Cell.NCGI)
+	log.Infof("[PF] availBWDL: %v", availBWDL)
+	log.Infof("[PF] sumPRBsDL: %v", usedPRBsDL)
+	log.Infof("[PF] availBWUL: %v", availBWUL)
+	log.Infof("[PF] sumPRBsUL: %v", usedPRBsUL)
 	log.Infof("--------------------")
 	s.allocateBW(availBWDL, availBWUL)
 
@@ -122,14 +126,19 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 
 	remainingBWDl := 0
 	remainingBWUl := 0
+	log.Infof("availBWUL :%v", availBWUL)
+	log.Infof("availBWDL :%v", availBWDL)
 
 	for cqi, cqiStats := range s.StatsPerCQI {
 
 		availBWDLCQI := int((float64(cqi * cqiStats.NumUEs * availBWDL)) / sumCQIs)
 		availBWULCQI := int((float64(cqi * cqiStats.NumUEs * availBWUL)) / sumCQIs)
 
-		cqiBwpsDL, cqiRemaingBWDL := generateBWPs(availBWDLCQI+remainingBWDl, cqiStats.UsedPRBsDL)
-		cqiBwpsUL, cqiRemaingBWUL := generateBWPs(availBWULCQI+remainingBWUl, cqiStats.UsedPRBsUL)
+		usedPRBsDL := utils.If(cqiStats.UsedPRBsDL == 0, cqiStats.NumUEs, cqiStats.UsedPRBsDL)
+		usedPRBsUL := utils.If(cqiStats.UsedPRBsUL == 0, cqiStats.NumUEs, cqiStats.UsedPRBsUL)
+
+		cqiBwpsDL, cqiRemaingBWDL := generateBWPs(availBWDLCQI+remainingBWDl, usedPRBsDL, true)
+		cqiBwpsUL, cqiRemaingBWUL := generateBWPs(availBWULCQI+remainingBWUl, usedPRBsUL, false)
 
 		remainingBWDl = cqiRemaingBWDL
 		remainingBWUl = cqiRemaingBWUL
@@ -170,7 +179,7 @@ func (s *ProportionalFair) generateUsedPRBs(availBWHz int, downlink bool) {
 	}
 }
 
-func generateBWPs(remaingBWHz int, usedPRBs int) ([]*model.Bwp, int) {
+func generateBWPs(remaingBWHz int, usedPRBs int, downlink bool) ([]*model.Bwp, int) {
 	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
 	cqiBwps := []*model.Bwp{}
 	lastSCSIndex := make(map[int]int)
@@ -180,11 +189,13 @@ BW_PARTITION:
 		for i := 0; i < usedPRBs; i++ {
 			if remaingBWHz-int(12*scsOptions[lastSCSIndex[i]]) < 0 {
 				break BW_PARTITION
+
 			}
 			cqiBwps = append(cqiBwps, &model.Bwp{
 				ID:          uint64(i),
 				Scs:         scsOptions[lastSCSIndex[i]],
 				NumberOfRBs: 1,
+				Downlink:    downlink,
 			})
 			remaingBWHz -= 12 * scsOptions[lastSCSIndex[i]]
 			lastSCSIndex[i]++
@@ -208,6 +219,7 @@ BW_ALLOCATION:
 				ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
 				bwpsToAllocate--
 			}
+
 		}
 	}
 }

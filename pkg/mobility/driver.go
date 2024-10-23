@@ -189,7 +189,6 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	defer d.m.ServiceMappings.Unlock()
 
 	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.SourceCellNcgi != 0
-	requestedBwps := utils.If(redirection, bw.ReleaseBWPs(sCell, ue), []model.Bwp{})
 
 	log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
 	log.Debugf("UEToServingCells[ue]: %v, len(UEToServingCells): %v, ueServCell: %v",
@@ -211,12 +210,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 
 	servedUes := d.m.GetServedUEs(tCell.NCGI)
 
-	// log.Infof("\n====[BEFORE BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
-	// for _, servedUe := range servedUes {
-	// 	if len(servedUe.Cell.BwpRefs) > 0 {
-	// 		log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
-	// 	}
-	// }
+	requestedBwps := utils.If(redirection, bw.ReleaseBWPs(sCell, ue), []*model.Bwp{})
 	d.UpdateUECells(sCell.NCGI, tCell.NCGI, ue)
 	d.UpdateUECellsParams(ue)
 	bw.ReallocateBW(ue, requestedBwps, tCell, servedUes)
@@ -227,17 +221,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
 	log.Debugf("UEToServingCells[ue]: %v", d.m.UEToServingCells[hoDecision.UE.IMSI])
 	log.Debug("==================================================================")
-	// log.Infof("\n====[AFTER BW reallocation]====\n #CELL BWPs: %v", len(tCell.Bwps))
-	// for _, servedUe := range servedUes {
-	// 	if len(servedUe.Cell.BwpRefs) > 0 {
-	// 		log.Infof("ue Imsi: %v len(bwps): %v", servedUe.IMSI, len(servedUe.Cell.BwpRefs))
-	// 	}
-	// }
-
-	// TODO: update all ueCells metrics(rsrp,rsrq,sinr) for sCell and cCells
-	// after changing serving cell, calculate channel quality/signal strength again
-
-	// log.Infof("HO is done successfully: %v to %v", hoDecision.UE.IMSI, hoDecision.TargetCell)
+	log.Debugf("HO is done successfully: %v to %v", hoDecision.UE.IMSI, hoDecision.TargetCellNcgi)
 }
 
 func (d *driver) UpdateUECells(sCellNCGI, tCellNCGI types.NCGI, ue *model.UE) {

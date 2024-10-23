@@ -302,15 +302,15 @@ func (m *Manager) computeCellStatistics() {
 		}
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_DL_METRIC, activeUEs)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_UL_METRIC, activeUEs)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_DL_METRIC, statistics.UEThpDl(prbsUsedDl, float64(len(servedUEs))))
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_UL_METRIC, statistics.UEThpUl(prbsUsedUl, float64(len(servedUEs))))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_DL_METRIC, statistics.UEThp(prbsUsedDl, len(servedUEs)))
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_UL_METRIC, statistics.UEThp(prbsUsedUl, len(servedUEs)))
 	}
 
-	m.metricsStore.Set(ctx, uint64(1), "SECTOR_RRU.PrbTotDl", totalPrbsTotalDl)
-	m.metricsStore.Set(ctx, uint64(1), "SECTOR_RRU.PrbTotUl", totalPrbsTotalUl)
-	m.metricsStore.Set(ctx, uint64(1), "SECTOR_AVG_DRB.UEThpDl", statistics.UEThpUl(totalPrbsTotalDl, float64(totalactiveUEs)))
-	m.metricsStore.Set(ctx, uint64(1), "SECTOR_AVG_DRB.UEThpUl", statistics.UEThpUl(totalPrbsTotalUl, float64(totalactiveUEs)))
-	m.metricsStore.Set(ctx, uint64(1), "SECTOR_DRB.MeanActiveUeDl", totalactiveUEs)
+	m.metricsStore.Set(ctx, uint64(1), "SUBNET_RRU.PrbTotDl", totalPrbsTotalDl)
+	m.metricsStore.Set(ctx, uint64(1), "SUBNET_RRU.PrbTotUl", totalPrbsTotalUl)
+	m.metricsStore.Set(ctx, uint64(1), "SUBNET_AVG_DRB.UEThpDl", statistics.UEThp(totalPrbsTotalDl, totalactiveUEs))
+	m.metricsStore.Set(ctx, uint64(1), "SUBNET_AVG_DRB.UEThpUl", statistics.UEThp(totalPrbsTotalUl, totalactiveUEs))
+	m.metricsStore.Set(ctx, uint64(1), "SUBNET_DRB.MeanActiveUeDl", totalactiveUEs)
 }
 
 // startSouthboundServer starts the northbound gRPC server

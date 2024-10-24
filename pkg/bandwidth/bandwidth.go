@@ -1,7 +1,6 @@
 package bandwidth
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,17 +17,37 @@ type CQIStats struct {
 	UsedPRBsUL int
 }
 
-func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) error {
-
-	AllocateBW(sCell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
-
+func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
 	if len(sCell.Bwps) == 0 {
-		err := fmt.Errorf("failed to initialize BWPs for simulation")
-		log.Error(err)
-		return err
+		AllocateBW(sCell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
+
+		if len(sCell.Bwps) == 0 {
+			log.Errorf("failed to initialize BWPs for cell: %v", sCell.NCGI)
+		}
+		return
 	}
 
-	return nil
+	// Existing BWPs from topology
+	existingCellBwps := []*model.Bwp{}
+	for index := range sCell.Bwps {
+		bwp := *sCell.Bwps[index]
+		existingCellBwps = append(existingCellBwps, &bwp)
+	}
+	numUEsPerCQI := map[int]int{}
+	for cqi, cqiStats := range statsPerCQI {
+		numUEsPerCQI[cqi] = cqiStats.NumUEs
+	}
+
+	// use DisaggregateCellUsedPRBs for cell bwps disagregation, as it has the same
+	// functionality but name is kept for better readability in the other use cases
+	bwpsPerCQI := DisaggregateCellUsedPRBs(numUEsPerCQI, len(existingCellBwps))
+	allocatedBWPs := 0
+	for cqi, numBWPsToAllocate := range bwpsPerCQI {
+		if allocatedBWPs+numBWPsToAllocate <= len(existingCellBwps) {
+			allocateBWPsToUEs(existingCellBwps[allocatedBWPs:allocatedBWPs+numBWPsToAllocate], servedUEs, cqi)
+			allocatedBWPs += numBWPsToAllocate
+		}
+	}
 
 }
 
@@ -202,6 +221,7 @@ func MatchesPattern(metric, p string) bool {
 func UtilizationInfoByCell(cellMeasurements []*metrics.Metric) (map[uint64]map[string]int, map[uint64]map[string]int) {
 	// cellPrbsMap[NCGI][MetricName]
 	numUEsByCell := map[uint64]map[string]int{}
+	// prbMeasPerCell[NCGI][MetricName]
 	prbMeasPerCell := map[uint64]map[string]int{}
 
 	for _, metric := range cellMeasurements {
@@ -315,9 +335,9 @@ func ConvertMetricKeyToCQIKey(cellUsedPRBs map[uint64]map[string]int, numUEsPerC
 	for cellNCGI, usedPRBsMetrics := range cellUsedPRBs {
 		usedPRBsPerCQIByCell[cellNCGI] = map[int]int{}
 		prbsToAllocate, onlyCellMetricExists := usedPRBsMetrics[cellMetricName]
-		// only Cell Metric exists
+		// only Cell Level Metric exists
 		if len(usedPRBsMetrics) == 1 && onlyCellMetricExists {
-			usedPRBsPerCQIByCell[cellNCGI] = DisagregateCellUsedPRBs(numUEsPerCQIByCell[cellNCGI], prbsToAllocate)
+			usedPRBsPerCQIByCell[cellNCGI] = DisaggregateCellUsedPRBs(numUEsPerCQIByCell[cellNCGI], prbsToAllocate)
 		} else {
 			for metricName, numPrbs := range usedPRBsMetrics {
 				if MatchesPattern(metricName, cqiIndexedMetricPattern) {
@@ -334,9 +354,9 @@ func ConvertMetricKeyToCQIKey(cellUsedPRBs map[uint64]map[string]int, numUEsPerC
 	return
 }
 
-// DisagregateCellUsedPRBs only when no CQI Indexed Metrics exist and the Cell Metric exists.
+// DisaggregateCellUsedPRBs only when no CQI Indexed Metrics exist and the Cell Metric exists.
 // If CQI Indexed Metrics exist then, use them and ignore Cell Metric
-func DisagregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (usedPRBsPerCQI map[int]int) {
+func DisaggregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (usedPRBsPerCQI map[int]int) {
 	usedPRBsPerCQI = map[int]int{}
 	sumCQI := 0
 	for cqi, numUEs := range numUEsPerCQI {

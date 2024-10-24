@@ -169,7 +169,7 @@ func (s *ProportionalFair) generateUsedPRBs(availBWHz int, downlink bool) {
 	usedBWHz := float64(availBWHz)
 	// BWprb := 12 * SCSprb
 	usedPRBs := int(usedBWHz / float64(12*s.ScsOptionsHz[0]))
-	usedPRBsPerCQI := DisagregateCellUsedPRBs(numUEsPerCQI, usedPRBs)
+	usedPRBsPerCQI := DisaggregateCellUsedPRBs(numUEsPerCQI, usedPRBs)
 
 	for cqi := range s.StatsPerCQI {
 		cqiStats := s.StatsPerCQI[cqi]

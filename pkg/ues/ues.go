@@ -108,17 +108,6 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		availPRBsDL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_UL_METRIC]
 
-		// Existing BWPs from topology
-		existingCellBwps := map[uint64]*model.Bwp{}
-		if len(sCell.Bwps) != 0 {
-			for index := range sCell.Bwps {
-				bwp := *sCell.Bwps[index]
-				existingCellBwps[bwp.ID] = &bwp
-			}
-			//TODO: Allocate Existing Cell Bwps in ues
-			return ues, storeInCache
-		}
-
 		bw.InitBWPs(sCell, statsPerCQI, availPRBsDL, availPRBsUL, cellServedUEs)
 	}
 

@@ -223,7 +223,10 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 
 		m.setBWUtilization(ctx, cell, statsPerCQI, availPRBsDL, availPRBsUL)
 
-		bw.InitBWPs(cell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
+		bw.AllocateBW(cell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
+		if len(cell.Bwps) == 0 {
+			log.Error("failed to initialize BWPs for cell: %v", cell.NCGI)
+		}
 	}
 }
 

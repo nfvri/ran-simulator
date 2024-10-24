@@ -20,16 +20,6 @@ type CQIStats struct {
 
 func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) error {
 
-	// Existing BWPs from topology
-	existingCellBwps := map[uint64]*model.Bwp{}
-	if len(sCell.Bwps) != 0 {
-		for index := range sCell.Bwps {
-			bwp := *sCell.Bwps[index]
-			existingCellBwps[bwp.ID] = &bwp
-		}
-		return nil
-	}
-
 	AllocateBW(sCell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
 
 	if len(sCell.Bwps) == 0 {
@@ -115,7 +105,6 @@ func AllocateBW(cell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, ava
 }
 
 func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
-	//TODO: check if UL+DL is sufficient istead of individual checks
 	requestedBWDLUe, requestedBWULUe := 0, 0
 	for index := range requestedBwps {
 		bwp := requestedBwps[index]
@@ -127,8 +116,14 @@ func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
 	}
 	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
 
-	sufficientBWDL := tCell.Channel.BsChannelBwDL-uint32(usedBWDLCell) > uint32(requestedBWDLUe)
-	sufficientBWUL := tCell.Channel.BsChannelBwUL-uint32(usedBWULCell) > uint32(requestedBWULUe)
+	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
+	totalBWUL := MHzToHz(float64(tCell.Channel.BsChannelBwUL))
+
+	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
+	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
+
+	sufficientBWDL := requestedBWDLUe+usedBWDLCell <= availBWDL
+	sufficientBWUL := requestedBWULUe+usedBWULCell <= availBWUL
 
 	return sufficientBWDL && sufficientBWUL
 }
@@ -149,7 +144,8 @@ func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
 
 func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
-	for _, ue := range ues {
+	for index := range ues {
+		ue := ues[index]
 		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(ue.Cell.BwpRefs))
 		for index := range ue.Cell.BwpRefs {
 			bwp := *ue.Cell.BwpRefs[index]

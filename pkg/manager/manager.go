@@ -245,11 +245,9 @@ func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, statsP
 	bwUtilizationUL := float64(usedPRBsUL) / float64(availPRBsUL)
 
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationDL)
-	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC, 100*bwUtilizationDL)
+	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC, 100*bwUtilizationUL)
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC, bwUtilizationDL*float64(availBWDL))
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC, bwUtilizationUL*float64(availBWUL))
-	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.AVAIL_PRBS_DL_METRIC, availPRBsDL)
-	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.AVAIL_PRBS_UL_METRIC, availPRBsUL)
 }
 
 func (m *Manager) computeCellStatistics(ctx context.Context) {
@@ -311,12 +309,8 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 		prevUsedBWDL := iUsedBWDL.(float64)
 		iUsedBWUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC)
 		prevUsedBWUL := iUsedBWUL.(float64)
-		iAvailPRBsDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.AVAIL_PRBS_DL_METRIC)
-		availPRBsDL := iAvailPRBsDL.(int)
-		iAvailPRBsUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.AVAIL_PRBS_UL_METRIC)
-		availPRBsUL := iAvailPRBsUL.(int)
 
-		logrus.Info("\n======================================")
+		logrus.Info("======================================")
 		logrus.Infof("ncgi: %v", cell.NCGI)
 		logrus.Infof("prevBwUtilizationDL: %v", prevBwUtilizationDL)
 		logrus.Infof("prevBwUtilizationUL: %v", prevBwUtilizationUL)
@@ -337,24 +331,23 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_DL_METRIC, statistics.UEThp(prbsUsedDl, len(servedUEs)))
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_UL_METRIC, statistics.UEThp(prbsUsedUl, len(servedUEs)))
 
-		bwUtilizationDL := float64(prbsUsedDl) / float64(availPRBsDL)
-		bwUtilizationUL := float64(prbsUsedUl) / float64(availPRBsUL)
 		totalBWDL := bw.MHzToHz(float64(cell.Channel.BsChannelBwDL))
 		totalBWUL := bw.MHzToHz(float64(cell.Channel.BsChannelBwUL))
 
 		availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
 		availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)
-		usedBWDL := bwUtilizationUL * float64(availBWDL)
-		usedBWUL := bwUtilizationUL * float64(availBWUL)
+
+		bwUtilizationDL := float64(bwUsedDl) / float64(availBWDL)
+		bwUtilizationUL := float64(bwUsedUl) / float64(availBWUL)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationDL)
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationUL)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC, usedBWDL)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC, usedBWUL)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC, bwUsedDl)
+		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC, bwUsedUl)
 
 		logrus.Infof("BwUtilizationDL: %v", 100*bwUtilizationDL)
 		logrus.Infof("BwUtilizationUL: %v", 100*bwUtilizationUL)
-		logrus.Infof("usedBWDL: %.f", usedBWDL)
-		logrus.Infof("usedBWUL: %.f", usedBWUL)
+		logrus.Infof("usedBWDL: %.f", float64(bwUsedDl))
+		logrus.Infof("usedBWUL: %.f", float64(bwUsedUl))
 		logrus.Infof("availBWDL: %.f", float64(availBWDL))
 		logrus.Infof("availBWUL: %.f", float64(availBWUL))
 		logrus.Info("======================================\n")

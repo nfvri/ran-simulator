@@ -188,8 +188,6 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	d.m.ServiceMappings.Lock()
 	defer d.m.ServiceMappings.Unlock()
 
-	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.SourceCellNcgi != 0
-
 	log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
 	log.Debugf("UEToServingCells[ue]: %v, len(UEToServingCells): %v, ueServCell: %v",
 		d.m.UEToServingCells[hoDecision.UE.IMSI], len(d.m.UEToServingCells), ue.Cell.NCGI)
@@ -210,7 +208,9 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 
 	servedUes := d.m.GetServedUEs(tCell.NCGI)
 
+	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.SourceCellNcgi != 0
 	requestedBwps := utils.If(redirection, bw.ReleaseBWPs(sCell, ue), []*model.Bwp{})
+
 	d.UpdateUECells(sCell.NCGI, tCell.NCGI, ue)
 	d.UpdateUECellsParams(ue)
 	bw.ReallocateBW(ue, requestedBwps, tCell, servedUes)

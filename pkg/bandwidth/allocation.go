@@ -1,7 +1,6 @@
 package bandwidth
 
 import (
-	"math"
 	"strconv"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -66,7 +65,6 @@ func (s *ProportionalFair) apply() {
 		s.ScsOptionsHz = []int{15_000, 30_000, 60_000, 120_000}
 	}
 
-	existingAllocation := len(s.PrevBwAllocation) > 0
 	totalBWDL := MHzToHz(float64(s.Cell.Channel.BsChannelBwDL))
 	totalBWUL := MHzToHz(float64(s.Cell.Channel.BsChannelBwUL))
 
@@ -78,6 +76,7 @@ func (s *ProportionalFair) apply() {
 		return
 	}
 
+	existingAllocation := len(s.PrevBwAllocation) > 0
 	if existingAllocation {
 		log.Warn("[PF] Existing allocation found")
 		s.reallocateBW(availBWDL, availBWUL)
@@ -132,8 +131,6 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 
 	remainingBWDl := 0
 	remainingBWUl := 0
-	log.Infof("availBWUL :%v", availBWUL)
-	log.Infof("availBWDL :%v", availBWDL)
 
 	for cqi, cqiStats := range s.StatsPerCQI {
 
@@ -235,92 +232,119 @@ func (s *ProportionalFair) reallocateBW(availBWDL int, availBWUL int) {
 	s.Cell.Bwps = map[uint64]*model.Bwp{}
 	remainingBWDLHz := 0
 	remainingBWULHz := 0
-	ueCellBwps := []*model.Bwp{}
-	for _, ue := range s.ServedUEs {
-		log.Infof("UE %v: ueBWPercDL = %.2f, ueBWPercUL = %.2f\n", ue.IMSI, ueRatesDL[ue.IMSI], ueRatesUL[ue.IMSI])
 
-		allocatedBWPsDL, ueRemainingBWDLHz := s.reallocateBWPs(availBWDL+remainingBWDLHz, ueRatesDL[ue.IMSI], ue.IMSI, true)
-		remainingBWDLHz = ueRemainingBWDLHz
+	for index := range s.ServedUEs {
+		ue := s.ServedUEs[index]
+		ueCellBwps := []model.Bwp{}
 
-		ueCellBwps = append(ueCellBwps, allocatedBWPsDL...)
-
-		allocatedBWPsUL, ueRemainingBWULHz := s.reallocateBWPs(availBWUL+remainingBWULHz, ueRatesUL[ue.IMSI], ue.IMSI, false)
-		remainingBWULHz = ueRemainingBWULHz
-
-		ueCellBwps = append(ueCellBwps, allocatedBWPsUL...)
-
-		cellAllocatedBwps := len(s.Cell.Bwps)
-		for i := range ueCellBwps {
-			bwp := *ueCellBwps[i]
-			bwp.ID = uint64(cellAllocatedBwps + i)
-			s.Cell.Bwps[bwp.ID] = &bwp
-			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
+		if ueRateDL, ok := ueRatesDL[ue.IMSI]; ok {
+			ueAvailBWDL := int(float64(availBWDL)*ueRateDL) + remainingBWDLHz
+			allocatedBwpsDL, ueRemainingBWDLHz := s.reallocateBWPs(ueAvailBWDL, ue.IMSI, true)
+			ueCellBwps = append(ueCellBwps, allocatedBwpsDL...)
+			remainingBWDLHz = ueRemainingBWDLHz
+		}
+		if ueRateUL, ok := ueRatesUL[ue.IMSI]; ok {
+			ueAvailBWUL := int(float64(availBWUL)*ueRateUL) + remainingBWULHz
+			allocatedBWPsUL, ueRemainingBWULHz := s.reallocateBWPs(ueAvailBWUL, ue.IMSI, false)
+			ueCellBwps = append(ueCellBwps, allocatedBWPsUL...)
+			remainingBWULHz = ueRemainingBWULHz
 		}
 
-		log.Infof("Assigned BWPs to UE %v (Downlink + Uplink): %v\n", ue.IMSI, ue.Cell.BwpRefs)
+		if len(ueCellBwps) > 0 {
+			cellAllocatedBwps := len(s.Cell.Bwps)
+			for i := range ueCellBwps {
+				bwp := ueCellBwps[i]
+				bwp.ID = uint64(cellAllocatedBwps + i)
+				s.Cell.Bwps[bwp.ID] = &bwp
+				ueBWP := bwp
+				ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &ueBWP)
+			}
+			// log.Infof("Assigned BWPs to UE %v (Downlink + Uplink): %v\n", ue.IMSI, len(ue.Cell.BwpRefs))
+		}
+
 	}
 }
 
 func (s *ProportionalFair) getUeRates() (ueRatesDL, ueRatesUL map[types.IMSI]float64) {
-	ueRatesDL = make(map[types.IMSI]float64)
-	ueRatesUL = make(map[types.IMSI]float64)
+	ueRatesDL = map[types.IMSI]float64{}
+	ueRatesUL = map[types.IMSI]float64{}
+
+	uePeqBWDL := map[types.IMSI]float64{}
+	ueReqBWUL := map[types.IMSI]float64{}
 	cellRequestedBWDL := 0.0
 	cellRequestedBWUL := 0.0
 
 	for _, ue := range s.ServedUEs {
-		for _, bwp := range s.ReqBwAllocation[ue.IMSI] {
-			if bwp.Downlink {
-				ueRatesDL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
-			} else {
-				ueRatesUL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+		ueReqBWPs := s.ReqBwAllocation[ue.IMSI]
+		if len(ueReqBWPs) > 0 {
+			for index := range ueReqBWPs {
+				bwp := ueReqBWPs[index]
+				if bwp.Downlink {
+					uePeqBWDL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+				} else {
+					ueReqBWUL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+				}
 			}
 		}
-		cellRequestedBWDL += ueRatesDL[ue.IMSI]
-		cellRequestedBWUL += ueRatesUL[ue.IMSI]
+
+		if ueReqDL, ok := uePeqBWDL[ue.IMSI]; ok {
+			cellRequestedBWDL += ueReqDL
+		}
+
+		if ueReqUL, ok := ueReqBWUL[ue.IMSI]; ok {
+			cellRequestedBWUL += ueReqUL
+		}
 	}
 
 	for _, ue := range s.ServedUEs {
-		ueRatesDL[ue.IMSI] = ueRatesDL[ue.IMSI] / cellRequestedBWDL
-		ueRatesDL[ue.IMSI] = ueRatesUL[ue.IMSI] / cellRequestedBWUL
+		if ueReqDL, ok := uePeqBWDL[ue.IMSI]; ok {
+			ueRatesDL[ue.IMSI] = ueReqDL / cellRequestedBWDL
+		}
+		if ueReqUL, ok := ueReqBWUL[ue.IMSI]; ok {
+			ueRatesUL[ue.IMSI] = ueReqUL / cellRequestedBWUL
+		}
 	}
-
 	return
 }
 
 // reallocateBWPs adjusts the BWPs for the UE based on available bandwidth
-func (s *ProportionalFair) reallocateBWPs(availBWHz int, ueRate float64, imsi types.IMSI, downlink bool) ([]*model.Bwp, int) {
-	ueNewBWHz := int(float64(availBWHz) * ueRate)
+func (s *ProportionalFair) reallocateBWPs(availBWHz int, imsi types.IMSI, downlink bool) ([]model.Bwp, int) {
 
-	newBWPs := []*model.Bwp{}
-	previousBWPs := s.PrevBwAllocation[imsi]
-	remaingBWHz := float64(ueNewBWHz)
-
-	for i, bwp := range previousBWPs {
-		remainingPRBs := remaingBWHz / 12 * float64(bwp.Scs)
-		rbsToAllocate := math.Min(remainingPRBs, float64(bwp.NumberOfRBs))
-		// TODO: check on remainingBW
-		//  try progressively lower scs when remainingBW >0 but newBWP+allocated > ueNewBW
-		if remaingBWHz > 12*rbsToAllocate*float64(bwp.Scs) {
-			newBWPs[i] = &model.Bwp{
+	remaingBWHz := float64(availBWHz)
+	newBWPs := []model.Bwp{}
+	previousBWPs, ok := s.PrevBwAllocation[imsi]
+	if !ok {
+		return newBWPs, int(remaingBWHz)
+	}
+	for i := range previousBWPs {
+		bwp := previousBWPs[i]
+		bwToAllocate := 12 * float64(bwp.NumberOfRBs) * float64(bwp.Scs)
+		if remaingBWHz >= bwToAllocate {
+			newBWPs = append(newBWPs, model.Bwp{
 				ID:          uint64(i),
 				Scs:         bwp.Scs,
-				NumberOfRBs: int(rbsToAllocate),
+				NumberOfRBs: int(bwp.NumberOfRBs),
 				Downlink:    downlink,
-			}
-			remaingBWHz -= float64(int(rbsToAllocate) * 12 * bwp.Scs)
+			})
+			remaingBWHz -= bwToAllocate
 		}
 	}
 
-	if remaingBWHz > 0 {
-		bwpSizeHz := 12.0 * float64(s.ScsOptionsHz[0])
-		remainingPRBs := int(remaingBWHz / bwpSizeHz)
-		newBWPs[len(newBWPs)] = &model.Bwp{
+	if remaingBWHz == 0.0 {
+		return newBWPs, int(remaingBWHz)
+	}
+
+	bwpSizeHz := 12 * float64(s.ScsOptionsHz[0])
+	prbsToAllocate := int(remaingBWHz / bwpSizeHz)
+	if prbsToAllocate > 0 {
+		bwToAllocate := float64(prbsToAllocate) * bwpSizeHz
+		newBWPs = append(newBWPs, model.Bwp{
 			ID:          uint64(len(newBWPs)),
 			Scs:         s.ScsOptionsHz[0],
-			NumberOfRBs: remainingPRBs,
+			NumberOfRBs: prbsToAllocate,
 			Downlink:    downlink,
-		}
-		remaingBWHz -= float64(remainingPRBs) * 12 * float64(s.ScsOptionsHz[0])
+		})
+		remaingBWHz -= bwToAllocate
 	}
 
 	return newBWPs, int(remaingBWHz)

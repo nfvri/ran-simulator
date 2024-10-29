@@ -288,12 +288,12 @@ func GetNumUEsPerCQIByCell(numUEsByCell map[uint64]map[string]int) map[uint64]ma
 			}
 		} else {
 			for metricName, numUes := range numUEsMetrics {
-				cqi, err := strconv.Atoi(strings.Split(metricName, ".")[2])
-				if err != nil {
-					log.Errorf("Error converting CQI level to integer: %v", err)
-					continue
-				}
 				if MatchesPattern(metricName, ACTIVE_UES_DL_PATTERN) {
+					cqi, err := strconv.Atoi(strings.Split(metricName, ".")[2])
+					if err != nil {
+						log.Errorf("Error converting CQI level to integer: %v", err)
+						continue
+					}
 					numUEsPerCQIByCell[cellNCGI][cqi] = numUes
 				}
 			}
@@ -323,8 +323,18 @@ func GetUsedPRBsPerCQIByCell(prbMeasPerCell map[uint64]map[string]int, numUEsPer
 		}
 	}
 
-	usedPRBsDLPerCQIByCell := ConvertMetricKeyToCQIKey(cellUsedPRBsDL, numUEsPerCQIByCell, USED_PRBS_DL_METRIC, USED_PRBS_DL_PATTERN)
-	usedPRBsULPerCQIByCell := ConvertMetricKeyToCQIKey(cellUsedPRBsUL, numUEsPerCQIByCell, USED_PRBS_UL_METRIC, USED_PRBS_UL_PATTERN)
+	usedPRBsDLPerCQIByCell := ConvertMetricKeyToCQIKey(
+		cellUsedPRBsDL,
+		numUEsPerCQIByCell,
+		USED_PRBS_DL_METRIC,
+		USED_PRBS_DL_PATTERN,
+	)
+	usedPRBsULPerCQIByCell := ConvertMetricKeyToCQIKey(
+		cellUsedPRBsUL,
+		numUEsPerCQIByCell,
+		USED_PRBS_UL_METRIC,
+		USED_PRBS_UL_PATTERN,
+	)
 
 	return usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell
 }

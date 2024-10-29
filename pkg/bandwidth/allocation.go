@@ -47,14 +47,14 @@ type AllocationStrategy interface {
 // PROPORTIONAL FAIR
 // ==========================================================
 type ProportionalFair struct {
-	StatsPerCQI      map[int]CQIStats
-	AvailPRBsDL      int
-	AvailPRBsUL      int
-	PrevBwAllocation map[types.IMSI][]model.Bwp
-	ReqBwAllocation  map[types.IMSI][]model.Bwp
-	Cell             *model.Cell
-	ServedUEs        []*model.UE
-	ScsOptionsHz     []int
+	StatsPerCQI     map[int]CQIStats
+	AvailPRBsDL     int
+	AvailPRBsUL     int
+	IsReallocation  bool
+	ReqBwAllocation map[types.IMSI][]model.Bwp
+	Cell            *model.Cell
+	ServedUEs       []*model.UE
+	ScsOptionsHz    []int
 }
 
 // apply applies Proportional Fair scheduling to assign BWPs to UEs for both downlink and uplink
@@ -76,8 +76,7 @@ func (s *ProportionalFair) apply() {
 		return
 	}
 
-	existingAllocation := len(s.PrevBwAllocation) > 0
-	if existingAllocation {
+	if s.IsReallocation {
 		log.Warn("[PF] Existing allocation found")
 		log.Infof("availBWDL:%v, availBWUL:%v", float64(availBWDL)/1e6, float64(availBWUL)/1e6)
 		s.reallocateBW(availBWDL, availBWUL)

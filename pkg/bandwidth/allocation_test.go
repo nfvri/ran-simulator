@@ -119,10 +119,10 @@ func Test_ProportionalFair_apply_reallocation(t *testing.T) {
 	servedUEs = append(servedUEs, newUe)
 
 	pf := ProportionalFair{
-		Cell:             cell,
-		ServedUEs:        servedUEs,
-		ReqBwAllocation:  newRequestedAlloc,
-		PrevBwAllocation: existingAlloc,
+		Cell:            cell,
+		ServedUEs:       servedUEs,
+		ReqBwAllocation: newRequestedAlloc,
+		IsReallocation:  true,
 	}
 
 	pf.apply()

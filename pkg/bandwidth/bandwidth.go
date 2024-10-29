@@ -76,7 +76,6 @@ func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, s
 		return
 	}
 
-	currAlloc := BwAllocationOf(servedUEs)
 	ue.Cell.BwpRefs = requestedBwps
 	// augment allocation with new ue
 	servedUEs = append(servedUEs, ue)
@@ -94,10 +93,10 @@ func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, s
 	case PROPORTIONAL_FAIR:
 	default:
 		pf := ProportionalFair{
-			Cell:             tCell,
-			ServedUEs:        servedUEs,
-			PrevBwAllocation: currAlloc,
-			ReqBwAllocation:  reqAlloc,
+			Cell:            tCell,
+			ServedUEs:       servedUEs,
+			IsReallocation:  true,
+			ReqBwAllocation: reqAlloc,
 		}
 		pf.apply()
 	}

@@ -220,3 +220,55 @@ func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength 
 	}
 	return utils.SortCoordinatesByBearing(cell.Sector.Center, covBoundaryPoints)
 }
+
+func FilterBoundaryPoints(boundaryPoints []model.Coordinate, cellCenter model.Coordinate) []model.Coordinate {
+
+	if len(boundaryPoints) == 0 || len(boundaryPoints) < 1000 {
+		return boundaryPoints
+	}
+
+	// N represents the total number of points evaluated.
+	// Only the farthest point from cell center is retained.
+	N := 3
+	if len(boundaryPoints) <= 1500 {
+		N = 2
+	}
+
+	newBoundaryPoints := []model.Coordinate{}
+	prevPoints := []model.Coordinate{}
+
+	for index := range boundaryPoints {
+		point := boundaryPoints[index]
+		if index%N != N-1 {
+			prevPoints = append(prevPoints, point)
+			continue
+		}
+
+		// Identify the farthest point from cell center
+		maxDist := utils.GetSphericalDistance(cellCenter, point)
+		farthestPoint := point
+		for _, prevPoint := range prevPoints {
+			dist := utils.GetSphericalDistance(cellCenter, prevPoint)
+			if dist > maxDist {
+				maxDist = dist
+				farthestPoint = prevPoint
+			}
+		}
+
+		lastBoundaryPoint := farthestPoint
+		if len(newBoundaryPoints) > 0 {
+			lastBoundaryPoint = newBoundaryPoints[len(newBoundaryPoints)-1]
+		}
+		if utils.GetSphericalDistance(farthestPoint, lastBoundaryPoint) > 0.001 {
+			// The distance between points is too far. Retain all points.
+			newBoundaryPoints = append(newBoundaryPoints, prevPoints...)
+			newBoundaryPoints = append(newBoundaryPoints, point)
+		} else {
+			newBoundaryPoints = append(newBoundaryPoints, farthestPoint)
+		}
+		prevPoints = []model.Coordinate{}
+
+	}
+
+	return newBoundaryPoints
+}

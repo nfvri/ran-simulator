@@ -100,7 +100,7 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 		log.Errorf("failed to update cell's: %v rpBoundaryPoints", snapShotCell.NCGI)
 		return
 	}
-
+	rpBoundaryPoints = FilterBoundaryPoints(rpBoundaryPoints, snapShotCell.Sector.Center)
 	snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
 	snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellSignalInfo{
 		RPCoverageBoundaries: []model.CoverageBoundary{
@@ -118,8 +118,8 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 		log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
 		return
 	}
+	covBoundaryPoints = FilterBoundaryPoints(covBoundaryPoints, snapShotCell.Sector.Center)
 	log.Infof("NCGI: %v: len(covBoundaryPoints): %d", snapShotCell.NCGI, len(covBoundaryPoints))
-
 	snapShotCell.CachedStates[snapShotCell.CurrentStateHash].CoverageBoundaries = []model.CoverageBoundary{
 		{
 			RefSignalStrength: refSignalStrength,

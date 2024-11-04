@@ -92,7 +92,7 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 				totalPrbsDl := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
 				ueRSRQ := signal.RSRQ(ueSINR, totalPrbsDl)
 
-				simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ues)+1, cqi, totalPrbsDl, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
+				simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ues)+1, cqi, totalPrbsDl, ueHeight, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 				ues[ueIMSI] = simUE
 				cellServedUEs = append(cellServedUEs, simUE)
 			}
@@ -152,7 +152,7 @@ func GetUERsrpsBasedOnLocation(sCell *model.Cell, uesLocationsPerCQI map[int][]m
 	return
 }
 
-func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
+func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
 
 	imsi := utils.ImsiGenerator(counter)
 	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
@@ -179,6 +179,7 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, sinr, rsrp, 
 		CRNTI:       types.CRNTI(90125 + counter),
 		Cells:       neighborCells,
 		IsAdmitted:  false,
+		Height:      ueHeight,
 		RrcState:    rrcState,
 	}
 

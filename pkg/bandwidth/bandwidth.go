@@ -394,3 +394,40 @@ func DisaggregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (use
 	}
 	return
 }
+
+func CheckBWOverflow(usedPRBsPerCQIByCell map[uint64]map[int]int, prbMeasPerCell map[uint64]map[string]int, cellMetricName string) map[uint64]map[int]int {
+
+	for ncgi, usedPRBsPerCQI := range usedPRBsPerCQIByCell {
+
+		availPRBs := prbMeasPerCell[ncgi][cellMetricName]
+
+		sumUsedPRBs := 0
+		for _, usedPRBs := range usedPRBsPerCQI {
+			sumUsedPRBs += usedPRBs
+		}
+		if sumUsedPRBs <= availPRBs {
+			continue
+		}
+
+		assignedPrbs := 0
+		for cqi := range usedPRBsPerCQI {
+			usedPRBs := usedPRBsPerCQI[cqi]
+			usedPRBsPerCQI[cqi] = int(float64(usedPRBs) / (float64(sumUsedPRBs) / float64(availPRBs)))
+			assignedPrbs += usedPRBsPerCQI[cqi]
+		}
+		if assignedPrbs == availPRBs {
+			return usedPRBsPerCQIByCell
+		}
+
+		for cqi := range usedPRBsPerCQI {
+			usedPRBs := usedPRBsPerCQI[cqi]
+			usedPRBsPerCQI[cqi] = usedPRBs + 1
+			assignedPrbs++
+			if assignedPrbs == availPRBs {
+				break
+			}
+		}
+
+	}
+	return usedPRBsPerCQIByCell
+}

@@ -199,6 +199,9 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 	numUEsPerCQIByCell := bw.GetNumUEsPerCQIByCell(numUEsByCell)
 	usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell := bw.GetUsedPRBsPerCQIByCell(prbMeasPerCell, numUEsPerCQIByCell)
 
+	usedPRBsDLPerCQIByCell = bw.CheckBWOverflow(usedPRBsDLPerCQIByCell, prbMeasPerCell, bw.AVAIL_PRBS_DL_METRIC)
+	usedPRBsULPerCQIByCell = bw.CheckBWOverflow(usedPRBsULPerCQIByCell, prbMeasPerCell, bw.AVAIL_PRBS_UL_METRIC)
+
 	for ncgi := range m.model.Cells {
 		cell := m.model.Cells[ncgi]
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
@@ -217,7 +220,6 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 				}
 			}
 		}
-
 		availPRBsDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_UL_METRIC]
 

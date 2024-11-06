@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/nfvri/ran-simulator/pkg/utils"
 	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
 	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
@@ -85,9 +84,17 @@ func (s *ProportionalFair) apply() {
 
 	usedPRBsDL := 0
 	usedPRBsUL := 0
+	existsDL := false
+	existsUL := false
 	for _, cqiStats := range s.StatsPerCQI {
-		usedPRBsDL += cqiStats.UsedPRBsDL
-		usedPRBsUL += cqiStats.UsedPRBsUL
+		if cqiStats.UsedPRBsDL != -1 {
+			existsDL = true
+			usedPRBsDL += cqiStats.UsedPRBsDL
+		}
+		if cqiStats.UsedPRBsUL != -1 {
+			existsUL = true
+			usedPRBsUL += cqiStats.UsedPRBsUL
+		}
 	}
 
 	// Update available BW based on current utilization
@@ -100,11 +107,11 @@ func (s *ProportionalFair) apply() {
 		availBWUL = int(utilizationUL * float64(availBWUL))
 	}
 
-	if usedPRBsDL == 0 {
+	if usedPRBsDL == 0 && !existsDL {
 		s.generateUsedPRBs(availBWDL, true)
 	}
-	if usedPRBsUL == 0 {
-		s.generateUsedPRBs(availBWUL, true)
+	if usedPRBsUL == 0 && !existsUL {
+		s.generateUsedPRBs(availBWUL, false)
 	}
 	log.Infof("--------------------")
 	log.Infof("[PF] ncgi: %v", s.Cell.NCGI)
@@ -137,11 +144,8 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 		availBWDLCQI := int((float64(cqi * cqiStats.NumUEs * availBWDL)) / sumCQIs)
 		availBWULCQI := int((float64(cqi * cqiStats.NumUEs * availBWUL)) / sumCQIs)
 
-		usedPRBsDL := utils.If(cqiStats.UsedPRBsDL == 0, cqiStats.NumUEs, cqiStats.UsedPRBsDL)
-		usedPRBsUL := utils.If(cqiStats.UsedPRBsUL == 0, cqiStats.NumUEs, cqiStats.UsedPRBsUL)
-
-		cqiBwpsDL, cqiRemaingBWDL := generateBWPs(availBWDLCQI+remainingBWDl, usedPRBsDL, true)
-		cqiBwpsUL, cqiRemaingBWUL := generateBWPs(availBWULCQI+remainingBWUl, usedPRBsUL, false)
+		cqiBwpsDL, cqiRemaingBWDL := generateBWPs(availBWDLCQI+remainingBWDl, cqiStats.UsedPRBsDL, true)
+		cqiBwpsUL, cqiRemaingBWUL := generateBWPs(availBWULCQI+remainingBWUl, cqiStats.UsedPRBsUL, false)
 
 		remainingBWDl = cqiRemaingBWDL
 		remainingBWUl = cqiRemaingBWUL
@@ -185,11 +189,19 @@ func (s *ProportionalFair) generateUsedPRBs(availBWHz int, downlink bool) {
 func generateBWPs(remaingBWHz int, usedPRBs int, downlink bool) ([]*model.Bwp, int) {
 	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
 	cqiBwps := []*model.Bwp{}
+
+	if usedPRBs == 0 || usedPRBs == -1 {
+		return cqiBwps, remaingBWHz
+	}
+
 	lastSCSIndex := make(map[int]int)
 
 BW_PARTITION:
 	for remaingBWHz > 0 {
 		for i := 0; i < usedPRBs; i++ {
+			if lastSCSIndex[i] == len(scsOptions) {
+				break BW_PARTITION
+			}
 			if remaingBWHz-int(12*scsOptions[lastSCSIndex[i]]) < 0 {
 				break BW_PARTITION
 
@@ -232,7 +244,6 @@ BW_ALLOCATION:
 
 func (s *ProportionalFair) reallocateBW(availBWDL int, availBWUL int) {
 	ueRatesDL, ueRatesUL := s.getUeRates()
-	log.Infof("ueRatesDL:%v, ueRatesUL:%v", ueRatesDL, ueRatesUL)
 	s.Cell.Bwps = map[uint64]*model.Bwp{}
 	remainingBWDLHz := 0
 	remainingBWULHz := 0

@@ -214,9 +214,21 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 		for cqi, numUEs := range numUEsPerCQIByCell[uint64(cell.NCGI)] {
 			if numUEs > 0 {
 				statsPerCQI[cqi] = bw.CQIStats{
+					NumUEs: numUEs,
+				}
+				usedPrbsDL, existsDL := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)][cqi]
+				if !existsDL {
+					usedPrbsDL = -1
+				}
+				usedPrbsUL, existsUL := usedPRBsULPerCQIByCell[uint64(cell.NCGI)][cqi]
+				if !existsUL {
+					usedPrbsUL = -1
+				}
+
+				statsPerCQI[cqi] = bw.CQIStats{
 					NumUEs:     numUEs,
-					UsedPRBsDL: usedPRBsDLPerCQIByCell[uint64(cell.NCGI)][cqi],
-					UsedPRBsUL: usedPRBsULPerCQIByCell[uint64(cell.NCGI)][cqi],
+					UsedPRBsDL: usedPrbsDL,
+					UsedPRBsUL: usedPrbsUL,
 				}
 			}
 		}
@@ -242,8 +254,12 @@ func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, statsP
 	usedPRBsDL := 0
 	usedPRBsUL := 0
 	for _, cqiStats := range statsPerCQI {
-		usedPRBsDL += cqiStats.UsedPRBsDL
-		usedPRBsUL += cqiStats.UsedPRBsUL
+		if cqiStats.UsedPRBsDL != -1 {
+			usedPRBsDL += cqiStats.UsedPRBsDL
+		}
+		if cqiStats.UsedPRBsUL != -1 {
+			usedPRBsUL += cqiStats.UsedPRBsUL
+		}
 	}
 
 	bwUtilizationDL := float64(usedPRBsDL) / float64(availPRBsDL)

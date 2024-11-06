@@ -376,6 +376,13 @@ func DisaggregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (use
 		return
 	}
 
+	if prbsToAllocate == 0 {
+		for cqi := 1; cqi <= 15; cqi++ {
+			usedPRBsPerCQI[cqi] = 0
+		}
+		return
+	}
+
 	remainingPRBs := prbsToAllocate
 	for cqi := 1; cqi <= 15; cqi++ {
 		usedPRBsDlForCQI := int((float64((numUEsPerCQI[cqi] * cqi)) / float64(sumCQI)) * float64(prbsToAllocate))

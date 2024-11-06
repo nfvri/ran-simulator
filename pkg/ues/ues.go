@@ -99,9 +99,21 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 
 			if numUEs > 0 {
 				statsPerCQI[cqi] = bw.CQIStats{
+					NumUEs: numUEs,
+				}
+				usedPrbsDL, existsDL := usedPRBsDLPerCQIByCell[sCellNCGI][cqi]
+				if !existsDL {
+					usedPrbsDL = -1
+				}
+				usedPrbsUL, existsUL := usedPRBsULPerCQIByCell[sCellNCGI][cqi]
+				if !existsUL {
+					usedPrbsUL = -1
+				}
+
+				statsPerCQI[cqi] = bw.CQIStats{
 					NumUEs:     numUEs,
-					UsedPRBsDL: usedPRBsDLPerCQIByCell[sCellNCGI][cqi],
-					UsedPRBsUL: usedPRBsULPerCQIByCell[sCellNCGI][cqi],
+					UsedPRBsDL: usedPrbsDL,
+					UsedPRBsUL: usedPrbsUL,
 				}
 			}
 		}

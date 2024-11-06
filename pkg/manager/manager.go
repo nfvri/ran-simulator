@@ -116,8 +116,8 @@ func (m *Manager) initMobilityDriver() {
 func (m *Manager) Start() error {
 
 	if m.config.RedisEnabled {
-		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
-		redisPort := utils.GetEnv("REDIS_PORT", "6398")
+		redisHost := utils.GetEnv("REDIS_HOST", "clx1")
+		redisPort := utils.GetEnv("REDIS_PORT", "30637")
 		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
 		redisUECache := utils.GetEnv("REDIS_UE_CACHE_DB", "2")
 		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
@@ -198,7 +198,6 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 	numUEsByCell, prbMeasPerCell := bw.UtilizationInfoByCell(m.model.CellMeasurements)
 	numUEsPerCQIByCell := bw.GetNumUEsPerCQIByCell(numUEsByCell)
 	usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell := bw.GetUsedPRBsPerCQIByCell(prbMeasPerCell, numUEsPerCQIByCell)
-
 	usedPRBsDLPerCQIByCell = bw.CheckBWOverflow(usedPRBsDLPerCQIByCell, prbMeasPerCell, bw.AVAIL_PRBS_DL_METRIC)
 	usedPRBsULPerCQIByCell = bw.CheckBWOverflow(usedPRBsULPerCQIByCell, prbMeasPerCell, bw.AVAIL_PRBS_UL_METRIC)
 
@@ -210,60 +209,39 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 			continue
 		}
 
-		statsPerCQI := map[int]bw.CQIStats{}
-		for cqi, numUEs := range numUEsPerCQIByCell[uint64(cell.NCGI)] {
-			if numUEs > 0 {
-				statsPerCQI[cqi] = bw.CQIStats{
-					NumUEs: numUEs,
-				}
-				usedPrbsDL, existsDL := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)][cqi]
-				if !existsDL {
-					usedPrbsDL = -1
-				}
-				usedPrbsUL, existsUL := usedPRBsULPerCQIByCell[uint64(cell.NCGI)][cqi]
-				if !existsUL {
-					usedPrbsUL = -1
-				}
-
-				statsPerCQI[cqi] = bw.CQIStats{
-					NumUEs:     numUEs,
-					UsedPRBsDL: usedPrbsDL,
-					UsedPRBsUL: usedPrbsUL,
-				}
-			}
-		}
+		usedPRBsDL := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)]
+		usedPRBsUL := usedPRBsULPerCQIByCell[uint64(cell.NCGI)]
+		numUEs := numUEsPerCQIByCell[uint64(cell.NCGI)]
 		availPRBsDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_UL_METRIC]
 
-		m.setBWUtilization(ctx, cell, statsPerCQI, availPRBsDL, availPRBsUL)
+		m.setBWUtilization(ctx, cell, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL)
 
-		bw.AllocateBW(cell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
+		bw.AllocateBW(cell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
 		if len(cell.Bwps) == 0 {
 			log.Error("failed to initialize BWPs for cell: %v", cell.NCGI)
 		}
 	}
 }
 
-func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, statsPerCQI map[int]bw.CQIStats, availPRBsDL, availPRBsUL int) {
+func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int) {
 	totalBWDL := bw.MHzToHz(float64(cell.Channel.BsChannelBwDL))
 	totalBWUL := bw.MHzToHz(float64(cell.Channel.BsChannelBwUL))
 
 	availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)
 
-	usedPRBsDL := 0
-	usedPRBsUL := 0
-	for _, cqiStats := range statsPerCQI {
-		if cqiStats.UsedPRBsDL != -1 {
-			usedPRBsDL += cqiStats.UsedPRBsDL
-		}
-		if cqiStats.UsedPRBsUL != -1 {
-			usedPRBsUL += cqiStats.UsedPRBsUL
-		}
+	sumUsedPRBsDL := 0
+	sumUsedPRBsUL := 0
+	for _, usedPRBs := range usedPRBsDL {
+		sumUsedPRBsDL += usedPRBs
+	}
+	for _, usedPRBs := range usedPRBsUL {
+		sumUsedPRBsUL += usedPRBs
 	}
 
-	bwUtilizationDL := float64(usedPRBsDL) / float64(availPRBsDL)
-	bwUtilizationUL := float64(usedPRBsUL) / float64(availPRBsUL)
+	bwUtilizationDL := float64(sumUsedPRBsDL) / float64(availPRBsDL)
+	bwUtilizationUL := float64(sumUsedPRBsUL) / float64(availPRBsUL)
 
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationDL)
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC, 100*bwUtilizationUL)

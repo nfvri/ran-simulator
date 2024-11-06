@@ -32,5 +32,5 @@ func TestGetNumUEsPerCQIByCell(t *testing.T) {
 		expectedMap[c1Ncgi][cqi] = 10
 	}
 
-	assert.Equal(t, expectedMap, GetNumUEsPerCQIByCell(numUEsByCell))
+	assert.DeepEqual(t, expectedMap, GetNumUEsPerCQIByCell(numUEsByCell))
 }

@@ -11,15 +11,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type CQIStats struct {
-	NumUEs     int
-	UsedPRBsDL int
-	UsedPRBsUL int
-}
-
-func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
+func InitBWPs(sCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
 	if len(sCell.Bwps) == 0 {
-		AllocateBW(sCell, statsPerCQI, availPRBsDL, availPRBsUL, servedUEs)
+		AllocateBW(sCell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
 
 		if len(sCell.Bwps) == 0 {
 			log.Errorf("failed to initialize BWPs for cell: %v", sCell.NCGI)
@@ -33,14 +27,10 @@ func InitBWPs(sCell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, avai
 		bwp := *sCell.Bwps[index]
 		existingCellBwps = append(existingCellBwps, &bwp)
 	}
-	numUEsPerCQI := map[int]int{}
-	for cqi, cqiStats := range statsPerCQI {
-		numUEsPerCQI[cqi] = cqiStats.NumUEs
-	}
 
 	// use DisaggregateCellUsedPRBs for cell bwps disagregation, as it has the same
 	// functionality but name is kept for better readability in the other use cases
-	bwpsPerCQI := DisaggregateCellUsedPRBs(numUEsPerCQI, len(existingCellBwps))
+	bwpsPerCQI := DisaggregateCellUsedPRBs(numUEs, len(existingCellBwps))
 	allocatedBWPs := 0
 	for cqi, numBWPsToAllocate := range bwpsPerCQI {
 		if allocatedBWPs+numBWPsToAllocate <= len(existingCellBwps) {
@@ -102,7 +92,7 @@ func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, s
 	}
 }
 
-func AllocateBW(cell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
+func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
 	// Infer BWP allocation from cell prb measurements
 	// pick used prbs if found else resort to total available
 
@@ -113,7 +103,9 @@ func AllocateBW(cell *model.Cell, statsPerCQI map[int]CQIStats, availPRBsDL, ava
 		pf := ProportionalFair{
 			Cell:        cell,
 			ServedUEs:   servedUEs,
-			StatsPerCQI: statsPerCQI,
+			NumUEs:      numUEs,
+			UsedPRBsDL:  usedPRBsDL,
+			UsedPRBsUL:  usedPRBsUL,
 			AvailPRBsDL: availPRBsDL,
 			AvailPRBsUL: availPRBsUL,
 		}
@@ -231,8 +223,11 @@ func UtilizationInfoByCell(cellMeasurements []*metrics.Metric) (map[uint64]map[s
 			numUEsByCell[metric.EntityID] = map[string]int{}
 		}
 
-		value, _ := strconv.Atoi(metric.GetValue())
-
+		valueFloat, err := strconv.ParseFloat(metric.GetValue(), 64)
+		if err != nil {
+			log.Errorf("Failed to convert metric valye '%v' to float64: %v", metric.GetValue(), err)
+		}
+		value := int(valueFloat)
 		switch {
 		case metric.Key == ACTIVE_UES_DL_METRIC:
 			numUEsByCell[metric.EntityID][ACTIVE_UES_DL_METRIC] = value

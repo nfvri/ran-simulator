@@ -46,7 +46,9 @@ type AllocationStrategy interface {
 // PROPORTIONAL FAIR
 // ==========================================================
 type ProportionalFair struct {
-	StatsPerCQI     map[int]CQIStats
+	NumUEs          map[int]int
+	UsedPRBsDL      map[int]int
+	UsedPRBsUL      map[int]int
 	AvailPRBsDL     int
 	AvailPRBsUL     int
 	IsReallocation  bool
@@ -82,43 +84,37 @@ func (s *ProportionalFair) apply() {
 		return
 	}
 
-	usedPRBsDL := 0
-	usedPRBsUL := 0
-	existsDL := false
-	existsUL := false
-	for _, cqiStats := range s.StatsPerCQI {
-		if cqiStats.UsedPRBsDL != -1 {
-			existsDL = true
-			usedPRBsDL += cqiStats.UsedPRBsDL
-		}
-		if cqiStats.UsedPRBsUL != -1 {
-			existsUL = true
-			usedPRBsUL += cqiStats.UsedPRBsUL
-		}
+	sumUsedPRBsDL := 0
+	for _, usedPRBs := range s.UsedPRBsDL {
+		sumUsedPRBsDL += usedPRBs
+	}
+	sumUsedPRBsUL := 0
+	for _, usedPRBs := range s.UsedPRBsUL {
+		sumUsedPRBsUL += usedPRBs
 	}
 
 	// Update available BW based on current utilization
-	if s.AvailPRBsDL != 0 && usedPRBsDL != 0 {
-		utilizationDL := float64(usedPRBsDL) / float64(s.AvailPRBsDL)
+	if s.AvailPRBsDL != 0 && sumUsedPRBsDL != 0 {
+		utilizationDL := float64(sumUsedPRBsDL) / float64(s.AvailPRBsDL)
 		availBWDL = int(utilizationDL * float64(availBWDL))
 	}
-	if s.AvailPRBsUL != 0 && usedPRBsUL != 0 {
-		utilizationUL := float64(usedPRBsUL) / float64(s.AvailPRBsUL)
+	if s.AvailPRBsUL != 0 && sumUsedPRBsUL != 0 {
+		utilizationUL := float64(sumUsedPRBsUL) / float64(s.AvailPRBsUL)
 		availBWUL = int(utilizationUL * float64(availBWUL))
 	}
 
-	if usedPRBsDL == 0 && !existsDL {
+	if len(s.UsedPRBsDL) == 0 {
 		s.generateUsedPRBs(availBWDL, true)
 	}
-	if usedPRBsUL == 0 && !existsUL {
+	if len(s.UsedPRBsUL) == 0 {
 		s.generateUsedPRBs(availBWUL, false)
 	}
 	log.Infof("--------------------")
 	log.Infof("[PF] ncgi: %v", s.Cell.NCGI)
 	log.Infof("[PF] availBWDL: %v", availBWDL)
-	log.Infof("[PF] sumPRBsDL: %v", usedPRBsDL)
+	log.Infof("[PF] sumPRBsDL: %v", sumUsedPRBsDL)
 	log.Infof("[PF] availBWUL: %v", availBWUL)
-	log.Infof("[PF] sumPRBsUL: %v", usedPRBsUL)
+	log.Infof("[PF] sumPRBsUL: %v", sumUsedPRBsUL)
 	log.Infof("--------------------")
 	s.allocateBW(availBWDL, availBWUL)
 
@@ -139,13 +135,22 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 	remainingBWDl := 0
 	remainingBWUl := 0
 
-	for cqi, cqiStats := range s.StatsPerCQI {
+	for cqi, numUEs := range s.NumUEs {
 
-		availBWDLCQI := int((float64(cqi * cqiStats.NumUEs * availBWDL)) / sumCQIs)
-		availBWULCQI := int((float64(cqi * cqiStats.NumUEs * availBWUL)) / sumCQIs)
+		availBWDLCQI := int((float64(cqi * numUEs * availBWDL)) / sumCQIs)
+		availBWULCQI := int((float64(cqi * numUEs * availBWUL)) / sumCQIs)
 
-		cqiBwpsDL, cqiRemaingBWDL := generateBWPs(availBWDLCQI+remainingBWDl, cqiStats.UsedPRBsDL, true)
-		cqiBwpsUL, cqiRemaingBWUL := generateBWPs(availBWULCQI+remainingBWUl, cqiStats.UsedPRBsUL, false)
+		usedPRBsDL, exixtsDL := s.UsedPRBsDL[cqi]
+		if !exixtsDL {
+			usedPRBsDL = 0
+		}
+		cqiBwpsDL, cqiRemaingBWDL := generateBWPs(availBWDLCQI+remainingBWDl, usedPRBsDL, true)
+
+		usedPRBsUL, exixtsDL := s.UsedPRBsUL[cqi]
+		if !exixtsDL {
+			usedPRBsUL = 0
+		}
+		cqiBwpsUL, cqiRemaingBWUL := generateBWPs(availBWULCQI+remainingBWUl, usedPRBsUL, false)
 
 		remainingBWDl = cqiRemaingBWDL
 		remainingBWUl = cqiRemaingBWUL
@@ -165,24 +170,19 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 
 func (s *ProportionalFair) generateUsedPRBs(availBWHz int, downlink bool) {
 
-	numUEsPerCQI := map[int]int{}
-	for cqi, cqiStats := range s.StatsPerCQI {
-		numUEsPerCQI[cqi] = cqiStats.NumUEs
-	}
-
 	usedBWHz := float64(availBWHz)
 	// BWprb := 12 * SCSprb
 	usedPRBs := int(usedBWHz / float64(12*s.ScsOptionsHz[0]))
-	usedPRBsPerCQI := DisaggregateCellUsedPRBs(numUEsPerCQI, usedPRBs)
+	usedPRBsPerCQI := DisaggregateCellUsedPRBs(s.NumUEs, usedPRBs)
 
-	for cqi := range s.StatsPerCQI {
-		cqiStats := s.StatsPerCQI[cqi]
-		if downlink {
-			cqiStats.UsedPRBsDL = usedPRBsPerCQI[cqi]
-		} else {
-			cqiStats.UsedPRBsUL = usedPRBsPerCQI[cqi]
+	if downlink {
+		for cqi, usedPRBs := range usedPRBsPerCQI {
+			s.UsedPRBsDL[cqi] = usedPRBs
 		}
-		s.StatsPerCQI[cqi] = cqiStats
+		return
+	}
+	for cqi, usedPRBs := range usedPRBsPerCQI {
+		s.UsedPRBsUL[cqi] = usedPRBs
 	}
 }
 
@@ -190,7 +190,7 @@ func generateBWPs(remaingBWHz int, usedPRBs int, downlink bool) ([]*model.Bwp, i
 	scsOptions := []int{15_000, 30_000, 60_000, 120_000}
 	cqiBwps := []*model.Bwp{}
 
-	if usedPRBs == 0 || usedPRBs == -1 {
+	if usedPRBs == 0 {
 		return cqiBwps, remaingBWHz
 	}
 
@@ -366,7 +366,7 @@ func (s *ProportionalFair) reallocateBWPs(availBWHz int, imsi types.IMSI, downli
 }
 
 // ReallocateUsedPRBs only when both the Cell Metric and CQI Indexed Metrics exist.
-// If Cell Metric doesn't exist then, use the CQI Indexed Metrics and don't ReallocateUsedPRBs
+// If Cell Metric doesn't exist, then use the CQI Indexed Metrics and don't ReallocateUsedPRBs
 func ReallocateUsedPRBs(cellMeasurements []*metrics.Metric, cellReqLoadMetric metrics.Metric, prbsPerCQI map[int]float64) {
 
 	numPRBsToAllocate, err := strconv.ParseFloat(cellReqLoadMetric.Value, 64)

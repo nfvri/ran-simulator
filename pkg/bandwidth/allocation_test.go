@@ -14,25 +14,11 @@ func Test_allocateBW_cqiProportionally(t *testing.T) {
 	cell, servedUEs := setup()
 
 	pf := ProportionalFair{
-		StatsPerCQI: map[int]CQIStats{
-			1: {
-				NumUEs:     1,
-				UsedPRBsDL: 20,
-				UsedPRBsUL: 20,
-			},
-			8: {
-				NumUEs:     1,
-				UsedPRBsDL: 30,
-				UsedPRBsUL: 30,
-			},
-			15: {
-				NumUEs:     1,
-				UsedPRBsDL: 60,
-				UsedPRBsUL: 60,
-			},
-		},
-		Cell:      cell,
-		ServedUEs: servedUEs,
+		NumUEs:     map[int]int{1: 1, 8: 1, 15: 1},
+		UsedPRBsDL: map[int]int{1: 20, 8: 30, 15: 60},
+		UsedPRBsUL: map[int]int{1: 20, 8: 30, 15: 60},
+		Cell:       cell,
+		ServedUEs:  servedUEs,
 	}
 
 	totalBWDL := MHzToHz(float64(cell.Channel.BsChannelBwDL))
@@ -50,25 +36,11 @@ func Test_ProportionalFair_apply_allocation(t *testing.T) {
 	cell, servedUEs := setup()
 
 	pf := ProportionalFair{
-		StatsPerCQI: map[int]CQIStats{
-			1: {
-				NumUEs:     1,
-				UsedPRBsDL: 20,
-				UsedPRBsUL: 20,
-			},
-			8: {
-				NumUEs:     1,
-				UsedPRBsDL: 30,
-				UsedPRBsUL: 30,
-			},
-			15: {
-				NumUEs:     1,
-				UsedPRBsDL: 60,
-				UsedPRBsUL: 60,
-			},
-		},
-		Cell:      cell,
-		ServedUEs: servedUEs,
+		NumUEs:     map[int]int{1: 1, 8: 1, 15: 1},
+		UsedPRBsDL: map[int]int{1: 20, 8: 30, 15: 60},
+		UsedPRBsUL: map[int]int{1: 20, 8: 30, 15: 60},
+		Cell:       cell,
+		ServedUEs:  servedUEs,
 	}
 
 	pf.apply()

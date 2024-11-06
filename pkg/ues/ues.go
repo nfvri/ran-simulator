@@ -77,7 +77,6 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		}
 
 		cellServedUEs := []*model.UE{}
-		statsPerCQI := map[int]bw.CQIStats{}
 		for cqi, numUEs := range numUEsPerCQI {
 			ueSINR := signal.GetSINR(cqi)
 			for i := 0; i < numUEs; i++ {
@@ -96,31 +95,13 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 				ues[ueIMSI] = simUE
 				cellServedUEs = append(cellServedUEs, simUE)
 			}
-
-			if numUEs > 0 {
-				statsPerCQI[cqi] = bw.CQIStats{
-					NumUEs: numUEs,
-				}
-				usedPrbsDL, existsDL := usedPRBsDLPerCQIByCell[sCellNCGI][cqi]
-				if !existsDL {
-					usedPrbsDL = -1
-				}
-				usedPrbsUL, existsUL := usedPRBsULPerCQIByCell[sCellNCGI][cqi]
-				if !existsUL {
-					usedPrbsUL = -1
-				}
-
-				statsPerCQI[cqi] = bw.CQIStats{
-					NumUEs:     numUEs,
-					UsedPRBsDL: usedPrbsDL,
-					UsedPRBsUL: usedPrbsUL,
-				}
-			}
 		}
+		usedPRBsDL := usedPRBsDLPerCQIByCell[sCellNCGI]
+		usedPRBsUL := usedPRBsULPerCQIByCell[sCellNCGI]
 		availPRBsDL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_UL_METRIC]
 
-		bw.InitBWPs(sCell, statsPerCQI, availPRBsDL, availPRBsUL, cellServedUEs)
+		bw.InitBWPs(sCell, numUEsPerCQI, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, cellServedUEs)
 	}
 
 	log.Infof("------------- len(ues): %d --------------", len(ues))

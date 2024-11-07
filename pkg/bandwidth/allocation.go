@@ -126,6 +126,7 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 		ue := s.ServedUEs[index]
 		ue.Cell.BwpRefs = []*model.Bwp{}
 	}
+	s.Cell.Bwps = map[uint64]*model.Bwp{}
 
 	sumCQIs := 0.0
 	for _, ue := range s.ServedUEs {

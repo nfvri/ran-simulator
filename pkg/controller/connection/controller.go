@@ -6,8 +6,9 @@ package connection
 
 import (
 	"context"
-	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"sync/atomic"
+
+	"github.com/nfvri/ran-simulator/pkg/store/cells"
 
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 
@@ -19,11 +20,11 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2ap/configupdate"
 
-	e2 "github.com/onosproject/onos-e2t/pkg/protocols/e2ap"
 	e2connection "github.com/nfvri/ran-simulator/pkg/e2agent/connection"
+	e2 "github.com/onosproject/onos-e2t/pkg/protocols/e2ap"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 

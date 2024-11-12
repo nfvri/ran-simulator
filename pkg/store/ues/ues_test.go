@@ -10,11 +10,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/assert"

@@ -11,12 +11,12 @@ import (
 
 	"google.golang.org/grpc/credentials/insecure"
 
+	simapi "github.com/nfvri/onos-api/go/onos/ransim/trafficsim"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
-	simapi "github.com/onosproject/onos-api/go/onos/ransim/trafficsim"
 
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 	"github.com/stretchr/testify/assert"

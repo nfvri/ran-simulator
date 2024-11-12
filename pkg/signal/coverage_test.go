@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/davidkleiven/gononlin/nonlin"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 func TestStrengthAtLocationNewtonKrylov(t *testing.T) {

@@ -10,14 +10,15 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 
-	simapi "github.com/onosproject/onos-api/go/onos/ransim/trafficsim"
+	simapi "github.com/nfvri/onos-api/go/onos/ransim/trafficsim"
 
-	simtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	service "github.com/onosproject/onos-lib-go/pkg/northbound"
+	simtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
+	uesapi "github.com/nfvri/ran-simulator/pkg/api/ues"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
+	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
+	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
 )
 
@@ -60,42 +61,13 @@ type Server struct {
 // GetMapLayout :
 func (s *Server) GetMapLayout(ctx context.Context, req *simapi.MapLayoutRequest) (*simtypes.MapLayout, error) {
 	return &simtypes.MapLayout{
-		Center:         &simtypes.Point{Lat: s.model.MapLayout.Center.Lat, Lng: s.model.MapLayout.Center.Lng},
+		Center:         &simtypes.Coordinate{Lat: s.model.MapLayout.Center.Lat, Lng: s.model.MapLayout.Center.Lng},
 		Zoom:           s.model.MapLayout.Zoom,
 		Fade:           s.model.MapLayout.FadeMap,
 		ShowRoutes:     s.model.MapLayout.ShowRoutes,
 		ShowPower:      s.model.MapLayout.ShowPower,
 		LocationsScale: s.model.MapLayout.LocationsScale,
 	}, nil
-}
-
-func ueToAPI(ue *model.UE) *simtypes.Ue {
-	r := &simtypes.Ue{
-		IMSI:     ue.IMSI,
-		Type:     string(ue.Type),
-		Position: nil,
-		Rotation: ue.Heading,
-		CRNTI:    ue.CRNTI,
-		Admitted: ue.IsAdmitted,
-		RrcState: uint32(ue.RrcState),
-	}
-	if ue.Cell != nil {
-		r.ServingTower = simtypes.NCGI(ue.Cell.ID)
-		r.ServingTowerStrength = ue.Cell.Rsrp
-	}
-	if len(ue.Cells) > 0 {
-		r.Tower1 = simtypes.NCGI(ue.Cells[0].ID)
-		r.Tower1Strength = ue.Cells[0].Rsrp
-	}
-	if len(ue.Cells) > 1 {
-		r.Tower2 = simtypes.NCGI(ue.Cells[1].ID)
-		r.Tower2Strength = ue.Cells[1].Rsrp
-	}
-	if len(ue.Cells) > 2 {
-		r.Tower3 = simtypes.NCGI(ue.Cells[2].ID)
-		r.Tower3Strength = ue.Cells[2].Rsrp
-	}
-	return r
 }
 
 // ListRoutes provides means to list (and optionally monitor) simulated routes
@@ -111,7 +83,7 @@ func (s *Server) ListUes(request *simapi.ListUesRequest, stream simapi.Traffic_L
 	ueList := s.ueStore.ListAllUEs(stream.Context())
 	for _, ue := range ueList {
 		resp := &simapi.ListUesResponse{
-			Ue: ueToAPI(ue),
+			Ue: uesapi.UEToAPI(ue),
 		}
 		log.Infof("UE: %v", ue)
 		err := stream.Send(resp)
@@ -133,7 +105,7 @@ func (s *Server) WatchUes(request *simapi.WatchUesRequest, server simapi.Traffic
 	}
 	for ueEvent := range ch {
 		response := &simapi.WatchUesResponse{
-			Ue: ueToAPI(ueEvent.Value.(*model.UE)),
+			Ue: uesapi.UEToAPI(ueEvent.Value.(*model.UE)),
 		}
 		err := server.Send(response)
 		if err != nil {

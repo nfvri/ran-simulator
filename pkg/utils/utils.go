@@ -11,8 +11,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 // ServerParams - params to start a new server
@@ -37,7 +37,7 @@ const TestPlmnID = "315010"
 const ImsiBaseCbrs = types.IMSI(315010999900000)
 
 // RandomLatLng - Generates a random latlng value in 1000 meter radius of loc
-func RandomLatLng(mapCenterLat float64, mapCenterLng float64, radius float64, aspectRatio float64) types.Point {
+func RandomLatLng(mapCenterLat float64, mapCenterLng float64, radius float64, aspectRatio float64) types.Coordinate {
 	var r = radius
 	y0 := mapCenterLat
 	x0 := mapCenterLng
@@ -52,7 +52,7 @@ func RandomLatLng(mapCenterLat float64, mapCenterLng float64, radius float64, as
 
 	newY := RoundToDecimal(y0+y1, 6)
 	newX := RoundToDecimal(x0+x1, 6)
-	return types.Point{
+	return types.Coordinate{
 		Lat: newY,
 		Lng: newX,
 	}
@@ -67,7 +67,7 @@ func RoundToDecimal(value float64, decimals int) float64 {
 }
 
 // GetRotationDegrees - get the rotation of the car
-func GetRotationDegrees(pointA *types.Point, pointB *types.Point) float64 {
+func GetRotationDegrees(pointA *types.Coordinate, pointB *types.Coordinate) float64 {
 	deltaX := pointB.GetLng() - pointA.GetLng()
 	deltaY := pointB.GetLat() - pointA.GetLat()
 

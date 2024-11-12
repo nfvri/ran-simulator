@@ -8,7 +8,7 @@ import (
 	"context"
 	"io"
 
-	e2tadmin "github.com/onosproject/onos-api/go/onos/e2t/admin"
+	e2tadmin "github.com/nfvri/onos-api/go/onos/e2t/admin"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/creds"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

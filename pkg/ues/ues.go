@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/signal"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	log "github.com/sirupsen/logrus"
 )

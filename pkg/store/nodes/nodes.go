@@ -14,10 +14,10 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/watcher"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/nfvri/ran-simulator/pkg/model"
 )
 
 var log = liblog.GetLogger()

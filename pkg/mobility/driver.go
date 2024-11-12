@@ -15,6 +15,7 @@ import (
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/measurement"
@@ -24,7 +25,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 // var log = logging.GetLogger()

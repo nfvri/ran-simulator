@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 
 	"github.com/stretchr/testify/assert"
 )

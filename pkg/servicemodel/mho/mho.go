@@ -7,11 +7,12 @@ package mho
 import (
 	"context"
 
+	e2smtypes "github.com/nfvri/onos-api/go/onos/e2t/e2sm"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
 	e2smmhosm "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/servicemodel"
 	mho "github.com/onosproject/rrm-son-lib/pkg/handover"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	lho "github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/mobility"
 	"github.com/nfvri/ran-simulator/pkg/model"
@@ -25,7 +26,6 @@ import (
 	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/ranfundesc"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/pdubuilder"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"

@@ -16,4 +16,4 @@ RAN simulator gRPC APIs are defined in [onos-api][onos-api] that are listed as f
 
 * **Traffic Sim API**: provides means to create, list, and monitor UEs.
 
-[onos-api]: https://github.com/onosproject/onos-api/ 
+[onos-api]: https://github.com/nfvri/onos-api/ 

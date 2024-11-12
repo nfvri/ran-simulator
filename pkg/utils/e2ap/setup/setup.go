@@ -5,12 +5,12 @@
 package setup
 
 import (
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	"github.com/onosproject/onos-e2t/api/e2ap/v2"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/ran-simulator/pkg/utils"
+	v2 "github.com/onosproject/onos-e2t/api/e2ap/v2"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
-	"github.com/nfvri/ran-simulator/pkg/utils"
 
 	e2ap_commondatatypes "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-commondatatypes"
 	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"

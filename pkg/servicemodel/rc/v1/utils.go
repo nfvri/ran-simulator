@@ -12,6 +12,7 @@ import (
 	"math"
 	"strconv"
 
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 	lho "github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -21,7 +22,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format2"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format3"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format5"
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/pdubuilder"
 	e2smrc "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/servicemodel"
 	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"

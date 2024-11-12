@@ -5,7 +5,7 @@
 package xnap
 
 import (
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	v1 "github.com/onosproject/onos-e2t/api/xnap/v1"
 	xnapcommondatatypesv1 "github.com/onosproject/onos-e2t/api/xnap/v1/xnap-commondatatypes"
 	xnapiesv1 "github.com/onosproject/onos-e2t/api/xnap/v1/xnap-ies"

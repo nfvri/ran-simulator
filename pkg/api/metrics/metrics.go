@@ -12,11 +12,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 	"github.com/nfvri/ran-simulator/pkg/store/metrics"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 
-	metricsapi "github.com/onosproject/onos-api/go/onos/ransim/metrics"
+	metricsapi "github.com/nfvri/onos-api/go/onos/ransim/metrics"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"

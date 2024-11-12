@@ -8,12 +8,12 @@ package ues
 import (
 	"context"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 
-	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
+	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
@@ -58,35 +58,50 @@ func (s *Server) SetUECount(ctx context.Context, request *modelapi.SetUECountReq
 	return &modelapi.SetUECountResponse{}, nil
 }
 
-func ueToAPI(ue *model.UE) *types.Ue {
+func UEToAPI(ue *model.UE) *types.Ue {
 	r := &types.Ue{
-		IMSI:     ue.IMSI,
-		Type:     string(ue.Type),
-		Position: &types.Point{Lat: ue.Location.Lat, Lng: ue.Location.Lng},
-		Rotation: ue.Heading,
-		CRNTI:    ue.CRNTI,
-		Admitted: ue.IsAdmitted,
-		RrcState: uint32(ue.RrcState),
-		Metrics:  nil,
-		FiveQi:   int32(ue.FiveQi),
-	}
-	if ue.Cell != nil {
-		r.ServingTower = ue.Cell.NCGI
-		r.ServingTowerStrength = ue.Cell.Rsrp
-	}
-	if len(ue.Cells) > 0 {
-		r.Tower1 = ue.Cells[0].NCGI
-		r.Tower1Strength = ue.Cells[0].Rsrp
-	}
-	if len(ue.Cells) > 1 {
-		r.Tower2 = ue.Cells[1].NCGI
-		r.Tower2Strength = ue.Cells[1].Rsrp
-	}
-	if len(ue.Cells) > 2 {
-		r.Tower3 = ue.Cells[2].NCGI
-		r.Tower3Strength = ue.Cells[2].Rsrp
+		IMSI:       ue.IMSI,
+		Type:       string(ue.Type),
+		Location:   (*types.Coordinate)(&ue.Location),
+		Heading:    ue.Heading,
+		CRNTI:      ue.CRNTI,
+		Height:     ue.Height,
+		IsAdmitted: ue.IsAdmitted,
+		RrcState:   uint32(ue.RrcState),
+		FiveQi:     int32(ue.FiveQi),
+		Cell:       ueCellsToAPI([]*model.UECell{ue.Cell})[0],
+		Cells:      ueCellsToAPI(ue.Cells),
 	}
 	return r
+}
+
+func ueCellsToAPI(modelUeCells []*model.UECell) []*types.UECell {
+	ueCells := make([]*types.UECell, len(modelUeCells))
+
+	for key, ueCell := range modelUeCells {
+		ueCells[key] = &types.UECell{
+			Ncgi:        ueCell.NCGI,
+			Rsrp:        ueCell.Rsrp,
+			Rsrq:        ueCell.Rsrq,
+			Sinr:        ueCell.Sinr,
+			BwpRefs:     bwpsToAPI(ueCell.BwpRefs),
+			AvailPrbsDl: uint32(ueCell.AvailPrbsDl),
+		}
+	}
+	return ueCells
+}
+
+func bwpsToAPI(modelBWPs []*model.Bwp) []*types.Bwp {
+	bwps := make([]*types.Bwp, len(modelBWPs))
+	for key, bwp := range modelBWPs {
+		bwps[key] = &types.Bwp{
+			Id:          bwp.ID,
+			Scs:         int32(bwp.Scs),
+			NumberOfRbs: int32(bwp.NumberOfRBs),
+			Downlink:    bwp.Downlink,
+		}
+	}
+	return bwps
 }
 
 // GetUE returns information on the specified UE
@@ -96,7 +111,7 @@ func (s *Server) GetUE(ctx context.Context, request *modelapi.GetUERequest) (*mo
 	if err != nil {
 		return nil, err
 	}
-	return &modelapi.GetUEResponse{Ue: ueToAPI(ue)}, nil
+	return &modelapi.GetUEResponse{Ue: UEToAPI(ue)}, nil
 }
 
 // MoveToCell moves the specified UE to the given cell
@@ -146,7 +161,7 @@ func (s *Server) WatchUEs(request *modelapi.WatchUEsRequest, server modelapi.UEM
 
 	for ueEvent := range ch {
 		response := &modelapi.WatchUEsResponse{
-			Ue:   ueToAPI(ueEvent.Value.(*model.UE)),
+			Ue:   UEToAPI(ueEvent.Value.(*model.UE)),
 			Type: eventType(ueEvent.Type.(ues.UeEvent)),
 		}
 		err := server.Send(response)
@@ -163,7 +178,7 @@ func (s *Server) ListUEs(request *modelapi.ListUEsRequest, server modelapi.UEMod
 	ueList := s.ueStore.ListAllUEs(server.Context())
 	for _, ue := range ueList {
 		resp := &modelapi.ListUEsResponse{
-			Ue: ueToAPI(ue),
+			Ue: UEToAPI(ue),
 		}
 		err := server.Send(resp)
 		if err != nil {

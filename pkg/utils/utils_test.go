@@ -10,7 +10,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"gotest.tools/assert"
 )
 
@@ -24,23 +24,23 @@ const (
 )
 
 func Test_GetRotationDegrees(t *testing.T) {
-	centre := types.Point{
+	centre := types.Coordinate{
 		Lat: PosCenLat,
 		Lng: PosCenLng,
 	}
-	p1 := types.Point{
+	p1 := types.Coordinate{
 		Lat: Pos1Lat,
 		Lng: Pos1Lng,
 	}
-	p2 := types.Point{
+	p2 := types.Coordinate{
 		Lat: Pos2Lat,
 		Lng: Pos2Lng,
 	}
-	p3 := types.Point{
+	p3 := types.Coordinate{
 		Lat: Pos2Lat,
 		Lng: Pos1Lng,
 	}
-	p4 := types.Point{
+	p4 := types.Coordinate{
 		Lat: Pos1Lat,
 		Lng: Pos2Lng,
 	}

@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
 )
 

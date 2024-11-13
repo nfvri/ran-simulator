@@ -7,10 +7,6 @@ package mho
 import (
 	"context"
 
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
-	e2sm_v2_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-v2-ies"
-	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -19,6 +15,10 @@ import (
 	indHdr "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/header"
 	indMsgFmt1 "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/message_format1"
 	indMsgFmt2 "github.com/nfvri/ran-simulator/pkg/utils/e2sm/mho/indication/message_format2"
+	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
+	e2sm_v2_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-v2-ies"
+	"github.com/onosproject/onos-lib-go/api/asn1/v1/asn1"
 )
 
 func (m *Mho) sendRicIndication(ctx context.Context, subscription *subutils.Subscription) error {
@@ -146,13 +146,15 @@ func (m *Mho) createIndicationMsgFormat1(ue *model.UE) ([]byte, error) {
 	plmnID := ransimtypes.NewUint24(uint32(m.ServiceModel.Model.PlmnID))
 	measReport := make([]*e2sm_mho.E2SmMhoMeasurementReportItem, 0)
 
-	if len(ue.Cells) == 0 {
+	if len(ue.NeighborCells) == 0 {
 		log.Infof("no neighbor cells found for ueID:%d", ue.IMSI)
 		return nil, nil
 	}
 
-	nrCellIDTypeNCI := utils.NewNCellIDWithUint64(uint64(ransimtypes.GetNCI(ue.Cell.NCGI)))
+	uePCell := ue.ServingCells[0]
+	nrCellIDTypeNCI := utils.NewNCellIDWithUint64(uint64(ransimtypes.GetNCI(uePCell.NCGI)))
 
+	//TODO: Should we report for each of the serving cells in CA case?
 	// add serving cell to measReport
 	item := &e2sm_mho.E2SmMhoMeasurementReportItem{
 		Cgi: &e2sm_v2_ies.Cgi{
@@ -171,7 +173,7 @@ func (m *Mho) createIndicationMsgFormat1(ue *model.UE) ([]byte, error) {
 			},
 		},
 		Rsrp: &e2sm_mho.Rsrp{
-			Value: int32(ue.Cell.Rsrp),
+			Value: int32(uePCell.Rsrp),
 		},
 		FiveQi: &e2sm_v2_ies.FiveQi{
 			Value: int32(ue.FiveQi),
@@ -180,7 +182,7 @@ func (m *Mho) createIndicationMsgFormat1(ue *model.UE) ([]byte, error) {
 
 	measReport = append(measReport, item)
 
-	for _, cell := range ue.Cells {
+	for _, cell := range ue.NeighborCells {
 		ncgiTypeNCI := utils.NewNCellIDWithUint64(uint64(ransimtypes.GetNCI(cell.NCGI)))
 
 		measReport = append(measReport, &e2sm_mho.E2SmMhoMeasurementReportItem{

@@ -32,21 +32,23 @@ type A3HandoverChannel struct {
 // Run starts A3 handover handler
 func (h *A3HandoverHandler) Run() {
 	for ue := range h.Chans.InputChan {
-		sourceCellNcgi := ue.Cell.NCGI
+
+		pCellNcgi := ue.ServingCells[0].NCGI
 		tCellNcgi := h.getTargetCell(ue)
 		h.Chans.OutputChan <- HandoverDecision{
 			UE:             ue,
-			SourceCellNcgi: sourceCellNcgi,
+			SourceCellNcgi: pCellNcgi,
 			TargetCellNcgi: tCellNcgi,
 		}
 	}
 }
 
 func (h *A3HandoverHandler) getTargetCell(ue model.UE) types.NCGI {
-	targetCellNcgi := ue.Cell.NCGI
-	bestRSRP := ue.Cell.Rsrp
+	targerCell := ue.ServingCells[0]
+	targetCellNcgi := targerCell.NCGI
+	bestRSRP := targerCell.Rsrp
 
-	for _, cscell := range ue.Cells {
+	for _, cscell := range ue.NeighborCells {
 		if cscell.Rsrp > bestRSRP {
 			targetCellNcgi = cscell.NCGI
 			bestRSRP = cscell.Rsrp

@@ -283,18 +283,27 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 				activeUEs++
 			}
 
-			for _, bwp := range ue.Cell.BwpRefs {
-				if bwp.Downlink {
-					prbsUsedDl += bwp.NumberOfRBs
-					bwUsedDl += 12 * bwp.NumberOfRBs * bwp.Scs
-					prbsUsedDLPerCQI[ue.FiveQi] += bwp.NumberOfRBs
-				} else {
-					prbsUsedUl += bwp.NumberOfRBs
-					bwUsedUl += 12 * bwp.NumberOfRBs * bwp.Scs
-					prbsUsedULPerCQI[ue.FiveQi] += bwp.NumberOfRBs
+			// TODO: calculate metric per cell.
+			// collect bwps of each cell separately
+			for sCellIndex, _ := range ue.ServingCells {
+				sCell := ue.ServingCells[sCellIndex]
+				if sCell.NCGI == cell.NCGI {
+					for _, bwp := range sCell.BwpRefs {
+						if bwp.Downlink {
+							prbsUsedDl += bwp.NumberOfRBs
+							bwUsedDl += 12 * bwp.NumberOfRBs * bwp.Scs
+							prbsUsedDLPerCQI[ue.FiveQi] += bwp.NumberOfRBs
+						} else {
+							prbsUsedUl += bwp.NumberOfRBs
+							bwUsedUl += 12 * bwp.NumberOfRBs * bwp.Scs
+							prbsUsedULPerCQI[ue.FiveQi] += bwp.NumberOfRBs
+						}
+					}
+					break
 				}
 			}
 		}
+
 		totalactiveUEs += activeUEs
 		totalPrbsTotalDl += prbsUsedDl
 		totalPrbsTotalUl += prbsUsedUl

@@ -162,18 +162,18 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, si
 	}
 
 	ue := &model.UE{
-		IMSI:        imsi,
-		AmfUeNgapID: types.AmfUENgapID(1000 + counter),
-		Type:        "phone",
-		Location:    location,
-		Heading:     0,
-		Cell:        servingCell,
-		FiveQi:      cqi,
-		CRNTI:       types.CRNTI(90125 + counter),
-		Cells:       neighborCells,
-		IsAdmitted:  false,
-		Height:      ueHeight,
-		RrcState:    rrcState,
+		IMSI:          imsi,
+		AmfUeNgapID:   types.AmfUENgapID(1000 + counter),
+		Type:          "phone",
+		Location:      location,
+		Heading:       0,
+		ServingCells:  []*model.UECell{servingCell},
+		FiveQi:        cqi,
+		CRNTI:         types.CRNTI(90125 + counter),
+		NeighborCells: neighborCells,
+		IsAdmitted:    false,
+		Height:        ueHeight,
+		RrcState:      rrcState,
 	}
 
 	return ue, ueIMSI

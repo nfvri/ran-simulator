@@ -8,10 +8,10 @@ package ues
 import (
 	"context"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
@@ -70,21 +70,22 @@ func ueToAPI(ue *model.UE) *types.Ue {
 		Metrics:  nil,
 		FiveQi:   int32(ue.FiveQi),
 	}
-	if ue.Cell != nil {
-		r.ServingTower = ue.Cell.NCGI
-		r.ServingTowerStrength = ue.Cell.Rsrp
+	if ue.ServingCells != nil {
+		uePCell := ue.ServingCells[0]
+		r.ServingTower = uePCell.NCGI
+		r.ServingTowerStrength = uePCell.Rsrp
 	}
-	if len(ue.Cells) > 0 {
-		r.Tower1 = ue.Cells[0].NCGI
-		r.Tower1Strength = ue.Cells[0].Rsrp
+	if len(ue.NeighborCells) > 0 {
+		r.Tower1 = ue.NeighborCells[0].NCGI
+		r.Tower1Strength = ue.NeighborCells[0].Rsrp
 	}
-	if len(ue.Cells) > 1 {
-		r.Tower2 = ue.Cells[1].NCGI
-		r.Tower2Strength = ue.Cells[1].Rsrp
+	if len(ue.NeighborCells) > 1 {
+		r.Tower2 = ue.NeighborCells[1].NCGI
+		r.Tower2Strength = ue.NeighborCells[1].Rsrp
 	}
-	if len(ue.Cells) > 2 {
-		r.Tower3 = ue.Cells[2].NCGI
-		r.Tower3Strength = ue.Cells[2].Rsrp
+	if len(ue.NeighborCells) > 2 {
+		r.Tower3 = ue.NeighborCells[2].NCGI
+		r.Tower3Strength = ue.NeighborCells[2].Rsrp
 	}
 	return r
 }

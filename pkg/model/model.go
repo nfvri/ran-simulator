@@ -77,18 +77,18 @@ func (m *Model) InitServiceMappings(ueList map[string]*UE) {
 	m.UEToServingCells = make(map[types.IMSI][]types.NCGI)
 
 	for _, ue := range ueList {
-		sCellNcgi := ue.Cell.NCGI
+		pCellNcgi := ue.ServingCells[0].NCGI
 		ueIMSI := ue.IMSI
 
-		if _, exists := m.CellToUEs[sCellNcgi]; !exists {
-			m.CellToUEs[sCellNcgi] = []types.IMSI{}
+		if _, exists := m.CellToUEs[pCellNcgi]; !exists {
+			m.CellToUEs[pCellNcgi] = []types.IMSI{}
 		}
-		m.CellToUEs[sCellNcgi] = append(m.CellToUEs[sCellNcgi], ueIMSI)
+		m.CellToUEs[pCellNcgi] = append(m.CellToUEs[pCellNcgi], ueIMSI)
 
 		if _, exists := m.UEToServingCells[ueIMSI]; !exists {
 			m.UEToServingCells[ueIMSI] = []types.NCGI{}
 		}
-		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], sCellNcgi)
+		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], pCellNcgi)
 	}
 }
 
@@ -307,18 +307,18 @@ type Bwp struct {
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI        types.IMSI         `mapstructure:"imsi"`
-	AmfUeNgapID types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
-	Type        UEType             `mapstructure:"type"`
-	RrcState    e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
-	Location    Coordinate         `mapstructure:"location"`
-	Heading     uint32             `mapstructure:"heading"`
-	FiveQi      int                `mapstructure:"fiveQi"`
-	Cell        *UECell            `mapstructure:"cell"`
-	CRNTI       types.CRNTI        `mapstructure:"CRNTI"`
-	Cells       []*UECell          `mapstructure:"cells"`
-	Height      float64            `mapstructure:"height"`
-	IsAdmitted  bool               `mapstructure:"isAdmitted"`
+	IMSI          types.IMSI         `mapstructure:"imsi"`
+	AmfUeNgapID   types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
+	Type          UEType             `mapstructure:"type"`
+	RrcState      e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
+	Location      Coordinate         `mapstructure:"location"`
+	Heading       uint32             `mapstructure:"heading"`
+	FiveQi        int                `mapstructure:"fiveQi"`
+	ServingCells  []*UECell          `mapstructure:"cell"`
+	CRNTI         types.CRNTI        `mapstructure:"CRNTI"`
+	NeighborCells []*UECell          `mapstructure:"neighborCells"`
+	Height        float64            `mapstructure:"height"`
+	IsAdmitted    bool               `mapstructure:"isAdmitted"`
 }
 
 // ServiceModel service model information

@@ -124,7 +124,10 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 
 	for index := range s.ServedUEs {
 		ue := s.ServedUEs[index]
-		ue.Cell.BwpRefs = []*model.Bwp{}
+		//TODO: clear all serving cells?
+		for sCellIndex := range ue.ServingCells {
+			ue.ServingCells[sCellIndex].BwpRefs = []*model.Bwp{}
+		}
 	}
 	s.Cell.Bwps = map[uint64]*model.Bwp{}
 
@@ -231,9 +234,10 @@ BW_ALLOCATION:
 				break BW_ALLOCATION
 			}
 			ue := servedUEs[index]
+			uePCell := ue.ServingCells[0]
 			if ue.FiveQi == cqi {
 				bwp := *cqiBwps[len(cqiBwps)-bwpsToAllocate]
-				ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &bwp)
+				uePCell.BwpRefs = append(uePCell.BwpRefs, &bwp)
 				bwpsToAllocate--
 			}
 		}
@@ -251,29 +255,30 @@ func (s *ProportionalFair) reallocateBW(availBWDL int, availBWUL int) {
 
 	for index := range s.ServedUEs {
 		ue := s.ServedUEs[index]
-		ueCellBwps := []model.Bwp{}
+		uePCell := ue.ServingCells[0]
+		uePCellBwps := []model.Bwp{}
 
 		if ueRateDL, ok := ueRatesDL[ue.IMSI]; ok {
 			ueAvailBWDL := int(float64(availBWDL)*ueRateDL) + remainingBWDLHz
 			allocatedBwpsDL, ueRemainingBWDLHz := s.reallocateBWPs(ueAvailBWDL, ue.IMSI, true)
-			ueCellBwps = append(ueCellBwps, allocatedBwpsDL...)
+			uePCellBwps = append(uePCellBwps, allocatedBwpsDL...)
 			remainingBWDLHz = ueRemainingBWDLHz
 		}
 		if ueRateUL, ok := ueRatesUL[ue.IMSI]; ok {
 			ueAvailBWUL := int(float64(availBWUL)*ueRateUL) + remainingBWULHz
 			allocatedBWPsUL, ueRemainingBWULHz := s.reallocateBWPs(ueAvailBWUL, ue.IMSI, false)
-			ueCellBwps = append(ueCellBwps, allocatedBWPsUL...)
+			uePCellBwps = append(uePCellBwps, allocatedBWPsUL...)
 			remainingBWULHz = ueRemainingBWULHz
 		}
 
-		if len(ueCellBwps) > 0 {
+		if len(uePCellBwps) > 0 {
 			cellAllocatedBwps := len(s.Cell.Bwps)
-			for i := range ueCellBwps {
-				bwp := ueCellBwps[i]
+			for i := range uePCellBwps {
+				bwp := uePCellBwps[i]
 				bwp.ID = uint64(cellAllocatedBwps + i)
 				s.Cell.Bwps[bwp.ID] = &bwp
 				ueBWP := bwp
-				ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, &ueBWP)
+				uePCell.BwpRefs = append(uePCell.BwpRefs, &ueBWP)
 			}
 			// log.Infof("Assigned BWPs to UE %v (Downlink + Uplink): %v\n", ue.IMSI, len(ue.Cell.BwpRefs))
 		}

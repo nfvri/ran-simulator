@@ -8,11 +8,11 @@ import (
 	"context"
 	"math"
 
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	utils "github.com/nfvri/ran-simulator/pkg/utils/measurement"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/rrm-son-lib/pkg/model/device"
 	"github.com/onosproject/rrm-son-lib/pkg/model/id"
 	"github.com/onosproject/rrm-son-lib/pkg/model/measurement"
@@ -94,37 +94,39 @@ func NewMeasReportConverter(cellStore cells.Store, ueStore ues.Store) MeasReport
 }
 
 func (c *measReportConverter) Convert(ctx context.Context, ue *model.UE) device.UE {
-	ueid := id.NewUEID(uint64(ue.IMSI), uint32(ue.CRNTI), uint64(ue.Cell.NCGI))
-	sCellInStore, err := c.cellStore.Get(ctx, ue.Cell.NCGI)
+
+	uePCellNCGI := ue.ServingCells[0].NCGI
+	ueid := id.NewUEID(uint64(ue.IMSI), uint32(ue.CRNTI), uint64(uePCellNCGI))
+	storedPCell, err := c.cellStore.Get(ctx, uePCellNCGI)
 	if err != nil {
 		logConverter.Errorf("Can't get serving cell from cell store: %v", err)
 	}
-	sCell := device.NewCell(id.NewECGI(uint64(sCellInStore.NCGI)),
-		c.convertA3Offset(sCellInStore.MeasurementParams.EventA3Params.A3Offset),
-		c.convertHysteresis(sCellInStore.MeasurementParams.Hysteresis),
-		c.convertQOffset(sCellInStore.MeasurementParams.PCellIndividualOffset),
-		c.convertQOffset(sCellInStore.MeasurementParams.FrequencyOffset),
-		c.convertTimeToTrigger(sCellInStore.MeasurementParams.TimeToTrigger))
+	pCell := device.NewCell(id.NewECGI(uint64(storedPCell.NCGI)),
+		c.convertA3Offset(storedPCell.MeasurementParams.EventA3Params.A3Offset),
+		c.convertHysteresis(storedPCell.MeasurementParams.Hysteresis),
+		c.convertQOffset(storedPCell.MeasurementParams.PCellIndividualOffset),
+		c.convertQOffset(storedPCell.MeasurementParams.FrequencyOffset),
+		c.convertTimeToTrigger(storedPCell.MeasurementParams.TimeToTrigger))
 
-	var csCells []device.Cell
+	var candidateCells []device.Cell
 	measurements := make(map[string]measurement.Measurement)
-	sCellMeas := measurement.NewMeasEventA3(id.NewECGI(uint64(sCellInStore.NCGI)), measurement.RSRP(ue.Cell.Rsrp))
-	measurements[sCellMeas.GetCellID().String()] = sCellMeas
+	pCellMeas := measurement.NewMeasEventA3(id.NewECGI(uint64(storedPCell.NCGI)), measurement.RSRP(uePCellNCGI))
+	measurements[pCellMeas.GetCellID().String()] = pCellMeas
 
-	for _, ueCell := range ue.Cells {
+	for _, ueCell := range ue.NeighborCells {
 		tmpCellInStore, _ := c.cellStore.Get(ctx, ueCell.NCGI)
 		if err != nil {
 			logConverter.Errorf("Can't get candidate serving cell from cell storeL: %v", err)
 		}
 
 		var csCellIndividualOffset int32
-		if _, ok := sCellInStore.MeasurementParams.NCellIndividualOffsets[ueCell.NCGI]; !ok {
+		if _, ok := storedPCell.MeasurementParams.NCellIndividualOffsets[ueCell.NCGI]; !ok {
 			csCellIndividualOffset = 0
 		} else {
-			csCellIndividualOffset = sCellInStore.MeasurementParams.NCellIndividualOffsets[ueCell.NCGI]
+			csCellIndividualOffset = storedPCell.MeasurementParams.NCellIndividualOffsets[ueCell.NCGI]
 		}
 
-		csCells = append(csCells, device.NewCell(id.NewECGI(uint64(tmpCellInStore.NCGI)),
+		candidateCells = append(candidateCells, device.NewCell(id.NewECGI(uint64(tmpCellInStore.NCGI)),
 			c.convertA3Offset(tmpCellInStore.MeasurementParams.EventA3Params.A3Offset),
 			c.convertHysteresis(tmpCellInStore.MeasurementParams.Hysteresis),
 			c.convertQOffset(csCellIndividualOffset),
@@ -135,7 +137,7 @@ func (c *measReportConverter) Convert(ctx context.Context, ue *model.UE) device.
 		measurements[tmpCsCell.GetCellID().String()] = tmpCsCell
 	}
 
-	report := device.NewUE(ueid, sCell, csCells)
+	report := device.NewUE(ueid, pCell, candidateCells)
 	report.SetMeasurements(measurements)
 	return report
 }

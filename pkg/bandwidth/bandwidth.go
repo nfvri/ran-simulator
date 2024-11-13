@@ -11,20 +11,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitBWPs(sCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
-	if len(sCell.Bwps) == 0 {
-		AllocateBW(sCell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
+func InitBWPs(pCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
+	if len(pCell.Bwps) == 0 {
+		AllocateBW(pCell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
 
-		if len(sCell.Bwps) == 0 {
-			log.Errorf("failed to initialize BWPs for cell: %v", sCell.NCGI)
+		if len(pCell.Bwps) == 0 {
+			log.Errorf("failed to initialize BWPs for cell: %v", pCell.NCGI)
 		}
 		return
 	}
 
 	// Existing BWPs from topology
 	existingCellBwps := []*model.Bwp{}
-	for index := range sCell.Bwps {
-		bwp := *sCell.Bwps[index]
+	for index := range pCell.Bwps {
+		bwp := *pCell.Bwps[index]
 		existingCellBwps = append(existingCellBwps, &bwp)
 	}
 
@@ -41,32 +41,34 @@ func InitBWPs(sCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, ava
 
 }
 
-func ReleaseBWPs(sCell *model.Cell, ue *model.UE) []*model.Bwp {
-	bwps := make([]*model.Bwp, 0, len(ue.Cell.BwpRefs))
-	for index := range ue.Cell.BwpRefs {
-		bwp := *ue.Cell.BwpRefs[index]
+func ReleaseBWPs(pCell *model.Cell, ue *model.UE) []*model.Bwp {
+	uePCell := ue.ServingCells[0]
+	bwps := make([]*model.Bwp, 0, len(uePCell.BwpRefs))
+	for index := range uePCell.BwpRefs {
+		bwp := *uePCell.BwpRefs[index]
 		bwps = append(bwps, &bwp)
-		delete(sCell.Bwps, bwp.ID)
+		delete(pCell.Bwps, bwp.ID)
 	}
-	ue.Cell.BwpRefs = []*model.Bwp{}
+	ue.ServingCells[0].BwpRefs = []*model.Bwp{}
 	return bwps
 }
 
 func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, servedUEs []*model.UE) {
 
+	uePCell := ue.ServingCells[0]
 	if enoughBW(tCell, requestedBwps) {
 		bwpId := len(tCell.Bwps)
 		for index := range requestedBwps {
 			bwp := requestedBwps[index]
 			bwp.ID = uint64(bwpId)
-			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, bwp)
+			uePCell.BwpRefs = append(uePCell.BwpRefs, bwp)
 			tCell.Bwps[bwp.ID] = bwp
 			bwpId++
 		}
 		return
 	}
 
-	ue.Cell.BwpRefs = requestedBwps
+	uePCell.BwpRefs = requestedBwps
 	// augment allocation with new ue
 	servedUEs = append(servedUEs, ue)
 	reqAlloc := BwAllocationOf(servedUEs)
@@ -75,7 +77,8 @@ func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, s
 	tCell.Bwps = map[uint64]*model.Bwp{}
 	for index := range servedUEs {
 		servedUE := servedUEs[index]
-		servedUE.Cell.BwpRefs = []*model.Bwp{}
+		servedUEpCell := servedUE.ServingCells[0]
+		servedUEpCell.BwpRefs = []*model.Bwp{}
 	}
 
 	// reallocate using selected scheme
@@ -156,9 +159,10 @@ func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
 	for index := range ues {
 		ue := ues[index]
-		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(ue.Cell.BwpRefs))
-		for index := range ue.Cell.BwpRefs {
-			bwp := *ue.Cell.BwpRefs[index]
+		uePCell := ue.ServingCells[0]
+		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(uePCell.BwpRefs))
+		for index := range uePCell.BwpRefs {
+			bwp := *uePCell.BwpRefs[index]
 			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], bwp)
 		}
 	}

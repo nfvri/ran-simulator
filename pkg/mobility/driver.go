@@ -162,7 +162,7 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecision) {
 
 	log.Debug("---------------------------------- ")
-	log.Debugf("handover:  ue: %v [scell: %v ==> tcell: %v]",
+	log.Debugf("handover:  ue: %v [pcell: %v ==> tcell: %v]",
 		hoDecision.UE.IMSI,
 		hoDecision.SourceCellNcgi,
 		hoDecision.TargetCellNcgi,
@@ -170,7 +170,8 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	log.Debug("---------------------------------- ")
 
 	// Update RRC state on handover
-	if hoDecision.UE.Cell.NCGI == hoDecision.TargetCellNcgi {
+	uePCell := hoDecision.UE.ServingCells[0]
+	if uePCell.NCGI == hoDecision.TargetCellNcgi {
 		return
 	}
 
@@ -178,24 +179,24 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 		return
 	}
 
-	sCellNcgiStr := strconv.FormatUint(uint64(hoDecision.SourceCellNcgi), 10)
-	sCell := d.m.Cells[sCellNcgiStr]
+	pCellNcgiStr := strconv.FormatUint(uint64(hoDecision.SourceCellNcgi), 10)
+	pCell := d.m.Cells[pCellNcgiStr]
 	imsiStr := strconv.FormatUint(uint64(hoDecision.UE.IMSI), 10)
 	ue := d.m.UEs[imsiStr]
 
-	sCell.Lock()
-	defer sCell.Unlock()
+	pCell.Lock()
+	defer pCell.Unlock()
 	d.m.ServiceMappings.Lock()
 	defer d.m.ServiceMappings.Unlock()
 
-	log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
-	log.Debugf("UEToServingCells[ue]: %v, len(UEToServingCells): %v, ueServCell: %v",
-		d.m.UEToServingCells[hoDecision.UE.IMSI], len(d.m.UEToServingCells), ue.Cell.NCGI)
+	log.Debugf("len(CellToUEs[pCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
+	log.Debugf("UEToServingCells[ue]: %v, len(UEToServingCells): %v, uePCell: %v",
+		d.m.UEToServingCells[hoDecision.UE.IMSI], len(d.m.UEToServingCells), uePCell.NCGI)
 
 	if hoDecision.TargetCellNcgi == 0 {
 		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
-		d.m.UpdateServiceMappings(ue.IMSI, sCell.NCGI, hoDecision.TargetCellNcgi)
-		log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
+		d.m.UpdateServiceMappings(ue.IMSI, pCell.NCGI, hoDecision.TargetCellNcgi)
+		log.Debugf("len(CellToUEs[pCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
 		log.Debugf("UEToServingCells[ue]: %v", d.m.UEToServingCells[hoDecision.UE.IMSI])
 		return
 	}
@@ -209,12 +210,12 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	servedUes := d.m.GetServedUEs(tCell.NCGI)
 
 	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.SourceCellNcgi != 0
-	requestedBwps := utils.If(redirection, bw.ReleaseBWPs(sCell, ue), []*model.Bwp{})
+	requestedBwps := utils.If(redirection, bw.ReleaseBWPs(pCell, ue), []*model.Bwp{})
 
-	d.UpdateUECells(sCell.NCGI, tCell.NCGI, ue)
+	d.UpdateUECells(pCell.NCGI, tCell.NCGI, ue)
 	d.UpdateUECellsParams(ue)
 	bw.ReallocateBW(ue, requestedBwps, tCell, servedUes)
-	d.m.UpdateServiceMappings(ue.IMSI, sCell.NCGI, tCell.NCGI)
+	d.m.UpdateServiceMappings(ue.IMSI, pCell.NCGI, tCell.NCGI)
 
 	log.Debug("Handover COMPLETE")
 	log.Debugf("len(CellToUEs[tCell]): %v", len(d.m.CellToUEs[hoDecision.TargetCellNcgi]))
@@ -226,57 +227,59 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 
 func (d *driver) UpdateUECells(sCellNCGI, tCellNCGI types.NCGI, ue *model.UE) {
 
-	ue.Cells = append(ue.Cells, ue.Cell)
+	uePCell := ue.ServingCells[0]
+	ue.NeighborCells = append(ue.NeighborCells, uePCell)
 	tCellIndex := -1
-	for index := range ue.Cells {
-		nCell := ue.Cells[index]
+	for index := range ue.NeighborCells {
+		nCell := ue.NeighborCells[index]
 		if nCell.NCGI == tCellNCGI {
-			ue.Cell = nCell
 			tCellIndex = index
 			break
 		}
 	}
-	newServingCell := *ue.Cells[tCellIndex]
-	ue.Cell = &newServingCell
-	ue.Cells = append(ue.Cells[:tCellIndex], ue.Cells[tCellIndex+1:]...)
+	newServingCell := *ue.NeighborCells[tCellIndex]
+	ue.ServingCells[0] = &newServingCell
+	ue.NeighborCells = append(ue.NeighborCells[:tCellIndex], ue.NeighborCells[tCellIndex+1:]...)
 
 }
 
 // UpdateUESignalStrength updates UE signal strength
 func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 	ue, ok := d.m.UEs[strconv.FormatUint(uint64(imsi), 10)]
+	uePCell := ue.ServingCells[0]
 	if !ok {
 		log.Warnf("Unable to find UE %d", imsi)
 		return
 	}
 
-	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
-	ue.Cell.Rsrp = calculateRSRP(ue, sCell)
+	sCell := d.m.Cells[strconv.FormatUint(uint64(uePCell.NCGI), 10)]
+	uePCell.Rsrp = calculateRSRP(ue, sCell)
 
-	for index := range ue.Cells {
-		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
-		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell)
+	for index := range ue.NeighborCells {
+		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.NeighborCells[index].NCGI), 10)]
+		ue.NeighborCells[index].Rsrp = calculateRSRP(ue, nCell)
 	}
 }
 
-func calculateRSRP(ue *model.UE, sCell *model.Cell) float64 {
-	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
-	return signal.Strength(ue.Location, ue.Height, mpf, sCell)
+func calculateRSRP(ue *model.UE, cell *model.Cell) float64 {
+	mpf := signal.RiceanFading(signal.GetRiceanK(cell))
+	return signal.Strength(ue.Location, ue.Height, mpf, cell)
 }
 
 func (d *driver) UpdateUECellsParams(ue *model.UE) {
 
-	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
-	ue.Cell.Rsrp = calculateRSRP(ue, sCell)
-	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
-	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.AvailPrbsDl)
-	ue.FiveQi = signal.GetCQI(ue.Cell.Sinr)
+	uePCell := ue.ServingCells[0]
+	sCell := d.m.Cells[strconv.FormatUint(uint64(uePCell.NCGI), 10)]
+	uePCell.Rsrp = calculateRSRP(ue, sCell)
+	uePCell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
+	uePCell.Rsrq = signal.RSRQ(uePCell.Sinr, uePCell.AvailPrbsDl)
+	ue.FiveQi = signal.GetCQI(uePCell.Sinr)
 
-	for index := range ue.Cells {
-		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
-		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell)
-		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, utils.GetNeighborCells(nCell, d.m.Cells))
-		ue.Cells[index].Rsrq = signal.RSRQ(ue.Cells[index].Sinr, ue.Cells[index].AvailPrbsDl)
+	for index := range ue.NeighborCells {
+		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.NeighborCells[index].NCGI), 10)]
+		ue.NeighborCells[index].Rsrp = calculateRSRP(ue, nCell)
+		ue.NeighborCells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, utils.GetNeighborCells(nCell, d.m.Cells))
+		ue.NeighborCells[index].Rsrq = signal.RSRQ(ue.NeighborCells[index].Sinr, ue.NeighborCells[index].AvailPrbsDl)
 	}
 	ueCopy := *ue
 	d.m.UEs[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ueCopy

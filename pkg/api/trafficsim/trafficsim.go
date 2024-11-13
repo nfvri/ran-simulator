@@ -12,12 +12,12 @@ import (
 
 	simapi "github.com/onosproject/onos-api/go/onos/ransim/trafficsim"
 
-	simtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
-	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
+	simtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
+	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
 )
 
@@ -79,21 +79,22 @@ func ueToAPI(ue *model.UE) *simtypes.Ue {
 		Admitted: ue.IsAdmitted,
 		RrcState: uint32(ue.RrcState),
 	}
-	if ue.Cell != nil {
-		r.ServingTower = simtypes.NCGI(ue.Cell.ID)
-		r.ServingTowerStrength = ue.Cell.Rsrp
+	if ue.ServingCells != nil {
+		uePCell := ue.ServingCells[0]
+		r.ServingTower = simtypes.NCGI(uePCell.ID)
+		r.ServingTowerStrength = uePCell.Rsrp
 	}
-	if len(ue.Cells) > 0 {
-		r.Tower1 = simtypes.NCGI(ue.Cells[0].ID)
-		r.Tower1Strength = ue.Cells[0].Rsrp
+	if len(ue.NeighborCells) > 0 {
+		r.Tower1 = simtypes.NCGI(ue.NeighborCells[0].ID)
+		r.Tower1Strength = ue.NeighborCells[0].Rsrp
 	}
-	if len(ue.Cells) > 1 {
-		r.Tower2 = simtypes.NCGI(ue.Cells[1].ID)
-		r.Tower2Strength = ue.Cells[1].Rsrp
+	if len(ue.NeighborCells) > 1 {
+		r.Tower2 = simtypes.NCGI(ue.NeighborCells[1].ID)
+		r.Tower2Strength = ue.NeighborCells[1].Rsrp
 	}
-	if len(ue.Cells) > 2 {
-		r.Tower3 = simtypes.NCGI(ue.Cells[2].ID)
-		r.Tower3Strength = ue.Cells[2].Rsrp
+	if len(ue.NeighborCells) > 2 {
+		r.Tower3 = simtypes.NCGI(ue.NeighborCells[2].ID)
+		r.Tower3Strength = ue.NeighborCells[2].Rsrp
 	}
 	return r
 }

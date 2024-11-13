@@ -149,8 +149,11 @@ func (s *store) LenPerCell(ctx context.Context, cellNCGI uint64) int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, ue := range s.ues {
-		if uint64(ue.Cell.NCGI) == cellNCGI {
-			result++
+		for _, cell := range ue.ServingCells {
+			if uint64(cell.NCGI) == cellNCGI {
+				result++
+				break
+			}
 		}
 	}
 	return result
@@ -177,11 +180,12 @@ func (s *store) UpdateMaxUEsPerCell(ctx context.Context) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, ue := range s.ues {
-		if _, ok := s.maxUEs[uint64(ue.Cell.NCGI)]; !ok {
-			cNumUEsMap[uint64(ue.Cell.NCGI)] = 1
+		uePCell := ue.ServingCells[0]
+		if _, ok := s.maxUEs[uint64(uePCell.NCGI)]; !ok {
+			cNumUEsMap[uint64(uePCell.NCGI)] = 1
 			continue
 		}
-		cNumUEsMap[uint64(ue.Cell.NCGI)]++
+		cNumUEsMap[uint64(uePCell.NCGI)]++
 	}
 
 	log.Debugf("[before] cNumUEsMap: %v", cNumUEsMap)
@@ -252,15 +256,17 @@ func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 			Type:        "phone",
 			Location:    model.Coordinate{Lat: 0, Lng: 0},
 			Heading:     0,
-			Cell: &model.UECell{
-				ID:   types.GnbID(ncgi), // placeholder
-				NCGI: ncgi,
-				Rsrp: rand.Float64() * 100,
+			ServingCells: []*model.UECell{
+				{
+					ID:   types.GnbID(ncgi), // placeholder
+					NCGI: ncgi,
+					Rsrp: rand.Float64() * 100,
+				},
 			},
-			CRNTI:      types.CRNTI(90125 + i),
-			Cells:      nil,
-			IsAdmitted: false,
-			RrcState:   rrcState,
+			CRNTI:         types.CRNTI(90125 + i),
+			NeighborCells: nil,
+			IsAdmitted:    false,
+			RrcState:      rrcState,
 		}
 		fmt.Printf("ue: %v\n", ue)
 		s.ues[ue.IMSI] = ue
@@ -331,8 +337,9 @@ func (s *store) MoveToCell(ctx context.Context, imsi types.IMSI, ncgi types.NCGI
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ue, ok := s.ues[imsi]; ok {
-		ue.Cell.NCGI = ncgi
-		ue.Cell.Rsrp = strength
+		uePCell := ue.ServingCells[0]
+		uePCell.NCGI = ncgi
+		uePCell.Rsrp = strength
 		updateEvent := event.Event{
 			Key:   ue.IMSI,
 			Value: ue,
@@ -382,7 +389,7 @@ func (s *store) UpdateCells(ctx context.Context, imsi types.IMSI, cells []*model
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ue, ok := s.ues[imsi]; ok {
-		ue.Cells = cells
+		ue.NeighborCells = cells
 		updateEvent := event.Event{
 			Key:   ue.IMSI,
 			Value: ue,
@@ -398,7 +405,7 @@ func (s *store) UpdateCell(ctx context.Context, imsi types.IMSI, cell *model.UEC
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ue, ok := s.ues[imsi]; ok {
-		ue.Cell = cell
+		ue.ServingCells[0] = cell
 		updateEvent := event.Event{
 			Key:   ue.IMSI,
 			Value: ue,
@@ -416,7 +423,8 @@ func (s *store) ListUEs(ctx context.Context, ncgi types.NCGI) []*model.UE {
 	defer s.mu.RUnlock()
 	list := make([]*model.UE, 0, len(s.ues))
 	for _, ue := range s.ues {
-		if ue.Cell.NCGI == ncgi {
+		uePCell := ue.ServingCells[0]
+		if uePCell.NCGI == ncgi {
 			list = append(list, ue)
 		}
 	}

@@ -161,7 +161,8 @@ func GetEnv(key string, defaultVal string) string {
 
 func GetServedUEs(cell *model.Cell, ues []model.UE) (servedUEs []model.UE) {
 	for _, ue := range ues {
-		if ue.Cell.NCGI == cell.NCGI {
+		uePCell := ue.ServingCells[0]
+		if uePCell.NCGI == cell.NCGI {
 			servedUEs = append(servedUEs, ue)
 		}
 	}

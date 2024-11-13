@@ -94,12 +94,13 @@ func TestMoveUEToCell(t *testing.T) {
 	assert.NoError(t, err)
 	ue1, _ := ues.Get(ctx, ue.IMSI)
 	assert.NoError(t, err)
-	assert.Equal(t, types.NCGI(321), ue1.Cell.NCGI)
-	assert.Equal(t, 11.0, ue1.Cell.Rsrp)
+	assert.Equal(t, types.NCGI(321), ue1.ServingCells[0].NCGI)
+	assert.Equal(t, 11.0, ue1.ServingCells[0].Rsrp)
 	list := ues.ListAllUEs(ctx)
 	assert.Len(t, list, 12)
 	for _, ue := range list {
-		if ue.Cell.NCGI == types.NCGI(321) {
+		uePCell := ue.ServingCells[0]
+		if uePCell.NCGI == types.NCGI(321) {
 			return
 		}
 	}
@@ -138,6 +139,6 @@ func TestUpdateCells(t *testing.T) {
 
 	ue1, _ := ues.Get(ctx, ue.IMSI)
 	assert.NoError(t, err)
-	assert.Equal(t, 42.0, ue1.Cells[0].Rsrp)
-	assert.Equal(t, 6.28, ue1.Cells[1].Rsrp)
+	assert.Equal(t, 42.0, ue1.NeighborCells[0].Rsrp)
+	assert.Equal(t, 6.28, ue1.NeighborCells[1].Rsrp)
 }

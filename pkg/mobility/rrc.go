@@ -136,9 +136,10 @@ func (d *driver) rrcIdle(ctx context.Context, imsi types.IMSI, p float64) (bool,
 		return false, err
 	}
 
-	if d.totalUeCount(ctx, ue.Cell.NCGI) > d.rrcCtrl.ueCountPerCell {
+	uePCell := ue.ServingCells[0]
+	if d.totalUeCount(ctx, uePCell.NCGI) > d.rrcCtrl.ueCountPerCell {
 		r := rand.Float64()
-		if d.connectedUeCount(ctx, ue.Cell.NCGI) > d.rrcCtrl.ueCountPerCell {
+		if d.connectedUeCount(ctx, uePCell.NCGI) > d.rrcCtrl.ueCountPerCell {
 			if r < p {
 				rrcStateChanged = true
 			}
@@ -154,8 +155,8 @@ func (d *driver) rrcIdle(ctx context.Context, imsi types.IMSI, p float64) (bool,
 	if rrcStateChanged {
 		log.Infof("RRC state change imsi:%d from CONNECTED to IDLE", imsi)
 		ue.RrcState = mho.Rrcstatus_RRCSTATUS_IDLE
-		d.cellStore.IncrementRrcIdleCount(ctx, ue.Cell.NCGI)
-		d.cellStore.DecrementRrcConnectedCount(ctx, ue.Cell.NCGI)
+		d.cellStore.IncrementRrcIdleCount(ctx, uePCell.NCGI)
+		d.cellStore.DecrementRrcConnectedCount(ctx, uePCell.NCGI)
 	}
 
 	return rrcStateChanged, err
@@ -170,9 +171,10 @@ func (d *driver) rrcConnected(ctx context.Context, imsi types.IMSI, p float64) (
 		return false, err
 	}
 
-	if d.totalUeCount(ctx, ue.Cell.NCGI) > d.rrcCtrl.ueCountPerCell {
+	uePCell := ue.ServingCells[0]
+	if d.totalUeCount(ctx, uePCell.NCGI) > d.rrcCtrl.ueCountPerCell {
 		r := rand.Float64()
-		if d.connectedUeCount(ctx, ue.Cell.NCGI) > d.rrcCtrl.ueCountPerCell {
+		if d.connectedUeCount(ctx, uePCell.NCGI) > d.rrcCtrl.ueCountPerCell {
 			if r < 1-p {
 				rrcStateChanged = true
 			}
@@ -188,8 +190,9 @@ func (d *driver) rrcConnected(ctx context.Context, imsi types.IMSI, p float64) (
 	if rrcStateChanged {
 		log.Infof("RRC state change imsi:%d from IDLE to CONNECTED", imsi)
 		ue.RrcState = mho.Rrcstatus_RRCSTATUS_CONNECTED
-		d.cellStore.IncrementRrcConnectedCount(ctx, ue.Cell.NCGI)
-		d.cellStore.DecrementRrcIdleCount(ctx, ue.Cell.NCGI)
+		uePCell := ue.ServingCells[0]
+		d.cellStore.IncrementRrcConnectedCount(ctx, uePCell.NCGI)
+		d.cellStore.DecrementRrcIdleCount(ctx, uePCell.NCGI)
 	}
 
 	return rrcStateChanged, err

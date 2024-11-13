@@ -59,12 +59,14 @@ func Test_ProportionalFair_apply_reallocation(t *testing.T) {
 	newUe := &model.UE{
 		IMSI:   types.IMSI(6935566888),
 		FiveQi: 8,
-		Cell: &model.UECell{
-			ID:   17680452419585,
-			NCGI: 17680452419585,
-			Rsrp: -88.84787974766571,
-			Rsrq: 21.7074,
-			Sinr: 4.909738334537388,
+		ServingCells: []*model.UECell{
+			{
+				ID:   17680452419585,
+				NCGI: 17680452419585,
+				Rsrp: -88.84787974766571,
+				Rsrq: 21.7074,
+				Sinr: 4.909738334537388,
+			},
 		},
 	}
 
@@ -130,34 +132,40 @@ func setup() (*model.Cell, []*model.UE) {
 		{
 			IMSI:   types.IMSI(6935566777),
 			FiveQi: 1,
-			Cell: &model.UECell{
-				ID:   17680452419585,
-				NCGI: 17680452419585,
-				Rsrp: -88.84787974766571,
-				Rsrq: 21.7074,
-				Sinr: 4.909738334537388,
+			ServingCells: []*model.UECell{
+				{
+					ID:   17680452419585,
+					NCGI: 17680452419585,
+					Rsrp: -88.84787974766571,
+					Rsrq: 21.7074,
+					Sinr: 4.909738334537388,
+				},
 			},
 		},
 		{
 			IMSI:   types.IMSI(6935566778),
 			FiveQi: 8,
-			Cell: &model.UECell{
-				ID:   17680452419585,
-				NCGI: 17680452419585,
-				Rsrp: -88.84787974766571,
-				Rsrq: 21.7074,
-				Sinr: 4.909738334537388,
+			ServingCells: []*model.UECell{
+				{
+					ID:   17680452419585,
+					NCGI: 17680452419585,
+					Rsrp: -88.84787974766571,
+					Rsrq: 21.7074,
+					Sinr: 4.909738334537388,
+				},
 			},
 		},
 		{
 			IMSI:   types.IMSI(6935566779),
 			FiveQi: 15,
-			Cell: &model.UECell{
-				ID:   17680452419585,
-				NCGI: 17680452419585,
-				Rsrp: -88.84787974766571,
-				Rsrq: 21.7074,
-				Sinr: 4.909738334537388,
+			ServingCells: []*model.UECell{
+				{
+					ID:   17680452419585,
+					NCGI: 17680452419585,
+					Rsrp: -88.84787974766571,
+					Rsrq: 21.7074,
+					Sinr: 4.909738334537388,
+				},
 			},
 		},
 	}
@@ -255,7 +263,8 @@ func verifyBwNotExceeded(t *testing.T, cell *model.Cell, servedUEs []*model.UE) 
 	for _, ue := range servedUEs {
 		ueUsedBWDL := 0
 		ueUsedBWUL := 0
-		for _, bwp := range ue.Cell.BwpRefs {
+		uePCell := ue.ServingCells[0]
+		for _, bwp := range uePCell.BwpRefs {
 			if bwp.Downlink {
 				ueUsedBWDL += 12 * bwp.NumberOfRBs * bwp.Scs
 			} else {
@@ -278,7 +287,8 @@ func verifyBwIncreasesWithCQI(t *testing.T, servedUEs []*model.UE) {
 	bwAllocationUL := make([]float64, len(servedUEs))
 	for i, ue := range servedUEs {
 		t.Log(ue.FiveQi)
-		for _, bwp := range ue.Cell.BwpRefs {
+		uePCell := ue.ServingCells[0]
+		for _, bwp := range uePCell.BwpRefs {
 			if bwp.Downlink {
 				bwAllocationDL[i] += 12 * float64(bwp.NumberOfRBs) * float64(bwp.Scs)
 			} else {

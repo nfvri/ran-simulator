@@ -314,7 +314,7 @@ type UE struct {
 	Location      Coordinate         `mapstructure:"location"`
 	Heading       uint32             `mapstructure:"heading"`
 	FiveQi        int                `mapstructure:"fiveQi"`
-	ServingCells  []*UECell          `mapstructure:"cell"`
+	ServingCells  []*UECell          `mapstructure:"servingCells"`
 	CRNTI         types.CRNTI        `mapstructure:"CRNTI"`
 	NeighborCells []*UECell          `mapstructure:"neighborCells"`
 	Height        float64            `mapstructure:"height"`

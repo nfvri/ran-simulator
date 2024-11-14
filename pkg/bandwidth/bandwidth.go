@@ -387,7 +387,7 @@ func DisaggregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (use
 		}
 	}
 	for remainingPRBs > 0 {
-		for cqi := 1; cqi <= 15; cqi++ {
+		for cqi := 15; cqi >= 0; cqi-- {
 			if numUEsPerCQI[cqi] > 0 && remainingPRBs > 0 {
 				usedPRBsPerCQI[cqi]++
 				remainingPRBs--

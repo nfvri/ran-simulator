@@ -71,7 +71,7 @@ type store struct {
 }
 
 // NewNodeRegistry creates a new store abstraction from the specified fixed node map.
-func NewNodeRegistry(nodes map[string]model.Node) Store {
+func NewNodeRegistry(ctx context.Context, nodes map[string]model.Node) Store {
 	log.Infof("Creating registry from model with %d nodes", len(nodes))
 	watchers := watcher.NewWatchers()
 	reg := &store{
@@ -80,7 +80,7 @@ func NewNodeRegistry(nodes map[string]model.Node) Store {
 		watchers: watchers,
 	}
 
-	reg.Load(context.Background(), nodes)
+	reg.Load(ctx, nodes)
 
 	log.Infof("Created registry primed with %d nodes", len(reg.nodes))
 	return reg

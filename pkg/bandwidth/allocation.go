@@ -167,6 +167,30 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 		allocateBWPsToUEs(cqiBwps, s.ServedUEs, cqi)
 	}
 
+	s.allocateRemainingBW(remainingBWDl, true)
+	s.allocateRemainingBW(remainingBWUl, false)
+
+}
+
+func (s *ProportionalFair) allocateRemainingBW(remainingBW int, downlink bool) {
+	if remainingBW > 12*s.ScsOptionsHz[0] {
+		cqiBwps, _ := generateBWPs(remainingBW, 1, downlink)
+
+		bwp := *cqiBwps[0]
+		bwp.ID = uint64(len(s.Cell.Bwps))
+		s.Cell.Bwps[bwp.ID] = &bwp
+
+		maxCQI := 1
+		maxNumUEs := s.NumUEs[maxCQI]
+		for cqi, numUEs := range s.NumUEs {
+			if numUEs > maxNumUEs && s.UsedPRBsDL[cqi] > 0 {
+				maxNumUEs = numUEs
+				maxCQI = cqi
+			}
+		}
+
+		allocateBWPsToUEs(cqiBwps, s.ServedUEs, maxCQI)
+	}
 }
 
 func (s *ProportionalFair) generateUsedPRBs(availBWHz int, downlink bool) {

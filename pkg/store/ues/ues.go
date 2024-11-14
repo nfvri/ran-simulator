@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"sync"
 
-	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 
@@ -111,7 +110,7 @@ type store struct {
 
 // NewUERegistry creates a new user-equipment registry primed with the specified number of UEs to start.
 // UEs will be semi-randomly distributed between the specified cells
-func NewUERegistry(m *model.Model, cellStore cells.Store, redisStore redisLib.Store, initialRrcState string) Store {
+func NewUERegistry(ctx context.Context, m *model.Model, cellStore cells.Store, initialRrcState string) Store {
 	watchers := watcher.NewWatchers()
 	store := &store{
 		mu:              sync.RWMutex{},
@@ -122,13 +121,25 @@ func NewUERegistry(m *model.Model, cellStore cells.Store, redisStore redisLib.St
 		initialRrcState: initialRrcState,
 	}
 
-	log.Infof("m.UECount: %v", m.UECount)
 	if m.UECount > 0 {
 		store.CreateRandomUEs(context.Background(), m.UECount)
 	}
 
+	store.Load(ctx, m.UEs)
+
 	log.Infof("Created registry primed with %d UEs", len(store.ues))
 	return store
+}
+
+// Load add all ues from the specified ue map; no events will be generated
+func (s *store) Load(ctx context.Context, ues map[string]*model.UE) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Copy the Cells into our own map
+	for _, UE := range ues {
+		ue := UE // avoids scopelint issue
+		s.ues[ue.IMSI] = ue
+	}
 }
 
 func (s *store) SetUECount(ctx context.Context, count uint) {

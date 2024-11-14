@@ -15,7 +15,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
-	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
@@ -36,10 +35,10 @@ func newTestService() (northbound.Service, error) {
 	if err != nil {
 		return &Service{}, err
 	}
-	nodeStore := nodes.NewNodeRegistry(m.Nodes)
-	cellStore := cells.NewCellRegistry(m.Cells, nodeStore)
-	mockedStore := &redisLib.MockedRedisStore{}
-	ueStore := ues.NewUERegistry(m, cellStore, mockedStore, "random")
+	ctx := context.Background()
+	nodeStore := nodes.NewNodeRegistry(ctx, m.Nodes)
+	cellStore := cells.NewCellRegistry(ctx, m.Cells, nodeStore)
+	ueStore := ues.NewUERegistry(ctx, m, cellStore, "random")
 	return &Service{model: m, cellStore: cellStore, ueStore: ueStore}, nil
 }
 

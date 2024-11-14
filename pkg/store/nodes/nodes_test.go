@@ -22,7 +22,7 @@ func TestNodes(t *testing.T) {
 	t.Log(m)
 	ctx := context.Background()
 
-	nodeStore := NewNodeRegistry(m.Nodes)
+	nodeStore := NewNodeRegistry(ctx, m.Nodes)
 	node1GnbID := types.GnbID(144472)
 	node2GnbID := types.GnbID(144473)
 	numNodes, err := nodeStore.Len(ctx)

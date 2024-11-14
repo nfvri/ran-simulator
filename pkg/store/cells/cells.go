@@ -81,7 +81,7 @@ type store struct {
 }
 
 // NewCellRegistry creates a new store abstraction from the specified fixed cell map.
-func NewCellRegistry(cells map[string]*model.Cell, nodeStore nodes.Store) Store {
+func NewCellRegistry(ctx context.Context, cells map[string]*model.Cell, nodeStore nodes.Store) Store {
 	log.Infof("Creating registry from model with %d cells", len(cells))
 	watchers := watcher.NewWatchers()
 	reg := &store{
@@ -91,7 +91,7 @@ func NewCellRegistry(cells map[string]*model.Cell, nodeStore nodes.Store) Store 
 		watchers:  watchers,
 	}
 
-	reg.Load(context.Background(), cells)
+	reg.Load(ctx, cells)
 
 	log.Infof("Created registry primed with %d cells", len(reg.cells))
 	return reg

@@ -957,8 +957,8 @@ github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f/go.mod h1:ZdcZmHo+
 github.com/ncw/swift v1.0.47/go.mod h1:23YIA4yWVnGwv2dQlN4bB7egfYX6YLn0Yo/S6zZO/ZM=
 github.com/nelsam/hel/v2 v2.3.2/go.mod h1:1ZTGfU2PFTOd5mx22i5O0Lc2GY933lQ2wb/ggy+rL3w=
 github.com/nelsam/hel/v2 v2.3.3/go.mod h1:1ZTGfU2PFTOd5mx22i5O0Lc2GY933lQ2wb/ggy+rL3w=
-github.com/nfvri/onos-api/go v0.0.0-20241112072557-28f01903c5e5 h1:rtJsElryNu0O+8ry+RzWrTKV+XMYzJp5W+HY3vr5AGE=
-github.com/nfvri/onos-api/go v0.0.0-20241112072557-28f01903c5e5/go.mod h1:U2WH6BMSKxyiwgo/fgLgfRsMAPVc1Y/fc7/JAmXrNvQ=
+github.com/nfvri/onos-api/go v0.0.0-20241114150811-a5f4bbc4b1b4 h1:hvJkfwDgwXa4GpGzAxQHf4+qBkM+HLYQaM99A+zFeTM=
+github.com/nfvri/onos-api/go v0.0.0-20241114150811-a5f4bbc4b1b4/go.mod h1:U2WH6BMSKxyiwgo/fgLgfRsMAPVc1Y/fc7/JAmXrNvQ=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=

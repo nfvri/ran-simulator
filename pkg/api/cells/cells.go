@@ -180,7 +180,7 @@ func eventA3ParamsToAPI(params model.EventA3Params) *types.EventA3Params {
 	}
 }
 
-func cellToModel(cell *types.Cell) *model.Cell {
+func CellToModel(cell *types.Cell) *model.Cell {
 	cellConfig := cell.CellConfig
 	cellSector := cellConfig.Sector
 	cellBeam := cellConfig.Beam
@@ -292,7 +292,7 @@ func coverageBoundariesToModel(coverageBoundaries []*types.CoverageBoundary) []m
 // CreateCell creates a new simulated cell
 func (s *Server) CreateCell(ctx context.Context, request *modelapi.CreateCellRequest) (*modelapi.CreateCellResponse, error) {
 	log.Debugf("Received create cell request: %v", request)
-	err := s.cellStore.Add(ctx, cellToModel(request.Cell))
+	err := s.cellStore.Add(ctx, CellToModel(request.Cell))
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +312,7 @@ func (s *Server) GetCell(ctx context.Context, request *modelapi.GetCellRequest) 
 // UpdateCell updates the specified simulated cell
 func (s *Server) UpdateCell(ctx context.Context, request *modelapi.UpdateCellRequest) (*modelapi.UpdateCellResponse, error) {
 	log.Debugf("Received update cell request: %v", request)
-	err := s.cellStore.Update(ctx, cellToModel(request.Cell))
+	err := s.cellStore.Update(ctx, CellToModel(request.Cell))
 	if err != nil {
 		return nil, err
 	}

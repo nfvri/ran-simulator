@@ -14,6 +14,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 
 	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
+	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
@@ -58,21 +59,20 @@ func (s *Server) SetUECount(ctx context.Context, request *modelapi.SetUECountReq
 	return &modelapi.SetUECountResponse{}, nil
 }
 
-func UEToAPI(ue *model.UE) *types.Ue {
-	r := &types.Ue{
-		IMSI:       ue.IMSI,
-		Type:       string(ue.Type),
-		Location:   (*types.Coordinate)(&ue.Location),
-		Heading:    ue.Heading,
-		CRNTI:      ue.CRNTI,
-		Height:     ue.Height,
-		IsAdmitted: ue.IsAdmitted,
-		RrcState:   uint32(ue.RrcState),
-		FiveQi:     int32(ue.FiveQi),
-		Cell:       ueCellsToAPI([]*model.UECell{ue.Cell})[0],
-		Cells:      ueCellsToAPI(ue.Cells),
+func UEToAPI(modelUE *model.UE) *types.Ue {
+	return &types.Ue{
+		IMSI:       modelUE.IMSI,
+		Type:       string(modelUE.Type),
+		Location:   (*types.Coordinate)(&modelUE.Location),
+		Heading:    modelUE.Heading,
+		CRNTI:      modelUE.CRNTI,
+		Height:     modelUE.Height,
+		IsAdmitted: modelUE.IsAdmitted,
+		RrcState:   uint32(modelUE.RrcState),
+		FiveQi:     int32(modelUE.FiveQi),
+		Cell:       ueCellsToAPI([]*model.UECell{modelUE.Cell})[0],
+		Cells:      ueCellsToAPI(modelUE.Cells),
 	}
-	return r
 }
 
 func ueCellsToAPI(modelUeCells []*model.UECell) []*types.UECell {
@@ -98,6 +98,52 @@ func bwpsToAPI(modelBWPs []*model.Bwp) []*types.Bwp {
 			Id:          bwp.ID,
 			Scs:         int32(bwp.Scs),
 			NumberOfRbs: int32(bwp.NumberOfRBs),
+			Downlink:    bwp.Downlink,
+		}
+	}
+	return bwps
+}
+
+func UEToModel(ue *types.Ue) *model.UE {
+	return &model.UE{
+		IMSI:       ue.IMSI,
+		Type:       model.UEType(ue.Type),
+		Location:   model.Coordinate(*ue.Location),
+		Heading:    ue.Heading,
+		CRNTI:      ue.CRNTI,
+		Height:     ue.Height,
+		IsAdmitted: ue.IsAdmitted,
+		RrcState:   e2sm_mho.Rrcstatus(ue.RrcState),
+		FiveQi:     int(ue.FiveQi),
+		Cell:       ueCellsToModel([]*types.UECell{ue.Cell})[0],
+		Cells:      ueCellsToModel(ue.Cells),
+	}
+}
+
+func ueCellsToModel(apiUeCells []*types.UECell) []*model.UECell {
+	ueCells := make([]*model.UECell, len(apiUeCells))
+
+	for key, ueCell := range apiUeCells {
+		ueCells[key] = &model.UECell{
+			ID:          ueCell.GnbID,
+			NCGI:        ueCell.Ncgi,
+			Rsrp:        ueCell.Rsrp,
+			Rsrq:        ueCell.Rsrq,
+			Sinr:        ueCell.Sinr,
+			BwpRefs:     bwpsToModel(ueCell.BwpRefs),
+			AvailPrbsDl: int(ueCell.AvailPrbsDl),
+		}
+	}
+	return ueCells
+}
+
+func bwpsToModel(apiBWPs []*types.Bwp) []*model.Bwp {
+	bwps := make([]*model.Bwp, len(apiBWPs))
+	for key, bwp := range apiBWPs {
+		bwps[key] = &model.Bwp{
+			ID:          bwp.Id,
+			Scs:         int(bwp.Scs),
+			NumberOfRBs: int(bwp.NumberOfRbs),
 			Downlink:    bwp.Downlink,
 		}
 	}

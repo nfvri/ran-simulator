@@ -8,7 +8,7 @@ require (
 	github.com/davidkleiven/gononlin v0.3.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.6.0
-	github.com/nfvri/onos-api/go v0.0.0-20241112072557-28f01903c5e5
+	github.com/nfvri/onos-api/go v0.0.0-20241114150811-a5f4bbc4b1b4
 	github.com/onosproject/helmit v0.6.19
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go v0.8.43
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go v0.8.43

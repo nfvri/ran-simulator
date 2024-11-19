@@ -8,7 +8,7 @@ require (
 	github.com/davidkleiven/gononlin v0.3.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.6.0
-	github.com/nfvri/onos-api/go v0.0.0-20241114150811-a5f4bbc4b1b4
+	github.com/nfvri/onos-api/go v0.0.0-20241115093606-47d16f0d7e83
 	github.com/onosproject/helmit v0.6.19
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go v0.8.43
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go v0.8.43
@@ -140,7 +140,7 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/onosproject/onos-api/go v0.10.31 // indirect
+	github.com/onosproject/onos-api/go v0.10.34 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
 	github.com/opencontainers/runc v1.0.2 // indirect

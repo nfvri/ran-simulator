@@ -121,8 +121,8 @@ func gridToAPI(grid model.Grid) *types.Grid {
 
 func sliceCoordToAPI(modelGridPoints []model.Coordinate) []*types.Coordinate {
 	gridPoints := make([]*types.Coordinate, len(modelGridPoints))
-	for i, modelGridPoint := range modelGridPoints {
-		gridPoints[i] = (*types.Coordinate)(&modelGridPoint)
+	for i := range modelGridPoints {
+		gridPoints[i] = (*types.Coordinate)(&modelGridPoints[i])
 	}
 	return gridPoints
 }
@@ -144,7 +144,7 @@ func cachedStatesToAPI(modelCachedStates map[string]*model.CellSignalInfo) map[s
 	cachedStates := make(map[string]*types.CellSignalInfo, len(modelCachedStates))
 	for key, modelCellSignalInfo := range modelCachedStates {
 		cachedStates[key] = &types.CellSignalInfo{
-			RpCoverageBoundaries: coverageBoundariesToAPI(modelCellSignalInfo.CoverageBoundaries),
+			RpCoverageBoundaries: coverageBoundariesToAPI(modelCellSignalInfo.RPCoverageBoundaries),
 			CoverageBoundaries:   coverageBoundariesToAPI(modelCellSignalInfo.CoverageBoundaries),
 		}
 	}
@@ -248,8 +248,8 @@ func CellToModel(cell *types.Cell) *model.Cell {
 
 func sliceCoordToModel(gridPoints []*types.Coordinate) []model.Coordinate {
 	modelGridPoints := make([]model.Coordinate, len(gridPoints))
-	for i, gridPoint := range gridPoints {
-		modelGridPoints[i] = model.Coordinate(*gridPoint)
+	for i := range gridPoints {
+		modelGridPoints[i] = model.Coordinate(*gridPoints[i])
 	}
 	return modelGridPoints
 }
@@ -271,7 +271,7 @@ func cachedStatesToModel(cachedStates map[string]*types.CellSignalInfo) map[stri
 	modelCachedStates := make(map[string]*model.CellSignalInfo, len(cachedStates))
 	for key, cellSignalInfo := range cachedStates {
 		modelCachedStates[key] = &model.CellSignalInfo{
-			RPCoverageBoundaries: coverageBoundariesToModel(cellSignalInfo.CoverageBoundaries),
+			RPCoverageBoundaries: coverageBoundariesToModel(cellSignalInfo.RpCoverageBoundaries),
 			CoverageBoundaries:   coverageBoundariesToModel(cellSignalInfo.CoverageBoundaries),
 		}
 	}

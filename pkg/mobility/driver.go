@@ -193,6 +193,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 		d.m.UEToServingCells[hoDecision.UE.IMSI], len(d.m.UEToServingCells), ue.Cell.NCGI)
 
 	if hoDecision.TargetCellNcgi == 0 {
+		ue.Cell.BwpRefs = []*model.Bwp{}
 		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
 		d.m.UpdateServiceMappings(ue.IMSI, sCell.NCGI, hoDecision.TargetCellNcgi)
 		log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))

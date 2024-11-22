@@ -7,8 +7,10 @@ package cells
 
 import (
 	"context"
+	"time"
 
 	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
+	"github.com/nfvri/ran-simulator/pkg/model"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
@@ -29,6 +31,8 @@ type ManagementDelegate interface {
 
 	// Resume resume the simulation
 	Resume(ctx context.Context) error
+
+	GetModel(ctx context.Context) (*model.Model, error)
 }
 
 // NewService returns a new model Service
@@ -88,4 +92,23 @@ func (s *Server) Clear(ctx context.Context, request *modelapi.ClearRequest) (*mo
 		s.delegate.Resume(ctx)
 	}
 	return &modelapi.ClearResponse{}, nil
+}
+
+// Clear clears model data
+func (s *Server) GetModelInfo(ctx context.Context, request *modelapi.ModelInfoRequest) (*modelapi.ModelInfoResponse, error) {
+	log.Debugf("Received model info request: %v", request)
+	model, err := s.delegate.GetModel(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	creationTimestamp, err := time.Parse("2006-01-02 15:04:05", model.CreationTimestamp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &modelapi.ModelInfoResponse{
+		SnapshotID:        model.SnapshotId,
+		CreationTimestamp: creationTimestamp,
+	}, nil
 }

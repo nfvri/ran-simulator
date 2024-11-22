@@ -449,9 +449,21 @@ func (m *Manager) LoadModel(ctx context.Context, data []byte) error {
 	if err := model.LoadConfigFromBytes(m.model, data); err != nil {
 		return err
 	}
+	now := time.Now()
+
+	m.model.CreationTimestamp = now.Format("2006-01-02 15:04:05") // Example format: "YYYY-MM-DD HH:MM:SS"
 
 	m.LoadMetrics(ctx)
 	return nil
+}
+
+func (m *Manager) GetModel(ctx context.Context) (*model.Model, error) {
+
+	if m.model == nil || m.model.SnapshotId == "" {
+		return nil, fmt.Errorf("no model is loaded in ransim")
+	}
+
+	return m.model, nil
 }
 
 // LoadMetrics loads new metrics into the simulator

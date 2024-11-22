@@ -38,7 +38,8 @@ type Model struct {
 	Guami                   Guami                   `mapstructure:"guami" yaml:"guami"`
 	DecorrelationDistance   float64                 `mapstructure:"decorrelationdistance"`
 	SnapshotId              string                  `mapstructure:"snapshotID"` //used to retrieve snapshot Cell Group and UE Group
-	CellMeasurements        []*metrics.Metric       `json:"cellMeasurements"`
+	CellMeasurements        []*metrics.Metric       `yaml:"cellMeasurements"`
+	CreationTimestamp       string                  `yaml:"creationTimestamp"`
 	ServiceMappings
 }
 

@@ -274,11 +274,20 @@ func GetNumUEsPerCQIByCell(numUEsByCell map[uint64]map[string]int) map[uint64]ma
 		if len(numUEsMetrics) == 1 {
 			numCellUEs, onlyCellUEsExists := numUEsMetrics[ACTIVE_UES_DL_METRIC]
 			if onlyCellUEsExists {
+				remainingCellUEs := numCellUEs
 				uesPerCQI := numCellUEs / 15
-				for cqi := 1; cqi <= 14; cqi++ {
+				for cqi := 1; cqi <= 15; cqi++ {
 					numUEsPerCQIByCell[cellNCGI][cqi] = uesPerCQI
+					remainingCellUEs -= uesPerCQI
 				}
-				numUEsPerCQIByCell[cellNCGI][15] = numCellUEs - 14*uesPerCQI
+				for remainingCellUEs > 0 {
+					for cqi := 15; cqi >= 0; cqi-- {
+						if remainingCellUEs > 0 {
+							numUEsPerCQIByCell[cellNCGI][cqi]++
+							remainingCellUEs--
+						}
+					}
+				}
 			}
 		} else {
 			for metricName, numUes := range numUEsMetrics {

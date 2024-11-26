@@ -2,6 +2,7 @@ package ues
 
 import (
 	"context"
+	"math"
 	"strconv"
 	"sync"
 
@@ -89,7 +90,7 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 				ueLocation := ueLocationsPerCQI[cqi][i]
 				ueNeighbors := InitUeNeighbors(ueLocation, sCell, cells, ueHeight, prbMeasPerCell)
 				totalPrbsDl := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
-				ueRSRQ := signal.RSRQ(ueSINR, totalPrbsDl)
+				ueRSRQ := math.Round(signal.RSRQ(ueSINR, totalPrbsDl)*100) / 100
 
 				simUE, ueIMSI := CreateSimulationUE(sCellNCGI, len(ues)+1, cqi, totalPrbsDl, ueHeight, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 				ues[ueIMSI] = simUE
@@ -138,7 +139,8 @@ func GetUERsrpsBasedOnLocation(sCell *model.Cell, uesLocationsPerCQI map[int][]m
 	for cqi, uesLocations := range uesLocationsPerCQI {
 		uesRSRPPerCQI[cqi] = make([]float64, len(uesLocationsPerCQI[cqi]))
 		for index, ueCoord := range uesLocations {
-			uesRSRPPerCQI[cqi][index] = signal.Strength(ueCoord, ueHeight, mpf, sCell)
+			rsrp := signal.Strength(ueCoord, ueHeight, mpf, sCell)
+			uesRSRPPerCQI[cqi][index] = math.Round(rsrp*100) / 100
 		}
 	}
 
@@ -194,9 +196,9 @@ func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, cells map[string
 			ueCell := &model.UECell{
 				ID:          types.GnbID(nCell.NCGI),
 				NCGI:        nCell.NCGI,
-				Rsrp:        rsrp,
-				Rsrq:        rsrq,
-				Sinr:        sinr,
+				Rsrp:        math.Round(rsrp*100) / 100,
+				Rsrq:        math.Round(rsrq*100) / 100,
+				Sinr:        math.Round(sinr*100) / 100,
 				AvailPrbsDl: prbMeasPerCell[uint64(nCell.NCGI)][bw.AVAIL_PRBS_DL_METRIC],
 			}
 			ueNeighbors = append(ueNeighbors, ueCell)

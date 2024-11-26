@@ -21,29 +21,33 @@ import (
 var log = liblog.GetLogger()
 
 // NewService returns a new model Service
-func NewService(cellStore cells.Store) service.Service {
+func NewService(cellStore cells.Store, patchedCells []model.Cell) service.Service {
 	return &Service{
-		cellStore: cellStore,
+		cellStore:    cellStore,
+		patchedCells: patchedCells,
 	}
 }
 
 // Service is a Service implementation for administration.
 type Service struct {
 	service.Service
-	cellStore cells.Store
+	cellStore    cells.Store
+	patchedCells []model.Cell
 }
 
 // Register registers the TrafficSim Service with the gRPC server.
 func (s *Service) Register(r *grpc.Server) {
 	server := &Server{
-		cellStore: s.cellStore,
+		cellStore:    s.cellStore,
+		patchedCells: s.patchedCells,
 	}
 	modelapi.RegisterCellModelServer(r, server)
 }
 
 // Server implements the TrafficSim gRPC service for administrative facilities.
 type Server struct {
-	cellStore cells.Store
+	cellStore    cells.Store
+	patchedCells []model.Cell
 }
 
 func cellToAPI(cell *model.Cell) *types.Cell {
@@ -353,6 +357,22 @@ func (s *Server) ListCells(request *modelapi.ListCellsRequest, server modelapi.C
 			Cell: cellToAPI(cell),
 		}
 		err = server.Send(resp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) ListPatchedCells(request *modelapi.ListPatchedCellsRequest, server modelapi.CellModel_ListPatchedCellsServer) error {
+	log.Debugf("Received listing patched cells request: %v", request)
+
+	for index := range s.patchedCells {
+		cell := s.patchedCells[index]
+		resp := &modelapi.ListCellsResponse{
+			Cell: cellToAPI(&cell),
+		}
+		err := server.Send(resp)
 		if err != nil {
 			return err
 		}

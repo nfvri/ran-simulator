@@ -79,7 +79,7 @@ func (s *ProportionalFair) apply() {
 
 	if s.IsReallocation {
 		log.Warn("[PF] Existing allocation found")
-		log.Infof("availBWDL:%v, availBWUL:%v", float64(availBWDL)/1e6, float64(availBWUL)/1e6)
+		log.Debugf("availBWDL:%v, availBWUL:%v", float64(availBWDL)/1e6, float64(availBWUL)/1e6)
 		s.reallocateBW(availBWDL, availBWUL)
 		return
 	}
@@ -315,8 +315,8 @@ func (s *ProportionalFair) getUeRates() (ueRatesDL, ueRatesUL map[types.IMSI]flo
 	cellRequestedBWUL := 0.0
 
 	for _, ue := range s.ServedUEs {
-		ueReqBWPs := s.ReqBwAllocation[ue.IMSI]
-		if len(ueReqBWPs) > 0 {
+		ueReqBWPs, ok := s.ReqBwAllocation[ue.IMSI]
+		if ok {
 			for index := range ueReqBWPs {
 				bwp := ueReqBWPs[index]
 				if bwp.Downlink {
@@ -356,9 +356,11 @@ func (s *ProportionalFair) reallocateBWPs(availBWHz int, imsi types.IMSI, downli
 	if !ok {
 		return newBWPs, int(remaingBWHz)
 	}
+	reqBW := 0.0
 	for i := range requestedBWPs {
 		bwp := requestedBWPs[i]
 		bwToAllocate := 12 * float64(bwp.NumberOfRBs) * float64(bwp.Scs)
+		reqBW += bwToAllocate
 		if remaingBWHz >= bwToAllocate {
 			newBWPs = append(newBWPs, model.Bwp{
 				ID:          uint64(i),
@@ -370,14 +372,18 @@ func (s *ProportionalFair) reallocateBWPs(availBWHz int, imsi types.IMSI, downli
 		}
 	}
 
-	if remaingBWHz == 0.0 {
+	if reqBW <= float64(availBWHz) {
 		return newBWPs, int(remaingBWHz)
 	}
 
-	bwpSizeHz := 12 * float64(s.ScsOptionsHz[0])
-	prbsToAllocate := int(remaingBWHz / bwpSizeHz)
+	minPRBSize := 12 * float64(s.ScsOptionsHz[0])
+	if remaingBWHz < minPRBSize {
+		return newBWPs, int(remaingBWHz)
+	}
+
+	prbsToAllocate := int(remaingBWHz / minPRBSize)
 	if prbsToAllocate > 0 {
-		bwToAllocate := float64(prbsToAllocate) * bwpSizeHz
+		bwToAllocate := float64(prbsToAllocate) * minPRBSize
 		newBWPs = append(newBWPs, model.Bwp{
 			ID:          uint64(len(newBWPs)),
 			Scs:         s.ScsOptionsHz[0],

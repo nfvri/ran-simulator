@@ -82,6 +82,8 @@ type Manager struct {
 	metricsStore   metrics.Store
 	mobilityDriver mobility.Driver
 	finishHOsChan  chan bool
+	patchedUEs     []model.UE
+	patchedCells   []model.Cell
 }
 
 // Run starts the manager and the associated services
@@ -174,6 +176,37 @@ func (m *Manager) createModelStores(ctx context.Context) {
 	// Create the ue registry primed with the model ues
 	m.ueStore = uesstore.NewUERegistry(ctx, m.model, m.cellStore, m.model.InitialRrcState)
 
+}
+
+func (m *Manager) createPatchedStores() {
+
+	m.patchedCells = []model.Cell{}
+	for ncgi := range m.model.Cells {
+		cell := *m.model.Cells[ncgi]
+		cellBwps := map[uint64]*model.Bwp{}
+		for index := range cell.Bwps {
+			bwp := *cell.Bwps[index]
+			cellBwps[index] = &bwp
+		}
+		cell.Bwps = cellBwps
+		m.patchedCells = append(m.patchedCells, cell)
+	}
+
+	m.patchedUEs = []model.UE{}
+	for imsi := range m.model.UEs {
+		ue := *m.model.UEs[imsi]
+		ueCell := *ue.Cell
+		ue.Cell = &ueCell
+
+		ueCells := []*model.UECell{}
+		for index := range ue.Cells {
+			ueCellcp := *ue.Cells[index]
+			ueCells = append(ueCells, &ueCellcp)
+		}
+		ue.Cells = ueCells
+
+		m.patchedUEs = append(m.patchedUEs, ue)
+	}
 }
 
 func (m *Manager) initMetricStore() {
@@ -383,10 +416,10 @@ func (m *Manager) startNorthboundServer() error {
 
 	m.server.AddService(logging.Service{})
 	m.server.AddService(nodeapi.NewService(m.nodeStore, m.model.PlmnID))
-	m.server.AddService(cellapi.NewService(m.cellStore))
+	m.server.AddService(cellapi.NewService(m.cellStore, m.patchedCells))
 	m.server.AddService(trafficsim.NewService(m.model, m.cellStore, m.ueStore))
 	m.server.AddService(metricsapi.NewService(m.metricsStore))
-	m.server.AddService(ueapi.NewService(m.ueStore))
+	m.server.AddService(ueapi.NewService(m.ueStore, m.patchedUEs))
 	m.server.AddService(routeapi.NewService(m.routeStore))
 	m.server.AddService(modelapi.NewService(m))
 
@@ -491,6 +524,8 @@ func (m *Manager) Resume(ctx context.Context) error {
 
 	m.computeUEAttributes(ctx)
 	m.initMobilityDriver()
+	m.createPatchedStores()
+
 	m.performHandovers()
 	m.computeCellStatistics(ctx)
 	m.createModelStores(ctx)

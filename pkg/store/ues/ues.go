@@ -136,9 +136,9 @@ func (s *store) Load(ctx context.Context, ues map[string]*model.UE) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Copy the Cells into our own map
-	for _, UE := range ues {
-		ue := UE // avoids scopelint issue
-		s.ues[ue.IMSI] = ue
+	for imsi := range ues {
+		ue := *ues[imsi] // avoids scopelint issue
+		s.ues[ue.IMSI] = &ue
 	}
 }
 
@@ -159,7 +159,8 @@ func (s *store) LenPerCell(ctx context.Context, cellNCGI uint64) int {
 	result := 0
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, ue := range s.ues {
+	for imsi := range s.ues {
+		ue := s.ues[imsi]
 		if uint64(ue.Cell.NCGI) == cellNCGI {
 			result++
 		}
@@ -187,7 +188,8 @@ func (s *store) UpdateMaxUEsPerCell(ctx context.Context) {
 	cNumUEsMap := make(map[uint64]int)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, ue := range s.ues {
+	for imsi := range s.ues {
+		ue := s.ues[imsi]
 		if _, ok := s.maxUEs[uint64(ue.Cell.NCGI)]; !ok {
 			cNumUEsMap[uint64(ue.Cell.NCGI)] = 1
 			continue
@@ -301,7 +303,8 @@ func (s *store) GetWithGNbUeID(ctx context.Context, gNBUeID *e2smcommonies.UeidG
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	amfUeNgapID := gNBUeID.AmfUeNgapId.GetValue()
-	for _, ue := range s.ues {
+	for imsi := range s.ues {
+		ue := s.ues[imsi]
 		// TODO add GUAMI - currently RAN simulator only supports single AMF, it should be fine
 		// TODO for the future, GUAMI should be considered here
 		if int64(ue.AmfUeNgapID) == amfUeNgapID {
@@ -332,8 +335,9 @@ func (s *store) ListAllUEs(ctx context.Context) []*model.UE {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	list := make([]*model.UE, 0, len(s.ues))
-	for _, ue := range s.ues {
-		list = append(list, ue)
+	for imsi := range s.ues {
+		ue := *s.ues[imsi]
+		list = append(list, &ue)
 	}
 	return list
 }
@@ -426,9 +430,10 @@ func (s *store) ListUEs(ctx context.Context, ncgi types.NCGI) []*model.UE {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	list := make([]*model.UE, 0, len(s.ues))
-	for _, ue := range s.ues {
+	for imsi := range s.ues {
+		ue := *s.ues[imsi]
 		if ue.Cell.NCGI == ncgi {
-			list = append(list, ue)
+			list = append(list, &ue)
 		}
 	}
 	return list
@@ -459,7 +464,8 @@ func (s *store) Watch(ctx context.Context, ch chan<- event.Event, options ...Wat
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for _, ue := range s.ues {
+			for imsi := range s.ues {
+				ue := *s.ues[imsi]
 				ch <- event.Event{
 					Key:   ue.IMSI,
 					Value: ue,

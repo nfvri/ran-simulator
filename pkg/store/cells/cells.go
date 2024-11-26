@@ -102,9 +102,9 @@ func (s *store) Load(ctx context.Context, cells map[string]*model.Cell) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Copy the Cells into our own map
-	for _, c := range cells {
-		cell := c // avoids scopelint issue
-		s.cells[cell.NCGI] = cell
+	for ncgi := range cells {
+		cell := *cells[ncgi] // avoids scopelint issue
+		s.cells[cell.NCGI] = &cell
 	}
 }
 
@@ -216,7 +216,8 @@ func (s *store) Watch(ctx context.Context, ch chan<- event.Event, options ...Wat
 
 	if replay {
 		go func() {
-			for _, cell := range s.cells {
+			for ncgi := range s.cells {
+				cell := *s.cells[ncgi]
 				ch <- event.Event{
 					Key:   cell.NCGI,
 					Value: cell,
@@ -233,8 +234,9 @@ func (s *store) List(ctx context.Context) ([]*model.Cell, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	list := make([]*model.Cell, 0, len(s.cells))
-	for _, cell := range s.cells {
-		list = append(list, cell)
+	for ncgi := range s.cells {
+		cell := *s.cells[ncgi]
+		list = append(list, &cell)
 	}
 	return list, nil
 }

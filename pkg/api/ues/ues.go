@@ -23,29 +23,33 @@ import (
 var log = liblog.GetLogger()
 
 // NewService returns a new model Service
-func NewService(ueStore ues.Store) service.Service {
+func NewService(ueStore ues.Store, patchedUEs []model.UE) service.Service {
 	return &Service{
-		ueStore: ueStore,
+		ueStore:    ueStore,
+		patchedUEs: patchedUEs,
 	}
 }
 
 // Service is a Service implementation for administration.
 type Service struct {
 	service.Service
-	ueStore ues.Store
+	ueStore    ues.Store
+	patchedUEs []model.UE
 }
 
 // Register registers the TrafficSim Service with the gRPC server.
 func (s *Service) Register(r *grpc.Server) {
 	server := &Server{
-		ueStore: s.ueStore,
+		ueStore:    s.ueStore,
+		patchedUEs: s.patchedUEs,
 	}
 	modelapi.RegisterUEModelServer(r, server)
 }
 
 // Server implements the Routes gRPC service for administrative facilities.
 type Server struct {
-	ueStore ues.Store
+	ueStore    ues.Store
+	patchedUEs []model.UE
 }
 
 // GetUECount gets the number of UEs
@@ -222,9 +226,28 @@ func (s *Server) WatchUEs(request *modelapi.WatchUEsRequest, server modelapi.UEM
 func (s *Server) ListUEs(request *modelapi.ListUEsRequest, server modelapi.UEModel_ListUEsServer) error {
 	log.Debugf("Received listing UEs request: %v", request)
 	ueList := s.ueStore.ListAllUEs(server.Context())
-	for _, ue := range ueList {
+
+	for index := range ueList {
+		ue := *ueList[index]
 		resp := &modelapi.ListUEsResponse{
-			Ue: UEToAPI(ue),
+			Ue: UEToAPI(&ue),
+		}
+		err := server.Send(resp)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) ListPatchedUEs(request *modelapi.ListPatchedUEsRequest, server modelapi.UEModel_ListPatchedUEsServer) error {
+	log.Debugf("Received listing patched UEs request: %v", request)
+
+	for index := range s.patchedUEs {
+		ue := s.patchedUEs[index]
+		resp := &modelapi.ListUEsResponse{
+			Ue: UEToAPI(&ue),
 		}
 		err := server.Send(resp)
 		if err != nil {

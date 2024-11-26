@@ -54,10 +54,12 @@ func ReleaseBWPs(sCell *model.Cell, ue *model.UE) []*model.Bwp {
 
 func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, servedUEs []*model.UE) {
 
-	if enoughBW(tCell, requestedBwps) {
+	scaledBwps := getScaledBwps(servedUEs, ue.FiveQi, ue.FiveQi, requestedBwps)
+	if isEnough, reqBwps := enoughBW(tCell, requestedBwps, scaledBwps); isEnough {
+		ue.Cell.BwpRefs = []*model.Bwp{}
 		bwpId := len(tCell.Bwps)
-		for index := range requestedBwps {
-			bwp := requestedBwps[index]
+		for index := range reqBwps {
+			bwp := reqBwps[index]
 			bwp.ID = uint64(bwpId)
 			ue.Cell.BwpRefs = append(ue.Cell.BwpRefs, bwp)
 			tCell.Bwps[bwp.ID] = bwp
@@ -66,7 +68,7 @@ func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, s
 		return
 	}
 
-	ue.Cell.BwpRefs = requestedBwps
+	ue.Cell.BwpRefs = scaledBwps
 	// augment allocation with new ue
 	servedUEs = append(servedUEs, ue)
 	reqAlloc := BwAllocationOf(servedUEs)
@@ -114,7 +116,15 @@ func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, av
 
 }
 
-func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
+func enoughBW(tCell *model.Cell, requestedBwps, scaledBwps []*model.Bwp) (bool, []*model.Bwp) {
+	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
+
+	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
+	totalBWUL := MHzToHz(float64(tCell.Channel.BsChannelBwUL))
+
+	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
+	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
+
 	requestedBWDLUe, requestedBWULUe := 0, 0
 	for index := range requestedBwps {
 		bwp := requestedBwps[index]
@@ -124,18 +134,25 @@ func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
 			requestedBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
 		}
 	}
-	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
-
-	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
-	totalBWUL := MHzToHz(float64(tCell.Channel.BsChannelBwUL))
-
-	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
-	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
-
 	sufficientBWDL := requestedBWDLUe+usedBWDLCell <= availBWDL
 	sufficientBWUL := requestedBWULUe+usedBWULCell <= availBWUL
+	if sufficientBWDL && sufficientBWUL {
+		return sufficientBWDL && sufficientBWUL, requestedBwps
+	}
 
-	return sufficientBWDL && sufficientBWUL
+	scaledBWDLUe, scaledBWULUe := 0, 0
+	for index := range scaledBwps {
+		bwp := scaledBwps[index]
+		if bwp.Downlink {
+			scaledBWDLUe += bwp.Scs * 12 * bwp.NumberOfRBs
+		} else {
+			scaledBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
+		}
+	}
+	sufficientBWDL = scaledBWDLUe+usedBWDLCell <= availBWDL
+	sufficientBWUL = scaledBWULUe+usedBWULCell <= availBWUL
+
+	return sufficientBWDL && sufficientBWUL, scaledBwps
 }
 
 func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
@@ -154,8 +171,8 @@ func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
 
 func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
-	for index := range ues {
-		ue := ues[index]
+	for ueIndex := range ues {
+		ue := ues[ueIndex]
 		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(ue.Cell.BwpRefs))
 		for index := range ue.Cell.BwpRefs {
 			bwp := *ue.Cell.BwpRefs[index]
@@ -163,6 +180,71 @@ func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 		}
 	}
 	return bwAlloc
+}
+
+func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*model.Bwp {
+	cqiBWDL := 0
+	cqiBWUL := 0
+	cqiUEs := 0
+	for _, ue := range ues {
+		if cqi == ue.FiveQi {
+			cqiUEs++
+			for _, bwp := range ue.Cell.BwpRefs {
+				if bwp.Downlink {
+					cqiBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
+				} else {
+					cqiBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
+				}
+			}
+		}
+	}
+	if cqiUEs == 0 {
+		if cqi-1 == 0 {
+			if ueCQI+1 > 15 {
+				return reqBwps
+			}
+			return getScaledBwps(ues, ueCQI, ueCQI+1, reqBwps)
+		}
+		if cqi > ueCQI {
+			if cqi+1 > 15 {
+				return reqBwps
+			}
+			return getScaledBwps(ues, ueCQI, cqi+1, reqBwps)
+		}
+		return getScaledBwps(ues, ueCQI, cqi-1, reqBwps)
+	}
+
+	avgCqiBWDL := cqiBWDL / cqiUEs
+	avgCqiBWUL := cqiBWUL / cqiUEs
+
+	reqPRBsDL := 0
+	reqBWDL := 0
+	reqPRBsUL := 0
+	reqBWUL := 0
+	reqBWPsDL := []*model.Bwp{}
+	reqBWPsUL := []*model.Bwp{}
+	for index := range reqBwps {
+		bwp := *reqBwps[index]
+		if bwp.Downlink {
+			reqPRBsDL++
+			reqBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
+			reqBWPsDL = append(reqBWPsDL, &bwp)
+		} else {
+			reqPRBsUL++
+			reqBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
+			reqBWPsUL = append(reqBWPsUL, &bwp)
+		}
+	}
+	scaledBwpsDL := reqBWPsDL
+	if reqBWDL > avgCqiBWDL {
+		scaledBwpsDL, _ = generateBWPs(avgCqiBWDL, reqPRBsDL, true)
+	}
+	scaledBwpsUL := reqBWPsUL
+	if reqBWUL > avgCqiBWUL {
+		scaledBwpsUL, _ = generateBWPs(avgCqiBWUL, reqPRBsUL, false)
+	}
+
+	return append(scaledBwpsDL, scaledBwpsUL...)
 }
 
 func MHzToHz(MHz float64) float64 {

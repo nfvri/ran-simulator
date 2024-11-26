@@ -7,6 +7,7 @@ package mobility
 
 import (
 	"context"
+	"math"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -262,7 +263,9 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 
 func calculateRSRP(ue *model.UE, sCell *model.Cell) float64 {
 	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
-	return signal.Strength(ue.Location, ue.Height, mpf, sCell)
+	rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell)
+
+	return math.Round(rsrp*100) / 100
 }
 
 func (d *driver) UpdateUECellsParams(ue *model.UE) {

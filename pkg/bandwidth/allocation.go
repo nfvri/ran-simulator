@@ -125,9 +125,7 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 	for index := range s.ServedUEs {
 		ue := s.ServedUEs[index]
 		//TODO: clear all serving cells?
-		for sCellIndex := range ue.ServingCells {
-			ue.ServingCells[sCellIndex].BwpRefs = []*model.Bwp{}
-		}
+		ue.ServingCells[0].BwpRefs = []*model.Bwp{}
 	}
 	s.Cell.Bwps = map[uint64]*model.Bwp{}
 

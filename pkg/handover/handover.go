@@ -36,9 +36,9 @@ type HOController interface {
 
 // HandoverDecision struct has handover decision information
 type HandoverDecision struct {
-	UE             model.UE
-	SourceCellNcgi types.NCGI
-	TargetCellNcgi types.NCGI
+	UE              model.UE
+	SourceCellNcgi  types.NCGI
+	TargetCellNcgis []types.NCGI
 }
 
 // HOType is the type of handover - currently it is string

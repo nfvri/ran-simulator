@@ -165,13 +165,13 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	log.Debugf("handover:  ue: %v [pcell: %v ==> tcell: %v]",
 		hoDecision.UE.IMSI,
 		hoDecision.SourceCellNcgi,
-		hoDecision.TargetCellNcgi,
+		hoDecision.TargetCellNcgis,
 	)
 	log.Debug("---------------------------------- ")
 
 	// Update RRC state on handover
 	uePCell := hoDecision.UE.ServingCells[0]
-	if uePCell.NCGI == hoDecision.TargetCellNcgi {
+	if uePCell.NCGI == hoDecision.TargetCellNcgis[0] {
 		return
 	}
 
@@ -184,8 +184,16 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	imsiStr := strconv.FormatUint(uint64(hoDecision.UE.IMSI), 10)
 	ue := d.m.UEs[imsiStr]
 
-	pCell.Lock()
-	defer pCell.Unlock()
+	// TODO: lock on all serving cells
+	sCells := d.m.GetServingCells(ue.IMSI)
+	sCellsNCGIS := []types.NCGI{}
+	for i := range sCells {
+		sCell := sCells[i]
+		sCellsNCGIS = append(sCellsNCGIS, sCell.NCGI)
+		sCell.Lock()
+		defer sCell.Unlock()
+	}
+
 	d.m.ServiceMappings.Lock()
 	defer d.m.ServiceMappings.Unlock()
 
@@ -193,38 +201,44 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 	log.Debugf("UEToServingCells[ue]: %v, len(UEToServingCells): %v, uePCell: %v",
 		d.m.UEToServingCells[hoDecision.UE.IMSI], len(d.m.UEToServingCells), uePCell.NCGI)
 
-	if hoDecision.TargetCellNcgi == 0 {
+	if len(hoDecision.TargetCellNcgis) == 0 {
 		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
-		d.m.UpdateServiceMappings(ue.IMSI, pCell.NCGI, hoDecision.TargetCellNcgi)
+		d.m.UpdateServiceMappings(ue.IMSI, sCellsNCGIS, hoDecision.TargetCellNcgis)
 		log.Debugf("len(CellToUEs[pCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
 		log.Debugf("UEToServingCells[ue]: %v", d.m.UEToServingCells[hoDecision.UE.IMSI])
 		return
 	}
 
-	tCellNcgiStr := strconv.FormatUint(uint64(hoDecision.TargetCellNcgi), 10)
-	tCell := d.m.Cells[tCellNcgiStr]
+	// TODO: lock on all target cells
+	for ncgi := range hoDecision.TargetCellNcgis {
+		tCellNcgiStr := strconv.FormatUint(uint64(ncgi), 10)
+		tCell := d.m.Cells[tCellNcgiStr]
+		tCell.Lock()
+		defer tCell.Unlock()
 
-	tCell.Lock()
-	defer tCell.Unlock()
+		// TODO change resources for all target, soucrce cells
+		servedUes := d.m.GetServedUEs(tCell.NCGI)
 
-	servedUes := d.m.GetServedUEs(tCell.NCGI)
+		redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.SourceCellNcgi != 0
+		requestedBwps := utils.If(redirection, bw.ReleaseBWPs(tCell, ue), []*model.Bwp{})
 
-	redirection := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED && hoDecision.SourceCellNcgi != 0
-	requestedBwps := utils.If(redirection, bw.ReleaseBWPs(pCell, ue), []*model.Bwp{})
+		// update all target cells as serving now
+		d.UpdateUECells(pCell.NCGI, tCell.NCGI, ue)
+		// recompute metrics
+		d.UpdateUECellsParams(ue)
+		bw.ReallocateBW(ue, requestedBwps, tCell, servedUes)
 
-	d.UpdateUECells(pCell.NCGI, tCell.NCGI, ue)
-	d.UpdateUECellsParams(ue)
-	bw.ReallocateBW(ue, requestedBwps, tCell, servedUes)
-	d.m.UpdateServiceMappings(ue.IMSI, pCell.NCGI, tCell.NCGI)
-
-	log.Debug("Handover COMPLETE")
-	log.Debugf("len(CellToUEs[tCell]): %v", len(d.m.CellToUEs[hoDecision.TargetCellNcgi]))
-	log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
-	log.Debugf("UEToServingCells[ue]: %v", d.m.UEToServingCells[hoDecision.UE.IMSI])
-	log.Debug("==================================================================")
-	log.Debugf("HO is done successfully: %v to %v", hoDecision.UE.IMSI, hoDecision.TargetCellNcgi)
+		log.Debug("Handover COMPLETE")
+		log.Debugf("len(CellToUEs[tCells]): %v", hoDecision.TargetCellNcgis)
+		log.Debugf("len(CellToUEs[sCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
+		log.Debugf("UEToServingCells[ue]: %v", d.m.UEToServingCells[hoDecision.UE.IMSI])
+		log.Debug("==================================================================")
+		log.Debugf("HO is done successfully: %v to %v", hoDecision.UE.IMSI, hoDecision.TargetCellNcgis)
+	}
+	d.m.UpdateServiceMappings(ue.IMSI, sCellsNCGIS, hoDecision.TargetCellNcgis)
 }
 
+// UpdateUECells updates the serving and neighbor cells pointed by the ue.
 func (d *driver) UpdateUECells(sCellNCGI, tCellNCGI types.NCGI, ue *model.UE) {
 
 	uePCell := ue.ServingCells[0]
@@ -243,7 +257,7 @@ func (d *driver) UpdateUECells(sCellNCGI, tCellNCGI types.NCGI, ue *model.UE) {
 
 }
 
-// UpdateUESignalStrength updates UE signal strength
+// UpdateUESignalStrength updates UE signal strength.
 func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 	ue, ok := d.m.UEs[strconv.FormatUint(uint64(imsi), 10)]
 	uePCell := ue.ServingCells[0]
@@ -266,6 +280,7 @@ func calculateRSRP(ue *model.UE, cell *model.Cell) float64 {
 	return signal.Strength(ue.Location, ue.Height, mpf, cell)
 }
 
+// UpdateUECellsParams recomputes the signal metrics for the serving and neighbor cells of the ue.
 func (d *driver) UpdateUECellsParams(ue *model.UE) {
 
 	uePCell := ue.ServingCells[0]

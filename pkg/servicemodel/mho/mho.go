@@ -375,8 +375,8 @@ func (m *Mho) RICControl(ctx context.Context, request *e2appducontents.Riccontro
 		tCellNcgi := types.ToNCGI(types.PlmnID(plmnID), types.NCI(nci.Uint64()))
 
 		hoDecision := lho.HandoverDecision{
-			UE:             model.UE{IMSI: types.IMSI(imsi)},
-			TargetCellNcgi: tCellNcgi,
+			UE:              model.UE{IMSI: types.IMSI(imsi)},
+			TargetCellNcgis: []types.NCGI{tCellNcgi},
 		}
 		m.mobilityDriver.Handover(ctx, hoDecision)
 	}()

@@ -116,8 +116,8 @@ func (m *Manager) initMobilityDriver() {
 func (m *Manager) Start() error {
 
 	if m.config.RedisEnabled {
-		redisHost := utils.GetEnv("REDIS_HOST", "clx1")
-		redisPort := utils.GetEnv("REDIS_PORT", "30637")
+		redisHost := utils.GetEnv("REDIS_HOST", "localhost")
+		redisPort := utils.GetEnv("REDIS_PORT", "6398")
 		redisCellCache := utils.GetEnv("REDIS_CELL_CACHE_DB", "1")
 		redisUECache := utils.GetEnv("REDIS_UE_CACHE_DB", "2")
 		redisUsername := utils.GetEnv("REDIS_USERNAME", "")
@@ -285,7 +285,7 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 
 			// TODO: calculate metric per cell.
 			// collect bwps of each cell separately
-			for sCellIndex, _ := range ue.ServingCells {
+			for sCellIndex := range ue.ServingCells {
 				sCell := ue.ServingCells[sCellIndex]
 				if sCell.NCGI == cell.NCGI {
 					for _, bwp := range sCell.BwpRefs {
@@ -467,7 +467,6 @@ func (m *Manager) Resume(ctx context.Context) error {
 	if err := m.computeCellAttributes(); err != nil {
 		return err
 	}
-	log.Info("\n====[IN MANAGER1]====\n")
 	for _, cell := range m.model.Cells {
 		if len(cell.Bwps) > 0 {
 			log.Infof("NCGI: %v len(bwps): %v", cell.NCGI, len(cell.Bwps))

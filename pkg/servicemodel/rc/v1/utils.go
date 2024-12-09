@@ -21,6 +21,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/headers/format2"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format3"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/v1/indication/messages/format5"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/pdubuilder"
 	e2smrc "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/servicemodel"
@@ -569,8 +570,8 @@ func (c *Client) runHandover(ctx context.Context, controlHeader *e2smrcies.E2SmR
 			}
 			ncgi := ransimtypes.NCGI(targetPrimaryCellID)
 			hoDecision := lho.HandoverDecision{
-				UE:             model.UE{IMSI: ue.IMSI},
-				TargetCellNcgi: ncgi,
+				UE:              model.UE{IMSI: ue.IMSI},
+				TargetCellNcgis: []types.NCGI{ncgi},
 			}
 			c.mobilityDriver.Handover(ctx, hoDecision)
 		}

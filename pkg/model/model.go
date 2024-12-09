@@ -42,53 +42,53 @@ type Model struct {
 	ServiceMappings
 }
 
-func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgi, targetCellINcgi types.NCGI) {
+func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, targetCellINcgis []types.NCGI) {
 
-	// delete ue from sourceCell
-	for index, imsi := range m.CellToUEs[sourceCellNcgi] {
-		if imsi == ueIMSI {
-			m.CellToUEs[sourceCellNcgi] = append(m.CellToUEs[sourceCellNcgi][:index], m.CellToUEs[sourceCellNcgi][index+1:]...)
-			break
+	// delete ue from sourceCells & sourceCells from ue
+	for _, sourceCellNcgi := range sourceCellNcgis {
+		for index, imsi := range m.CellToUEs[sourceCellNcgi] {
+			if imsi == ueIMSI {
+				m.CellToUEs[sourceCellNcgi] = append(m.CellToUEs[sourceCellNcgi][:index], m.CellToUEs[sourceCellNcgi][index+1:]...)
+				break
+			}
+		}
+
+		for index, ncgi := range m.UEToServingCells[ueIMSI] {
+			if ncgi == sourceCellNcgi {
+				m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI][:index], m.UEToServingCells[ueIMSI][index+1:]...)
+				break
+			}
 		}
 	}
 
-	// append ue to targetCell
-	if targetCellINcgi != 0 {
-		m.CellToUEs[targetCellINcgi] = append(m.CellToUEs[targetCellINcgi], ueIMSI)
-	}
-
-	// delete sourceCell from ue
-	for index, ncgi := range m.UEToServingCells[ueIMSI] {
-		if ncgi == sourceCellNcgi {
-			m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI][:index], m.UEToServingCells[ueIMSI][index+1:]...)
-			break
+	// append ue to targetCells &  targetCell to ue
+	for _, targetCellNcgi := range targetCellINcgis {
+		if targetCellNcgi != 0 {
+			m.CellToUEs[targetCellNcgi] = append(m.CellToUEs[targetCellNcgi], ueIMSI)
+			m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], targetCellNcgi)
 		}
-	}
-
-	// append targetCell to ue
-	if targetCellINcgi != 0 {
-		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], targetCellINcgi)
 	}
 
 }
 
-func (m *Model) InitServiceMappings(ueList map[string]*UE) {
+func (m *Model) InitServiceMappings(ues map[string]*UE) {
 	m.CellToUEs = make(map[types.NCGI][]types.IMSI)
 	m.UEToServingCells = make(map[types.IMSI][]types.NCGI)
 
-	for _, ue := range ueList {
-		pCellNcgi := ue.ServingCells[0].NCGI
-		ueIMSI := ue.IMSI
+	for _, ue := range ues {
+		for _, ueSCell := range ue.ServingCells {
+			ueIMSI := ue.IMSI
+			if _, exists := m.CellToUEs[ueSCell.NCGI]; !exists {
+				m.CellToUEs[ueSCell.NCGI] = []types.IMSI{}
+			}
+			m.CellToUEs[ueSCell.NCGI] = append(m.CellToUEs[ueSCell.NCGI], ueIMSI)
 
-		if _, exists := m.CellToUEs[pCellNcgi]; !exists {
-			m.CellToUEs[pCellNcgi] = []types.IMSI{}
+			if _, exists := m.UEToServingCells[ueIMSI]; !exists {
+				m.UEToServingCells[ueIMSI] = []types.NCGI{}
+			}
+			m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], ueSCell.NCGI)
 		}
-		m.CellToUEs[pCellNcgi] = append(m.CellToUEs[pCellNcgi], ueIMSI)
 
-		if _, exists := m.UEToServingCells[ueIMSI]; !exists {
-			m.UEToServingCells[ueIMSI] = []types.NCGI{}
-		}
-		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], pCellNcgi)
 	}
 }
 

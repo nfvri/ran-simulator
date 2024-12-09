@@ -55,6 +55,8 @@ func ReleaseBWPs(pCell *model.Cell, ue *model.UE) []*model.Bwp {
 
 func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, servedUEs []*model.UE) {
 
+	// TODO: check if ue.RSRP < refSignalStrength -> RRC_STATE_IDLE
+
 	uePCell := ue.ServingCells[0]
 	if enoughBW(tCell, requestedBwps) {
 		bwpId := len(tCell.Bwps)

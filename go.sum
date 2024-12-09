@@ -959,6 +959,8 @@ github.com/nelsam/hel/v2 v2.3.2/go.mod h1:1ZTGfU2PFTOd5mx22i5O0Lc2GY933lQ2wb/ggy
 github.com/nelsam/hel/v2 v2.3.3/go.mod h1:1ZTGfU2PFTOd5mx22i5O0Lc2GY933lQ2wb/ggy+rL3w=
 github.com/nfvri/onos-api/go v0.0.0-20241126143626-4f6bff53a249 h1:tde80L9gecznGNSJaUA3E+WEyVLxuNq3U6G0m4oNMFU=
 github.com/nfvri/onos-api/go v0.0.0-20241126143626-4f6bff53a249/go.mod h1:Px/qBLCjGlmSdBWQ7iJiRZE++/vwB09qDtvZcEt/Gvw=
+github.com/nfvri/onos-api/go v0.0.0-20241209131911-6123bfc4f36d h1:LanAXPnwlasF9GQsW/BqcP4rA3vmm1PMwirC4Knkpyw=
+github.com/nfvri/onos-api/go v0.0.0-20241209131911-6123bfc4f36d/go.mod h1:Px/qBLCjGlmSdBWQ7iJiRZE++/vwB09qDtvZcEt/Gvw=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=

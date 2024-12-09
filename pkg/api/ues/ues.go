@@ -65,17 +65,17 @@ func (s *Server) SetUECount(ctx context.Context, request *modelapi.SetUECountReq
 
 func UEToAPI(modelUE *model.UE) *types.Ue {
 	return &types.Ue{
-		IMSI:       modelUE.IMSI,
-		Type:       string(modelUE.Type),
-		Location:   (*types.Coordinate)(&modelUE.Location),
-		Heading:    modelUE.Heading,
-		CRNTI:      modelUE.CRNTI,
-		Height:     modelUE.Height,
-		IsAdmitted: modelUE.IsAdmitted,
-		RrcState:   uint32(modelUE.RrcState),
-		FiveQi:     int32(modelUE.FiveQi),
-		Cell:       ueCellsToAPI(modelUE.ServingCells)[0],
-		Cells:      ueCellsToAPI(modelUE.NeighborCells),
+		IMSI:          modelUE.IMSI,
+		Type:          string(modelUE.Type),
+		Location:      (*types.Coordinate)(&modelUE.Location),
+		Heading:       modelUE.Heading,
+		CRNTI:         modelUE.CRNTI,
+		Height:        modelUE.Height,
+		IsAdmitted:    modelUE.IsAdmitted,
+		RrcState:      uint32(modelUE.RrcState),
+		FiveQi:        int32(modelUE.FiveQi),
+		ServingCells:  ueCellsToAPI(modelUE.ServingCells),
+		NeighborCells: ueCellsToAPI(modelUE.NeighborCells),
 	}
 }
 
@@ -119,8 +119,8 @@ func UEToModel(ue *types.Ue) *model.UE {
 		IsAdmitted:    ue.IsAdmitted,
 		RrcState:      e2sm_mho.Rrcstatus(ue.RrcState),
 		FiveQi:        int(ue.FiveQi),
-		ServingCells:  ueCellsToModel([]*types.UECell{ue.Cell}),
-		NeighborCells: ueCellsToModel(ue.Cells),
+		ServingCells:  ueCellsToModel(ue.ServingCells),
+		NeighborCells: ueCellsToModel(ue.NeighborCells),
 	}
 }
 

@@ -70,36 +70,6 @@ func (s *Server) GetMapLayout(ctx context.Context, req *simapi.MapLayoutRequest)
 	}, nil
 }
 
-func ueToAPI(ue *model.UE) *simtypes.Ue {
-	r := &simtypes.Ue{
-		IMSI:     ue.IMSI,
-		Type:     string(ue.Type),
-		Position: nil,
-		Rotation: ue.Heading,
-		CRNTI:    ue.CRNTI,
-		Admitted: ue.IsAdmitted,
-		RrcState: uint32(ue.RrcState),
-	}
-	if ue.ServingCells != nil {
-		uePCell := ue.ServingCells[0]
-		r.ServingTower = simtypes.NCGI(uePCell.ID)
-		r.ServingTowerStrength = uePCell.Rsrp
-	}
-	if len(ue.NeighborCells) > 0 {
-		r.Tower1 = simtypes.NCGI(ue.NeighborCells[0].ID)
-		r.Tower1Strength = ue.NeighborCells[0].Rsrp
-	}
-	if len(ue.NeighborCells) > 1 {
-		r.Tower2 = simtypes.NCGI(ue.NeighborCells[1].ID)
-		r.Tower2Strength = ue.NeighborCells[1].Rsrp
-	}
-	if len(ue.NeighborCells) > 2 {
-		r.Tower3 = simtypes.NCGI(ue.NeighborCells[2].ID)
-		r.Tower3Strength = ue.NeighborCells[2].Rsrp
-	}
-	return r
-}
-
 // ListRoutes provides means to list (and optionally monitor) simulated routes
 func (s *Server) ListRoutes(req *simapi.ListRoutesRequest, stream simapi.Traffic_ListRoutesServer) error {
 	// TODO: reimplement list

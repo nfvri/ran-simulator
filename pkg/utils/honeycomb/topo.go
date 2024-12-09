@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"github.com/google/uuid"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 // WriteControllerYaml outputs YAML file that can be consumed by the onos topo operator.

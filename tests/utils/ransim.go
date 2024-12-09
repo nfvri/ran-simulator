@@ -7,7 +7,7 @@ package utils
 import (
 	"context"
 
-	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
+	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
 
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/creds"
 	"google.golang.org/grpc"

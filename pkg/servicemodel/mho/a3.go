@@ -6,8 +6,9 @@ package mho
 
 import (
 	"context"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
 	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 	"github.com/onosproject/rrm-son-lib/pkg/model/id"

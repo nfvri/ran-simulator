@@ -8,12 +8,13 @@ package ues
 import (
 	"context"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
-	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
+	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
+	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
@@ -22,29 +23,33 @@ import (
 var log = liblog.GetLogger()
 
 // NewService returns a new model Service
-func NewService(ueStore ues.Store) service.Service {
+func NewService(ueStore ues.Store, patchedUEs []model.UE) service.Service {
 	return &Service{
-		ueStore: ueStore,
+		ueStore:    ueStore,
+		patchedUEs: patchedUEs,
 	}
 }
 
 // Service is a Service implementation for administration.
 type Service struct {
 	service.Service
-	ueStore ues.Store
+	ueStore    ues.Store
+	patchedUEs []model.UE
 }
 
 // Register registers the TrafficSim Service with the gRPC server.
 func (s *Service) Register(r *grpc.Server) {
 	server := &Server{
-		ueStore: s.ueStore,
+		ueStore:    s.ueStore,
+		patchedUEs: s.patchedUEs,
 	}
 	modelapi.RegisterUEModelServer(r, server)
 }
 
 // Server implements the Routes gRPC service for administrative facilities.
 type Server struct {
-	ueStore ues.Store
+	ueStore    ues.Store
+	patchedUEs []model.UE
 }
 
 // GetUECount gets the number of UEs
@@ -58,36 +63,95 @@ func (s *Server) SetUECount(ctx context.Context, request *modelapi.SetUECountReq
 	return &modelapi.SetUECountResponse{}, nil
 }
 
-func ueToAPI(ue *model.UE) *types.Ue {
-	r := &types.Ue{
-		IMSI:     ue.IMSI,
-		Type:     string(ue.Type),
-		Position: &types.Point{Lat: ue.Location.Lat, Lng: ue.Location.Lng},
-		Rotation: ue.Heading,
-		CRNTI:    ue.CRNTI,
-		Admitted: ue.IsAdmitted,
-		RrcState: uint32(ue.RrcState),
-		Metrics:  nil,
-		FiveQi:   int32(ue.FiveQi),
+func UEToAPI(modelUE *model.UE) *types.Ue {
+	return &types.Ue{
+		IMSI:       modelUE.IMSI,
+		Type:       string(modelUE.Type),
+		Location:   (*types.Coordinate)(&modelUE.Location),
+		Heading:    modelUE.Heading,
+		CRNTI:      modelUE.CRNTI,
+		Height:     modelUE.Height,
+		IsAdmitted: modelUE.IsAdmitted,
+		RrcState:   uint32(modelUE.RrcState),
+		FiveQi:     int32(modelUE.FiveQi),
+		Cell:       ueCellsToAPI(modelUE.ServingCells)[0],
+		Cells:      ueCellsToAPI(modelUE.NeighborCells),
 	}
-	if ue.ServingCells != nil {
-		uePCell := ue.ServingCells[0]
-		r.ServingTower = uePCell.NCGI
-		r.ServingTowerStrength = uePCell.Rsrp
+}
+
+func ueCellsToAPI(modelUeCells []*model.UECell) []*types.UECell {
+	ueCells := make([]*types.UECell, len(modelUeCells))
+
+	for key, ueCell := range modelUeCells {
+		ueCells[key] = &types.UECell{
+			Ncgi:        ueCell.NCGI,
+			Rsrp:        ueCell.Rsrp,
+			Rsrq:        ueCell.Rsrq,
+			Sinr:        ueCell.Sinr,
+			BwpRefs:     bwpsToAPI(ueCell.BwpRefs),
+			AvailPrbsDl: uint32(ueCell.AvailPrbsDl),
+		}
 	}
-	if len(ue.NeighborCells) > 0 {
-		r.Tower1 = ue.NeighborCells[0].NCGI
-		r.Tower1Strength = ue.NeighborCells[0].Rsrp
+	return ueCells
+}
+
+func bwpsToAPI(modelBWPs []*model.Bwp) []*types.Bwp {
+	bwps := make([]*types.Bwp, len(modelBWPs))
+	for key, bwp := range modelBWPs {
+		bwps[key] = &types.Bwp{
+			Id:          bwp.ID,
+			Scs:         int32(bwp.Scs),
+			NumberOfRbs: int32(bwp.NumberOfRBs),
+			Downlink:    bwp.Downlink,
+		}
 	}
-	if len(ue.NeighborCells) > 1 {
-		r.Tower2 = ue.NeighborCells[1].NCGI
-		r.Tower2Strength = ue.NeighborCells[1].Rsrp
+	return bwps
+}
+
+func UEToModel(ue *types.Ue) *model.UE {
+	return &model.UE{
+		IMSI:          ue.IMSI,
+		Type:          model.UEType(ue.Type),
+		Location:      model.Coordinate(*ue.Location),
+		Heading:       ue.Heading,
+		CRNTI:         ue.CRNTI,
+		Height:        ue.Height,
+		IsAdmitted:    ue.IsAdmitted,
+		RrcState:      e2sm_mho.Rrcstatus(ue.RrcState),
+		FiveQi:        int(ue.FiveQi),
+		ServingCells:  ueCellsToModel([]*types.UECell{ue.Cell}),
+		NeighborCells: ueCellsToModel(ue.Cells),
 	}
-	if len(ue.NeighborCells) > 2 {
-		r.Tower3 = ue.NeighborCells[2].NCGI
-		r.Tower3Strength = ue.NeighborCells[2].Rsrp
+}
+
+func ueCellsToModel(apiUeCells []*types.UECell) []*model.UECell {
+	ueCells := make([]*model.UECell, len(apiUeCells))
+
+	for key, ueCell := range apiUeCells {
+		ueCells[key] = &model.UECell{
+			ID:          ueCell.GnbID,
+			NCGI:        ueCell.Ncgi,
+			Rsrp:        ueCell.Rsrp,
+			Rsrq:        ueCell.Rsrq,
+			Sinr:        ueCell.Sinr,
+			BwpRefs:     bwpsToModel(ueCell.BwpRefs),
+			AvailPrbsDl: int(ueCell.AvailPrbsDl),
+		}
 	}
-	return r
+	return ueCells
+}
+
+func bwpsToModel(apiBWPs []*types.Bwp) []*model.Bwp {
+	bwps := make([]*model.Bwp, len(apiBWPs))
+	for key, bwp := range apiBWPs {
+		bwps[key] = &model.Bwp{
+			ID:          bwp.Id,
+			Scs:         int(bwp.Scs),
+			NumberOfRBs: int(bwp.NumberOfRbs),
+			Downlink:    bwp.Downlink,
+		}
+	}
+	return bwps
 }
 
 // GetUE returns information on the specified UE
@@ -97,7 +161,7 @@ func (s *Server) GetUE(ctx context.Context, request *modelapi.GetUERequest) (*mo
 	if err != nil {
 		return nil, err
 	}
-	return &modelapi.GetUEResponse{Ue: ueToAPI(ue)}, nil
+	return &modelapi.GetUEResponse{Ue: UEToAPI(ue)}, nil
 }
 
 // MoveToCell moves the specified UE to the given cell
@@ -147,7 +211,7 @@ func (s *Server) WatchUEs(request *modelapi.WatchUEsRequest, server modelapi.UEM
 
 	for ueEvent := range ch {
 		response := &modelapi.WatchUEsResponse{
-			Ue:   ueToAPI(ueEvent.Value.(*model.UE)),
+			Ue:   UEToAPI(ueEvent.Value.(*model.UE)),
 			Type: eventType(ueEvent.Type.(ues.UeEvent)),
 		}
 		err := server.Send(response)
@@ -162,9 +226,28 @@ func (s *Server) WatchUEs(request *modelapi.WatchUEsRequest, server modelapi.UEM
 func (s *Server) ListUEs(request *modelapi.ListUEsRequest, server modelapi.UEModel_ListUEsServer) error {
 	log.Debugf("Received listing UEs request: %v", request)
 	ueList := s.ueStore.ListAllUEs(server.Context())
-	for _, ue := range ueList {
+
+	for index := range ueList {
+		ue := *ueList[index]
 		resp := &modelapi.ListUEsResponse{
-			Ue: ueToAPI(ue),
+			Ue: UEToAPI(&ue),
+		}
+		err := server.Send(resp)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) ListPatchedUEs(request *modelapi.ListPatchedUEsRequest, server modelapi.UEModel_ListPatchedUEsServer) error {
+	log.Debugf("Received listing patched UEs request: %v", request)
+
+	for index := range s.patchedUEs {
+		ue := s.patchedUEs[index]
+		resp := &modelapi.ListUEsResponse{
+			Ue: UEToAPI(&ue),
 		}
 		err := server.Send(resp)
 		if err != nil {

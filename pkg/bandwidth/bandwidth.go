@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/metrics"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,10 +58,12 @@ func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, s
 	// TODO: check if ue.RSRP < refSignalStrength -> RRC_STATE_IDLE
 
 	uePCell := ue.ServingCells[0]
-	if enoughBW(tCell, requestedBwps) {
+	scaledBwps := getScaledBwps(servedUEs, ue.FiveQi, ue.FiveQi, requestedBwps)
+	if isEnough, reqBwps := enoughBW(tCell, requestedBwps, scaledBwps); isEnough {
+		uePCell.BwpRefs = []*model.Bwp{}
 		bwpId := len(tCell.Bwps)
-		for index := range requestedBwps {
-			bwp := requestedBwps[index]
+		for index := range reqBwps {
+			bwp := reqBwps[index]
 			bwp.ID = uint64(bwpId)
 			uePCell.BwpRefs = append(uePCell.BwpRefs, bwp)
 			tCell.Bwps[bwp.ID] = bwp
@@ -119,7 +121,15 @@ func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, av
 
 }
 
-func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
+func enoughBW(tCell *model.Cell, requestedBwps, scaledBwps []*model.Bwp) (bool, []*model.Bwp) {
+	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
+
+	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
+	totalBWUL := MHzToHz(float64(tCell.Channel.BsChannelBwUL))
+
+	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
+	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
+
 	requestedBWDLUe, requestedBWULUe := 0, 0
 	for index := range requestedBwps {
 		bwp := requestedBwps[index]
@@ -129,18 +139,25 @@ func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
 			requestedBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
 		}
 	}
-	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
-
-	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
-	totalBWUL := MHzToHz(float64(tCell.Channel.BsChannelBwUL))
-
-	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
-	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
-
 	sufficientBWDL := requestedBWDLUe+usedBWDLCell <= availBWDL
 	sufficientBWUL := requestedBWULUe+usedBWULCell <= availBWUL
+	if sufficientBWDL && sufficientBWUL {
+		return sufficientBWDL && sufficientBWUL, requestedBwps
+	}
 
-	return sufficientBWDL && sufficientBWUL
+	scaledBWDLUe, scaledBWULUe := 0, 0
+	for index := range scaledBwps {
+		bwp := scaledBwps[index]
+		if bwp.Downlink {
+			scaledBWDLUe += bwp.Scs * 12 * bwp.NumberOfRBs
+		} else {
+			scaledBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
+		}
+	}
+	sufficientBWDL = scaledBWDLUe+usedBWDLCell <= availBWDL
+	sufficientBWUL = scaledBWULUe+usedBWULCell <= availBWUL
+
+	return sufficientBWDL && sufficientBWUL, scaledBwps
 }
 
 func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
@@ -161,14 +178,78 @@ func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
 	for index := range ues {
 		ue := ues[index]
-		uePCell := ue.ServingCells[0]
-		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(uePCell.BwpRefs))
-		for index := range uePCell.BwpRefs {
-			bwp := *uePCell.BwpRefs[index]
+		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(ue.ServingCells[0].BwpRefs))
+		for index := range ue.ServingCells[0].BwpRefs {
+			bwp := *ue.ServingCells[0].BwpRefs[index]
 			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], bwp)
 		}
 	}
 	return bwAlloc
+}
+
+func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*model.Bwp {
+	cqiBWDL := 0
+	cqiBWUL := 0
+	cqiUEs := 0
+	for _, ue := range ues {
+		if cqi == ue.FiveQi {
+			cqiUEs++
+			for _, bwp := range ue.ServingCells[0].BwpRefs {
+				if bwp.Downlink {
+					cqiBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
+				} else {
+					cqiBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
+				}
+			}
+		}
+	}
+	if cqiUEs == 0 {
+		if cqi-1 == 0 {
+			if ueCQI+1 > 15 {
+				return reqBwps
+			}
+			return getScaledBwps(ues, ueCQI, ueCQI+1, reqBwps)
+		}
+		if cqi > ueCQI {
+			if cqi+1 > 15 {
+				return reqBwps
+			}
+			return getScaledBwps(ues, ueCQI, cqi+1, reqBwps)
+		}
+		return getScaledBwps(ues, ueCQI, cqi-1, reqBwps)
+	}
+
+	avgCqiBWDL := cqiBWDL / cqiUEs
+	avgCqiBWUL := cqiBWUL / cqiUEs
+
+	reqPRBsDL := 0
+	reqBWDL := 0
+	reqPRBsUL := 0
+	reqBWUL := 0
+	reqBWPsDL := []*model.Bwp{}
+	reqBWPsUL := []*model.Bwp{}
+	for index := range reqBwps {
+		bwp := *reqBwps[index]
+		if bwp.Downlink {
+			reqPRBsDL++
+			reqBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
+			reqBWPsDL = append(reqBWPsDL, &bwp)
+		} else {
+			reqPRBsUL++
+			reqBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
+			reqBWPsUL = append(reqBWPsUL, &bwp)
+		}
+	}
+	scaledBwpsDL := reqBWPsDL
+	if reqBWDL > avgCqiBWDL {
+		scaledBwpsDL, _ = generateBWPs(avgCqiBWDL, reqPRBsDL, true)
+	}
+	scaledBwpsUL := reqBWPsUL
+	if reqBWUL > avgCqiBWUL {
+		scaledBwpsUL, _ = generateBWPs(avgCqiBWUL, reqPRBsUL, false)
+	}
+
+	return append(scaledBwpsDL, scaledBwpsUL...)
 }
 
 func MHzToHz(MHz float64) float64 {
@@ -280,11 +361,20 @@ func GetNumUEsPerCQIByCell(numUEsByCell map[uint64]map[string]int) map[uint64]ma
 		if len(numUEsMetrics) == 1 {
 			numCellUEs, onlyCellUEsExists := numUEsMetrics[ACTIVE_UES_DL_METRIC]
 			if onlyCellUEsExists {
+				remainingCellUEs := numCellUEs
 				uesPerCQI := numCellUEs / 15
-				for cqi := 1; cqi <= 14; cqi++ {
+				for cqi := 1; cqi <= 15; cqi++ {
 					numUEsPerCQIByCell[cellNCGI][cqi] = uesPerCQI
+					remainingCellUEs -= uesPerCQI
 				}
-				numUEsPerCQIByCell[cellNCGI][15] = numCellUEs - 14*uesPerCQI
+				for remainingCellUEs > 0 {
+					for cqi := 15; cqi >= 0; cqi-- {
+						if remainingCellUEs > 0 {
+							numUEsPerCQIByCell[cellNCGI][cqi]++
+							remainingCellUEs--
+						}
+					}
+				}
 			}
 		} else {
 			for metricName, numUes := range numUEsMetrics {
@@ -393,7 +483,7 @@ func DisaggregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (use
 		}
 	}
 	for remainingPRBs > 0 {
-		for cqi := 1; cqi <= 15; cqi++ {
+		for cqi := 15; cqi >= 0; cqi-- {
 			if numUEsPerCQI[cqi] > 0 && remainingPRBs > 0 {
 				usedPRBsPerCQI[cqi]++
 				remainingPRBs--

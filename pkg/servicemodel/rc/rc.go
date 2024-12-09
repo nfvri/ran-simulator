@@ -12,9 +12,9 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/ranfundesc"
 
-	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
+	e2smtypes "github.com/nfvri/onos-api/go/onos/e2t/e2sm"
 
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/controloutcome"
 
@@ -34,20 +34,20 @@ import (
 
 	subdeleteutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscriptiondelete"
 
+	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 	e2apies "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-ies"
 	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
-	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 
-	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/pdubuilder"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/pdubuilder"
 	"google.golang.org/protobuf/proto"
 
-	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
-	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/nfvri/ran-simulator/pkg/servicemodel"
 	"github.com/nfvri/ran-simulator/pkg/servicemodel/registry"
 	"github.com/nfvri/ran-simulator/pkg/store/subscriptions"
+	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
 
 var _ servicemodel.Client = &Client{}

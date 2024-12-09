@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
 
@@ -28,7 +28,7 @@ func TestCells(t *testing.T) {
 	t.Log(m)
 	ctx := context.Background()
 
-	cellStore := NewCellRegistry(m.Cells, nodes.NewNodeRegistry(m.Nodes))
+	cellStore := NewCellRegistry(ctx, m.Cells, nodes.NewNodeRegistry(ctx, m.Nodes))
 	ch := make(chan event.Event)
 	err = cellStore.Watch(ctx, ch, WatchOptions{Replay: false, Monitor: false})
 	assert.NoError(t, err)

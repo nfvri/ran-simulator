@@ -82,6 +82,8 @@ type Manager struct {
 	metricsStore   metrics.Store
 	mobilityDriver mobility.Driver
 	finishHOsChan  chan bool
+	patchedUEs     []model.UE
+	patchedCells   []model.Cell
 }
 
 // Run starts the manager and the associated services
@@ -164,6 +166,49 @@ func (m *Manager) Close() {
 	m.mobilityDriver.Stop()
 }
 
+func (m *Manager) createModelStores(ctx context.Context) {
+	// Create the node registry primed with the model nodes
+	m.nodeStore = nodes.NewNodeRegistry(ctx, m.model.Nodes)
+
+	// Create the cell registry primed with the model cells
+	m.cellStore = cells.NewCellRegistry(ctx, m.model.Cells, m.nodeStore)
+
+	// Create the ue registry primed with the model ues
+	m.ueStore = uesstore.NewUERegistry(ctx, m.model, m.cellStore, m.model.InitialRrcState)
+
+}
+
+func (m *Manager) createPatchedStores() {
+
+	m.patchedCells = []model.Cell{}
+	for ncgi := range m.model.Cells {
+		cell := *m.model.Cells[ncgi]
+		cellBwps := map[uint64]*model.Bwp{}
+		for index := range cell.Bwps {
+			bwp := *cell.Bwps[index]
+			cellBwps[index] = &bwp
+		}
+		cell.Bwps = cellBwps
+		m.patchedCells = append(m.patchedCells, cell)
+	}
+
+	m.patchedUEs = []model.UE{}
+	for imsi := range m.model.UEs {
+		ue := *m.model.UEs[imsi]
+		ueCell := *ue.ServingCells[0]
+		ue.ServingCells[0] = &ueCell
+
+		ueCells := []*model.UECell{}
+		for index := range ue.ServingCells {
+			ueCellcp := *ue.ServingCells[index]
+			ueCells = append(ueCells, &ueCellcp)
+		}
+		ue.ServingCells = ueCells
+
+		m.patchedUEs = append(m.patchedUEs, ue)
+	}
+}
+
 func (m *Manager) initMetricStore() {
 	// Create store for tracking arbitrary metrics and attributes for nodes, cells and UEs
 	m.metricsStore = metrics.NewMetricsStore()
@@ -215,30 +260,30 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 		availPRBsDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_UL_METRIC]
 
-		m.setBWUtilization(ctx, cell, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL)
+		sumUsedPRBsDL := 0
+		sumUsedPRBsUL := 0
+		for _, usedPRBs := range usedPRBsDL {
+			sumUsedPRBsDL += usedPRBs
+		}
+		for _, usedPRBs := range usedPRBsUL {
+			sumUsedPRBsUL += usedPRBs
+		}
+
+		m.setBWUtilization(ctx, cell, sumUsedPRBsDL, sumUsedPRBsUL, availPRBsDL, availPRBsUL)
 
 		bw.AllocateBW(cell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
-		if len(cell.Bwps) == 0 {
+		if len(cell.Bwps) == 0 && sumUsedPRBsDL+sumUsedPRBsUL != 0 {
 			log.Error("failed to initialize BWPs for cell: %v", cell.NCGI)
 		}
 	}
 }
 
-func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int) {
+func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, sumUsedPRBsDL, sumUsedPRBsUL int, availPRBsDL, availPRBsUL int) {
 	totalBWDL := bw.MHzToHz(float64(cell.Channel.BsChannelBwDL))
 	totalBWUL := bw.MHzToHz(float64(cell.Channel.BsChannelBwUL))
 
 	availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)
-
-	sumUsedPRBsDL := 0
-	sumUsedPRBsUL := 0
-	for _, usedPRBs := range usedPRBsDL {
-		sumUsedPRBsDL += usedPRBs
-	}
-	for _, usedPRBs := range usedPRBsUL {
-		sumUsedPRBsUL += usedPRBs
-	}
 
 	bwUtilizationDL := float64(sumUsedPRBsDL) / float64(availPRBsDL)
 	bwUtilizationUL := float64(sumUsedPRBsUL) / float64(availPRBsUL)
@@ -380,10 +425,10 @@ func (m *Manager) startNorthboundServer() error {
 
 	m.server.AddService(logging.Service{})
 	m.server.AddService(nodeapi.NewService(m.nodeStore, m.model.PlmnID))
-	m.server.AddService(cellapi.NewService(m.cellStore))
+	m.server.AddService(cellapi.NewService(m.cellStore, m.patchedCells))
 	m.server.AddService(trafficsim.NewService(m.model, m.cellStore, m.ueStore))
 	m.server.AddService(metricsapi.NewService(m.metricsStore))
-	m.server.AddService(ueapi.NewService(m.ueStore))
+	m.server.AddService(ueapi.NewService(m.ueStore, m.patchedUEs))
 	m.server.AddService(routeapi.NewService(m.routeStore))
 	m.server.AddService(modelapi.NewService(m))
 
@@ -446,9 +491,21 @@ func (m *Manager) LoadModel(ctx context.Context, data []byte) error {
 	if err := model.LoadConfigFromBytes(m.model, data); err != nil {
 		return err
 	}
+	now := time.Now()
+
+	m.model.CreationTimestamp = now.Format("2006-01-02 15:04:05") // Example format: "YYYY-MM-DD HH:MM:SS"
 
 	m.LoadMetrics(ctx)
 	return nil
+}
+
+func (m *Manager) GetModel(ctx context.Context) (*model.Model, error) {
+
+	if m.model == nil || m.model.SnapshotId == "" {
+		return nil, fmt.Errorf("no model is loaded in ransim")
+	}
+
+	return m.model, nil
 }
 
 // LoadMetrics loads new metrics into the simulator
@@ -475,8 +532,11 @@ func (m *Manager) Resume(ctx context.Context) error {
 
 	m.computeUEAttributes(ctx)
 	m.initMobilityDriver()
+	m.createPatchedStores()
+
 	m.performHandovers()
 	m.computeCellStatistics(ctx)
+	m.createModelStores(ctx)
 	go func() {
 		time.Sleep(1 * time.Millisecond)
 		log.Info("Restarting NBI...")

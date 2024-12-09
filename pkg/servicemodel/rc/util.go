@@ -21,7 +21,7 @@ import (
 	rcindicationmsg "github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/indication/message"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/nrt"
 
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 
 	e2smrcpreies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/v2/e2sm-rc-pre-v2-go"
 	e2appducontents "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-pdu-contents"

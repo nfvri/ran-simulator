@@ -9,7 +9,7 @@ import (
 	"io"
 	"testing"
 
-	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
+	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
 
 	"github.com/stretchr/testify/assert"
 

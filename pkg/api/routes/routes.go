@@ -12,11 +12,11 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 
-	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/ran-simulator/pkg/model"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
-	"github.com/nfvri/ran-simulator/pkg/model"
 	"google.golang.org/grpc"
 )
 
@@ -49,9 +49,9 @@ type Server struct {
 }
 
 func routeToAPI(route *model.Route) *types.Route {
-	points := make([]*types.Point, 0, len(route.Points))
+	points := make([]*types.Coordinate, 0, len(route.Points))
 	for _, p := range route.Points {
-		points = append(points, &types.Point{Lat: p.Lat, Lng: p.Lng})
+		points = append(points, &types.Coordinate{Lat: p.Lat, Lng: p.Lng})
 	}
 	return &types.Route{
 		RouteID:    route.IMSI,

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 	log "github.com/sirupsen/logrus"

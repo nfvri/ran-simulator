@@ -5,7 +5,7 @@
 package configupdate
 
 import (
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 
 	e2apcommondatatypes "github.com/onosproject/onos-e2t/api/e2ap/v2/e2ap-commondatatypes"

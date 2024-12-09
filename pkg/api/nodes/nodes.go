@@ -10,12 +10,12 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 
-	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
-	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
-	service "github.com/onosproject/onos-lib-go/pkg/northbound"
+	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
+	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
+	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
 )
 

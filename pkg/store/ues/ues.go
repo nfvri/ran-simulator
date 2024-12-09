@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"sync"
 
-	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	e2smcommonies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc/v1/e2sm-common-ies"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 
@@ -21,9 +20,9 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 )
 
@@ -111,7 +110,7 @@ type store struct {
 
 // NewUERegistry creates a new user-equipment registry primed with the specified number of UEs to start.
 // UEs will be semi-randomly distributed between the specified cells
-func NewUERegistry(m *model.Model, cellStore cells.Store, redisStore redisLib.Store, initialRrcState string) Store {
+func NewUERegistry(ctx context.Context, m *model.Model, cellStore cells.Store, initialRrcState string) Store {
 	watchers := watcher.NewWatchers()
 	store := &store{
 		mu:              sync.RWMutex{},
@@ -122,13 +121,25 @@ func NewUERegistry(m *model.Model, cellStore cells.Store, redisStore redisLib.St
 		initialRrcState: initialRrcState,
 	}
 
-	log.Infof("m.UECount: %v", m.UECount)
 	if m.UECount > 0 {
 		store.CreateRandomUEs(context.Background(), m.UECount)
 	}
 
+	store.Load(ctx, m.UEs)
+
 	log.Infof("Created registry primed with %d UEs", len(store.ues))
 	return store
+}
+
+// Load add all ues from the specified ue map; no events will be generated
+func (s *store) Load(ctx context.Context, ues map[string]*model.UE) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Copy the Cells into our own map
+	for imsi := range ues {
+		ue := *ues[imsi] // avoids scopelint issue
+		s.ues[ue.IMSI] = &ue
+	}
 }
 
 func (s *store) SetUECount(ctx context.Context, count uint) {
@@ -296,7 +307,8 @@ func (s *store) GetWithGNbUeID(ctx context.Context, gNBUeID *e2smcommonies.UeidG
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	amfUeNgapID := gNBUeID.AmfUeNgapId.GetValue()
-	for _, ue := range s.ues {
+	for imsi := range s.ues {
+		ue := s.ues[imsi]
 		// TODO add GUAMI - currently RAN simulator only supports single AMF, it should be fine
 		// TODO for the future, GUAMI should be considered here
 		if int64(ue.AmfUeNgapID) == amfUeNgapID {
@@ -327,8 +339,9 @@ func (s *store) ListAllUEs(ctx context.Context) []*model.UE {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	list := make([]*model.UE, 0, len(s.ues))
-	for _, ue := range s.ues {
-		list = append(list, ue)
+	for imsi := range s.ues {
+		ue := *s.ues[imsi]
+		list = append(list, &ue)
 	}
 	return list
 }
@@ -456,7 +469,8 @@ func (s *store) Watch(ctx context.Context, ch chan<- event.Event, options ...Wat
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for _, ue := range s.ues {
+			for imsi := range s.ues {
+				ue := *s.ues[imsi]
 				ch <- event.Event{
 					Key:   ue.IMSI,
 					Value: ue,

@@ -120,7 +120,7 @@ func Test_BearingDistanceTargetPoint(t *testing.T) {
 			c2:   model.Coordinate{Lat: -37.8136, Lng: 144.9631}, // Melbourne
 		},
 		{
-			name: "Test Point with 800 meters distance",
+			name: "Test Coordinate with 800 meters distance",
 			c1:   model.Coordinate{Lat: 40.7128, Lng: -74.0060}, // New York
 			c2:   model.Coordinate{Lat: 40.7175, Lng: -74.0046}, // ~800 meters northeast
 		},

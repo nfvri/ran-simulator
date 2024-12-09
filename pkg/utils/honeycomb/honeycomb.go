@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	"github.com/pmcxs/hexgrid"
 )
 

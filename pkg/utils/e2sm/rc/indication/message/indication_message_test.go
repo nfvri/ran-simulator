@@ -7,10 +7,10 @@ package message
 import (
 	"testing"
 
-	ransimtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
+	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
 
-	e2smrcpreies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/v2/e2sm-rc-pre-v2-go"
 	"github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/nrt"
+	e2smrcpreies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_rc_pre_go/v2/e2sm-rc-pre-v2-go"
 	"github.com/stretchr/testify/assert"
 )
 

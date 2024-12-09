@@ -16,7 +16,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 	"github.com/nfvri/ran-simulator/pkg/store/nodes"
-	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/stretchr/testify/assert"
@@ -26,15 +25,15 @@ func TestDriver(t *testing.T) {
 	m := &model.Model{}
 	err := model.LoadConfig(m, "../model/test")
 	assert.NoError(t, err)
-
-	ns := nodes.NewNodeRegistry(m.Nodes)
-	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(m, cs, &redisLib.MockedRedisStore{}, "random")
+	ctx := context.Background()
+	ns := nodes.NewNodeRegistry(ctx, m.Nodes)
+	cs := cells.NewCellRegistry(ctx, m.Cells, ns)
+	us := ues.NewUERegistry(ctx, m, cs, "random")
 	rs := routes.NewRouteRegistry()
 
-	ctx := context.TODO()
+	ctxTODO := context.TODO()
 	ch := make(chan event.Event)
-	err = us.Watch(ctx, ch, ues.WatchOptions{Replay: true})
+	err = us.Watch(ctxTODO, ch, ues.WatchOptions{Replay: true})
 	assert.NoError(t, err)
 
 	e := <-ch
@@ -45,11 +44,11 @@ func TestDriver(t *testing.T) {
 		Points:   []*model.Coordinate{{Lat: 50.001, Lng: 0.0000}, {Lat: 50.0000, Lng: 0.0000}, {Lat: 50.0000, Lng: 0.0002}},
 		SpeedAvg: 40000.0,
 	}
-	err = rs.Add(ctx, route)
+	err = rs.Add(ctxTODO, route)
 	assert.NoError(t, err)
 
 	driver := NewMobilityDriver(m, "local", nil, nil)
-	driver.Start(ctx)
+	driver.Start(ctxTODO)
 
 	c := 0
 	for e = range ch {
@@ -75,24 +74,26 @@ func TestRouteGeneration(t *testing.T) {
 	err := model.LoadConfig(m, "../utils/honeycomb/sample")
 	assert.NoError(t, err)
 
-	ns := nodes.NewNodeRegistry(m.Nodes)
-	cs := cells.NewCellRegistry(m.Cells, ns)
-	us := ues.NewUERegistry(m, cs, &redisLib.MockedRedisStore{}, "random")
+	ctx := context.Background()
+
+	ns := nodes.NewNodeRegistry(ctx, m.Nodes)
+	cs := cells.NewCellRegistry(ctx, m.Cells, ns)
+	us := ues.NewUERegistry(ctx, m, cs, "random")
 	rs := routes.NewRouteRegistry()
 
-	ctx := context.TODO()
-	us.SetUECount(ctx, 100)
-	assert.Equal(t, 100, us.Len(ctx))
+	ctxTODO := context.TODO()
+	us.SetUECount(ctxTODO, 100)
+	assert.Equal(t, 100, us.Len(ctxTODO))
 
 	driver := NewMobilityDriver(m, "local", nil, nil)
-	driver.GenerateRoutes(ctx, 30000, 160000, 20000, nil, false)
-	assert.Equal(t, 100, rs.Len(ctx))
+	driver.GenerateRoutes(ctxTODO, 30000, 160000, 20000, nil, false)
+	assert.Equal(t, 100, rs.Len(ctxTODO))
 
 	ch := make(chan event.Event)
-	err = us.Watch(ctx, ch, ues.WatchOptions{Replay: true})
+	err = us.Watch(ctxTODO, ch, ues.WatchOptions{Replay: true})
 	assert.NoError(t, err)
 
-	driver.Start(ctx)
+	driver.Start(ctxTODO)
 
 	c := 0
 	for e := range ch {

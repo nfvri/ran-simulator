@@ -9,7 +9,7 @@ import (
 
 	"github.com/onosproject/rrm-son-lib/pkg/handover"
 
-	e2smtypes "github.com/onosproject/onos-api/go/onos/e2t/e2sm"
+	e2smtypes "github.com/nfvri/onos-api/go/onos/e2t/e2sm"
 
 	"github.com/nfvri/ran-simulator/pkg/store/metrics"
 
@@ -22,10 +22,10 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 
+	"github.com/nfvri/ran-simulator/pkg/servicemodel"
 	e2aptypes "github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/nfvri/ran-simulator/pkg/servicemodel"
 )
 
 var log = logging.GetLogger("registry")

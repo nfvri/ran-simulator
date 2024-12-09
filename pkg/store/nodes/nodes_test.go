@@ -8,9 +8,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +22,7 @@ func TestNodes(t *testing.T) {
 	t.Log(m)
 	ctx := context.Background()
 
-	nodeStore := NewNodeRegistry(m.Nodes)
+	nodeStore := NewNodeRegistry(ctx, m.Nodes)
 	node1GnbID := types.GnbID(144472)
 	node2GnbID := types.GnbID(144473)
 	numNodes, err := nodeStore.Len(ctx)

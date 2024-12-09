@@ -68,7 +68,7 @@ func Test_AngularAttenuation(t *testing.T) {
 		},
 	}
 
-	// Test horizontal -3dB Point
+	// Test horizontal -3dB Coordinate
 	// ue.Location = model.Coordinate{Lat: 37.976707, Lng: 23.720902}
 	// assert.Equal(t, -3, int(angularAttenuation(ue.Location, ue.Height, cell)))
 

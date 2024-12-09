@@ -8,11 +8,11 @@ package cells
 import (
 	"context"
 
+	modelapi "github.com/nfvri/onos-api/go/onos/ransim/model"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/event"
-	modelapi "github.com/onosproject/onos-api/go/onos/ransim/model"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
@@ -21,88 +21,149 @@ import (
 var log = liblog.GetLogger()
 
 // NewService returns a new model Service
-func NewService(cellStore cells.Store) service.Service {
+func NewService(cellStore cells.Store, patchedCells []model.Cell) service.Service {
 	return &Service{
-		cellStore: cellStore,
+		cellStore:    cellStore,
+		patchedCells: patchedCells,
 	}
 }
 
 // Service is a Service implementation for administration.
 type Service struct {
 	service.Service
-	cellStore cells.Store
+	cellStore    cells.Store
+	patchedCells []model.Cell
 }
 
 // Register registers the TrafficSim Service with the gRPC server.
 func (s *Service) Register(r *grpc.Server) {
 	server := &Server{
-		cellStore: s.cellStore,
+		cellStore:    s.cellStore,
+		patchedCells: s.patchedCells,
 	}
 	modelapi.RegisterCellModelServer(r, server)
 }
 
 // Server implements the TrafficSim gRPC service for administrative facilities.
 type Server struct {
-	cellStore cells.Store
+	cellStore    cells.Store
+	patchedCells []model.Cell
 }
 
 func cellToAPI(cell *model.Cell) *types.Cell {
-	sector := sectorToAPI(cell.Sector)
-	measurementParams := measurementParamsToAPI(cell.MeasurementParams)
+
 	return &types.Cell{
-		NCGI:              cell.NCGI,
-		Location:          sector.Centroid,
-		Sector:            sector,
-		Color:             cell.Color,
-		MaxUEs:            cell.MaxUEs,
-		Neighbors:         cell.Neighbors,
-		TxPowerdB:         cell.TxPowerDB,
-		MeasurementParams: measurementParams,
-		RrcIdleCount:      cell.RrcIdleCount,
-		RrcConnectedCount: cell.RrcConnectedCount,
-		Pci:               cell.PCI,
+		CellConfig:          cellConfigToAPI(cell.GetCellConfig()),
+		NCGI:                cell.NCGI,
+		CellType:            cell.CellType,
+		Color:               cell.Color,
+		MaxUEs:              cell.MaxUEs,
+		Neighbors:           cell.Neighbors,
+		Earfcn:              cell.Earfcn,
+		MeasurementParams:   measurementParamsToAPI(cell.MeasurementParams),
+		RrcIdleCount:        cell.RrcIdleCount,
+		RrcConnectedCount:   cell.RrcConnectedCount,
+		Pci:                 cell.PCI,
+		Cached:              cell.Cached,
+		ResourceAllocScheme: cell.ResourceAllocScheme,
+		CurrentStateHash:    cell.CurrentStateHash,
+		Grid:                gridToAPI(cell.Grid),
+		Bwps:                bwpsToAPI(cell.Bwps),
+		CachedStates:        cachedStatesToAPI(cell.CachedStates),
 	}
 }
 
-func cellToModel(cell *types.Cell) *model.Cell {
-	return &model.Cell{
-		NCGI: cell.NCGI,
-		CellConfig: model.CellConfig{
-			TxPowerDB: cell.TxPowerdB,
-			Sector: model.Sector{
-				Center:  model.Coordinate{Lat: cell.Sector.Centroid.Lat, Lng: cell.Sector.Centroid.Lng},
-				Arc:     cell.Sector.Arc,
-				Azimuth: float64(cell.Sector.Azimuth),
-				Tilt:    float64(cell.Sector.Tilt),
-				Height:  cell.Sector.Height,
-			},
-		},
-		Color:     cell.Color,
-		MaxUEs:    cell.MaxUEs,
-		Neighbors: cell.Neighbors,
-		MeasurementParams: model.MeasurementParams{
-			TimeToTrigger:          cell.MeasurementParams.TimeToTrigger,
-			FrequencyOffset:        cell.MeasurementParams.FrequencyOffset,
-			PCellIndividualOffset:  cell.MeasurementParams.PcellIndividualOffset,
-			NCellIndividualOffsets: cell.MeasurementParams.NcellIndividualOffsets,
-			Hysteresis:             cell.MeasurementParams.Hysteresis,
-			EventA3Params: model.EventA3Params{
-				A3Offset:      cell.MeasurementParams.EventA3Params.A3Offset,
-				ReportOnLeave: cell.MeasurementParams.EventA3Params.ReportOnLeave,
-			},
-		},
-		PCI: cell.Pci,
+func cellConfigToAPI(cellConfig model.CellConfig) *types.CellConfig {
+	return &types.CellConfig{
+		TxPowerdB: cellConfig.TxPowerDB,
+		Sector:    sectorToAPI(cellConfig.Sector),
+		Channel:   channelToAPI(cellConfig.Channel),
+		Beam:      beamToAPI(cellConfig.Beam),
 	}
 }
 
 func sectorToAPI(sector model.Sector) *types.Sector {
 	return &types.Sector{
-		Azimuth:  int32(sector.Azimuth),
-		Arc:      sector.Arc,
-		Centroid: &types.Point{Lat: sector.Center.Lat, Lng: sector.Center.Lng},
-		Tilt:     int32(sector.Tilt),
-		Height:   sector.Height,
+		Azimuth: float64(sector.Azimuth),
+		Arc:     sector.Arc,
+		Center:  (*types.Coordinate)(&sector.Center),
+		Tilt:    float64(sector.Tilt),
+		Height:  sector.Height,
 	}
+}
+
+func channelToAPI(channel model.Channel) *types.Channel {
+	return &types.Channel{
+		SsbFrequency:   channel.SSBFrequency,
+		ArfcnDl:        channel.ArfcnDL,
+		ArfcnUl:        channel.ArfcnUL,
+		Environment:    channel.Environment,
+		BsChannelBwDl:  channel.BsChannelBwDL,
+		BsChannelBwUl:  channel.BsChannelBwUL,
+		BsChannelBwSul: channel.BsChannelBwSUL,
+		Los:            channel.LOS,
+	}
+}
+
+func beamToAPI(beam model.Beam) *types.Beam {
+	return &types.Beam{
+		H3DbAngle:              beam.H3dBAngle,
+		V3DbAngle:              beam.V3dBAngle,
+		MaxGain:                beam.MaxGain,
+		MaxAttenuationDb:       beam.MaxAttenuationDB,
+		VSideLobeAttenuationDb: beam.VSideLobeAttenuationDB,
+	}
+}
+
+func gridToAPI(grid model.Grid) *types.Grid {
+	return &types.Grid{
+		ShadowingMap: grid.ShadowingMap,
+		GridPoints:   sliceCoordToAPI(grid.GridPoints),
+		BoundingBox:  (*types.BoundingBox)(grid.BoundingBox),
+	}
+}
+
+func sliceCoordToAPI(modelGridPoints []model.Coordinate) []*types.Coordinate {
+	gridPoints := make([]*types.Coordinate, len(modelGridPoints))
+	for i := range modelGridPoints {
+		gridPoints[i] = (*types.Coordinate)(&modelGridPoints[i])
+	}
+	return gridPoints
+}
+
+func bwpsToAPI(modelBWPs map[uint64]*model.Bwp) map[uint64]*types.Bwp {
+	bwps := make(map[uint64]*types.Bwp, len(modelBWPs))
+	for key, bwp := range modelBWPs {
+		bwps[key] = &types.Bwp{
+			Id:          bwp.ID,
+			Scs:         int32(bwp.Scs),
+			NumberOfRbs: int32(bwp.NumberOfRBs),
+			Downlink:    bwp.Downlink,
+		}
+	}
+	return bwps
+}
+
+func cachedStatesToAPI(modelCachedStates map[string]*model.CellSignalInfo) map[string]*types.CellSignalInfo {
+	cachedStates := make(map[string]*types.CellSignalInfo, len(modelCachedStates))
+	for key, modelCellSignalInfo := range modelCachedStates {
+		cachedStates[key] = &types.CellSignalInfo{
+			RpCoverageBoundaries: coverageBoundariesToAPI(modelCellSignalInfo.RPCoverageBoundaries),
+			CoverageBoundaries:   coverageBoundariesToAPI(modelCellSignalInfo.CoverageBoundaries),
+		}
+	}
+	return cachedStates
+}
+
+func coverageBoundariesToAPI(modelCoverageBoundaries []model.CoverageBoundary) []*types.CoverageBoundary {
+	coverageBoundaries := make([]*types.CoverageBoundary, len(modelCoverageBoundaries))
+	for i, covBoundary := range modelCoverageBoundaries {
+		coverageBoundaries[i] = &types.CoverageBoundary{
+			RefSignalStrength: covBoundary.RefSignalStrength,
+			BoundaryPoints:    sliceCoordToAPI(covBoundary.BoundaryPoints),
+		}
+	}
+	return coverageBoundaries
 }
 
 func measurementParamsToAPI(params model.MeasurementParams) *types.MeasurementParams {
@@ -123,10 +184,119 @@ func eventA3ParamsToAPI(params model.EventA3Params) *types.EventA3Params {
 	}
 }
 
+func CellToModel(cell *types.Cell) *model.Cell {
+	cellConfig := cell.CellConfig
+	cellSector := cellConfig.Sector
+	cellBeam := cellConfig.Beam
+	cellChannel := cellConfig.Channel
+	return &model.Cell{
+		CellConfig: model.CellConfig{
+			TxPowerDB: cellConfig.TxPowerdB,
+			Sector: model.Sector{
+				Center:  model.Coordinate{Lat: cellSector.Center.Lat, Lng: cellSector.Center.Lng},
+				Arc:     cellSector.Arc,
+				Azimuth: float64(cellSector.Azimuth),
+				Tilt:    float64(cellSector.Tilt),
+				Height:  cellSector.Height,
+			},
+			Channel: model.Channel{
+				SSBFrequency:   cellChannel.SsbFrequency,
+				ArfcnDL:        cellChannel.ArfcnDl,
+				ArfcnUL:        cellChannel.ArfcnUl,
+				Environment:    cellChannel.Environment,
+				BsChannelBwDL:  cellChannel.BsChannelBwDl,
+				BsChannelBwUL:  cellChannel.BsChannelBwUl,
+				BsChannelBwSUL: cellChannel.BsChannelBwSul,
+				LOS:            cellChannel.Los,
+			},
+			Beam: model.Beam{
+				H3dBAngle:              cellBeam.H3DbAngle,
+				V3dBAngle:              cellBeam.V3DbAngle,
+				MaxGain:                cellBeam.MaxGain,
+				MaxAttenuationDB:       cellBeam.MaxAttenuationDb,
+				VSideLobeAttenuationDB: cellBeam.VSideLobeAttenuationDb,
+			},
+		},
+		NCGI:      cell.NCGI,
+		CellType:  cell.CellType,
+		Color:     cell.Color,
+		MaxUEs:    cell.MaxUEs,
+		Neighbors: cell.Neighbors,
+		Earfcn:    cell.Earfcn,
+		MeasurementParams: model.MeasurementParams{
+			TimeToTrigger:          cell.MeasurementParams.TimeToTrigger,
+			FrequencyOffset:        cell.MeasurementParams.FrequencyOffset,
+			PCellIndividualOffset:  cell.MeasurementParams.PcellIndividualOffset,
+			NCellIndividualOffsets: cell.MeasurementParams.NcellIndividualOffsets,
+			Hysteresis:             cell.MeasurementParams.Hysteresis,
+			EventA3Params: model.EventA3Params{
+				A3Offset:      cell.MeasurementParams.EventA3Params.A3Offset,
+				ReportOnLeave: cell.MeasurementParams.EventA3Params.ReportOnLeave,
+			},
+		},
+		RrcIdleCount:        cell.RrcIdleCount,
+		RrcConnectedCount:   cell.RrcConnectedCount,
+		PCI:                 cell.Pci,
+		Cached:              cell.Cached,
+		ResourceAllocScheme: cell.ResourceAllocScheme,
+		CurrentStateHash:    cell.CurrentStateHash,
+		Grid: model.Grid{
+			ShadowingMap: cell.Grid.ShadowingMap,
+			GridPoints:   sliceCoordToModel(cell.Grid.GridPoints),
+			BoundingBox:  (*model.BoundingBox)(cell.Grid.BoundingBox),
+		},
+		Bwps:         bwpsToModel(cell.Bwps),
+		CachedStates: cachedStatesToModel(cell.CachedStates),
+	}
+}
+
+func sliceCoordToModel(gridPoints []*types.Coordinate) []model.Coordinate {
+	modelGridPoints := make([]model.Coordinate, len(gridPoints))
+	for i := range gridPoints {
+		modelGridPoints[i] = model.Coordinate(*gridPoints[i])
+	}
+	return modelGridPoints
+}
+
+func bwpsToModel(bwps map[uint64]*types.Bwp) map[uint64]*model.Bwp {
+	modelBWPs := make(map[uint64]*model.Bwp, len(bwps))
+	for key, bwp := range bwps {
+		modelBWPs[key] = &model.Bwp{
+			ID:          bwp.Id,
+			Scs:         int(bwp.Scs),
+			NumberOfRBs: int(bwp.NumberOfRbs),
+			Downlink:    bwp.Downlink,
+		}
+	}
+	return modelBWPs
+}
+
+func cachedStatesToModel(cachedStates map[string]*types.CellSignalInfo) map[string]*model.CellSignalInfo {
+	modelCachedStates := make(map[string]*model.CellSignalInfo, len(cachedStates))
+	for key, cellSignalInfo := range cachedStates {
+		modelCachedStates[key] = &model.CellSignalInfo{
+			RPCoverageBoundaries: coverageBoundariesToModel(cellSignalInfo.RpCoverageBoundaries),
+			CoverageBoundaries:   coverageBoundariesToModel(cellSignalInfo.CoverageBoundaries),
+		}
+	}
+	return modelCachedStates
+}
+
+func coverageBoundariesToModel(coverageBoundaries []*types.CoverageBoundary) []model.CoverageBoundary {
+	modelCoverageBoundaries := make([]model.CoverageBoundary, len(coverageBoundaries))
+	for i, covBoundary := range coverageBoundaries {
+		modelCoverageBoundaries[i] = model.CoverageBoundary{
+			RefSignalStrength: covBoundary.RefSignalStrength,
+			BoundaryPoints:    sliceCoordToModel(covBoundary.BoundaryPoints),
+		}
+	}
+	return modelCoverageBoundaries
+}
+
 // CreateCell creates a new simulated cell
 func (s *Server) CreateCell(ctx context.Context, request *modelapi.CreateCellRequest) (*modelapi.CreateCellResponse, error) {
 	log.Debugf("Received create cell request: %v", request)
-	err := s.cellStore.Add(ctx, cellToModel(request.Cell))
+	err := s.cellStore.Add(ctx, CellToModel(request.Cell))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +316,7 @@ func (s *Server) GetCell(ctx context.Context, request *modelapi.GetCellRequest) 
 // UpdateCell updates the specified simulated cell
 func (s *Server) UpdateCell(ctx context.Context, request *modelapi.UpdateCellRequest) (*modelapi.UpdateCellResponse, error) {
 	log.Debugf("Received update cell request: %v", request)
-	err := s.cellStore.Update(ctx, cellToModel(request.Cell))
+	err := s.cellStore.Update(ctx, CellToModel(request.Cell))
 	if err != nil {
 		return nil, err
 	}
@@ -187,6 +357,22 @@ func (s *Server) ListCells(request *modelapi.ListCellsRequest, server modelapi.C
 			Cell: cellToAPI(cell),
 		}
 		err = server.Send(resp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) ListPatchedCells(request *modelapi.ListPatchedCellsRequest, server modelapi.CellModel_ListPatchedCellsServer) error {
+	log.Debugf("Received listing patched cells request: %v", request)
+
+	for index := range s.patchedCells {
+		cell := s.patchedCells[index]
+		resp := &modelapi.ListCellsResponse{
+			Cell: cellToAPI(&cell),
+		}
+		err := server.Send(resp)
 		if err != nil {
 			return err
 		}

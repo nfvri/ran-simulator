@@ -7,6 +7,7 @@ package mobility
 
 import (
 	"context"
+	"math"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/measurement"
@@ -24,7 +26,6 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/store/routes"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
 	"github.com/nfvri/ran-simulator/pkg/utils"
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
 )
 
 // var log = logging.GetLogger()
@@ -202,6 +203,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 		d.m.UEToServingCells[hoDecision.UE.IMSI], len(d.m.UEToServingCells), uePCell.NCGI)
 
 	if len(hoDecision.TargetCellNcgis) == 0 {
+		ue.ServingCells[0].BwpRefs = []*model.Bwp{}
 		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
 		d.m.UpdateServiceMappings(ue.IMSI, sCellsNCGIS, hoDecision.TargetCellNcgis)
 		log.Debugf("len(CellToUEs[pCell]): %v", len(d.m.CellToUEs[hoDecision.SourceCellNcgi]))
@@ -277,7 +279,9 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 
 func calculateRSRP(ue *model.UE, cell *model.Cell) float64 {
 	mpf := signal.RiceanFading(signal.GetRiceanK(cell))
-	return signal.Strength(ue.Location, ue.Height, mpf, cell)
+	rsrp := signal.Strength(ue.Location, ue.Height, mpf, cell)
+
+	return math.Round(rsrp*100) / 100
 }
 
 // UpdateUECellsParams recomputes the signal metrics for the serving and neighbor cells of the ue.

@@ -5,7 +5,7 @@
 package cells
 
 import (
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 )
 
 func equalNeighbors(a, b []types.NCGI) bool {

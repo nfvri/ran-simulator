@@ -10,12 +10,13 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/store/event"
 
-	simapi "github.com/onosproject/onos-api/go/onos/ransim/trafficsim"
+	simapi "github.com/nfvri/onos-api/go/onos/ransim/trafficsim"
 
+	simtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
+	uesapi "github.com/nfvri/ran-simulator/pkg/api/ues"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/store/cells"
 	"github.com/nfvri/ran-simulator/pkg/store/ues"
-	simtypes "github.com/onosproject/onos-api/go/onos/ransim/types"
 	liblog "github.com/onosproject/onos-lib-go/pkg/logging"
 	service "github.com/onosproject/onos-lib-go/pkg/northbound"
 	"google.golang.org/grpc"
@@ -60,7 +61,7 @@ type Server struct {
 // GetMapLayout :
 func (s *Server) GetMapLayout(ctx context.Context, req *simapi.MapLayoutRequest) (*simtypes.MapLayout, error) {
 	return &simtypes.MapLayout{
-		Center:         &simtypes.Point{Lat: s.model.MapLayout.Center.Lat, Lng: s.model.MapLayout.Center.Lng},
+		Center:         &simtypes.Coordinate{Lat: s.model.MapLayout.Center.Lat, Lng: s.model.MapLayout.Center.Lng},
 		Zoom:           s.model.MapLayout.Zoom,
 		Fade:           s.model.MapLayout.FadeMap,
 		ShowRoutes:     s.model.MapLayout.ShowRoutes,
@@ -112,7 +113,7 @@ func (s *Server) ListUes(request *simapi.ListUesRequest, stream simapi.Traffic_L
 	ueList := s.ueStore.ListAllUEs(stream.Context())
 	for _, ue := range ueList {
 		resp := &simapi.ListUesResponse{
-			Ue: ueToAPI(ue),
+			Ue: uesapi.UEToAPI(ue),
 		}
 		log.Infof("UE: %v", ue)
 		err := stream.Send(resp)
@@ -134,7 +135,7 @@ func (s *Server) WatchUes(request *simapi.WatchUesRequest, server simapi.Traffic
 	}
 	for ueEvent := range ch {
 		response := &simapi.WatchUesResponse{
-			Ue: ueToAPI(ueEvent.Value.(*model.UE)),
+			Ue: uesapi.UEToAPI(ueEvent.Value.(*model.UE)),
 		}
 		err := server.Send(response)
 		if err != nil {

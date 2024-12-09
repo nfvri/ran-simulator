@@ -7,7 +7,7 @@ package model
 import (
 	"bytes"
 
-	"github.com/onosproject/onos-api/go/onos/ransim/types"
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/spf13/viper"
 )

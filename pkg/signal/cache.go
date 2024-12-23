@@ -45,7 +45,9 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			continue
 		}
 
-		log.Infof("%v --> cell.cellConfig.TxPowerDB: %v", cell.NCGI, cell.GetCellConfig().TxPowerDB)
+		for i, carrier := range cell.GetCellConfig().Carriers {
+			log.Infof("%v --> cell.cellConfig.Carrier[%v].TxPowerDB: %v", cell.NCGI, i, carrier.TxPowerDB)
+		}
 
 		_, curCellConfigInCache := cachedCell.CachedStates[cell.GetHashedConfig()]
 		if !curCellConfigInCache {
@@ -95,37 +97,45 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 		snapShotCell.CachedStates = make(map[string]*model.CellSignalInfo)
 	}
 
-	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, snapShotCell, refSignalStrength)
-	if len(rpBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
-		log.Errorf("failed to update cell's: %v rpBoundaryPoints", snapShotCell.NCGI)
-		return
-	}
-	rpBoundaryPoints = FilterBoundaryPoints(rpBoundaryPoints, snapShotCell.Sector.Center)
-	snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
-	snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellSignalInfo{
-		RPCoverageBoundaries: []model.CoverageBoundary{
-			{
-				RefSignalStrength: refSignalStrength,
-				BoundaryPoints:    rpBoundaryPoints,
-			},
-		},
+	for carrierIndex, carrier := range snapShotCell.Carriers {
+		for beamIndex, beam := range carrier.Beams {
+			rpBoundaryPoints := GetRPBoundaryPoints(snapShotCell, carrierIndex, beamIndex, refSignalStrength, ueHeight)
+			if len(rpBoundaryPoints) == 0 && carrier.TxPowerDB != 0 {
+				log.Errorf("failed to update cell's '%v' carrier's '%v'beam's '%v' beamrpBoundaryPoints", snapShotCell.NCGI, carrierIndex, beamIndex)
+				return
+			}
+			rpBoundaryPointsFiltered := FilterBoundaryPoints(rpBoundaryPoints, carrier.Center)
+			snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
+			snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellSignalInfo{
+				RPCoverageBoundaries: map[int]map[int][]model.CoverageBoundary{},
+			}
+			snapShotCell.CachedStates[snapShotCell.CurrentStateHash].RPCoverageBoundaries[carrierIndex] = map[int][]model.CoverageBoundary{}
+
+			snapShotCell.CachedStates[snapShotCell.CurrentStateHash].RPCoverageBoundaries[carrierIndex][beamIndex] = []model.CoverageBoundary{
+				{
+					RefSignalStrength: refSignalStrength,
+					BoundaryPoints:    rpBoundaryPointsFiltered,
+				},
+			}
+
+			InitShadowMap(snapShotCell, dc)
+
+			covBoundaryPoints := GetCovBoundaryPoints(ueHeight, snapShotCell, refSignalStrength, rpBoundaryPoints)
+			if len(covBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
+				log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
+				return
+			}
+			covBoundaryPoints = FilterBoundaryPoints(covBoundaryPoints, snapShotCell.Sector.Center)
+			log.Infof("NCGI: %v: len(covBoundaryPoints): %d", snapShotCell.NCGI, len(covBoundaryPoints))
+			snapShotCell.CachedStates[snapShotCell.CurrentStateHash].CoverageBoundaries = []model.CoverageBoundary{
+				{
+					RefSignalStrength: refSignalStrength,
+					BoundaryPoints:    covBoundaryPoints,
+				},
+			}
+		}
 	}
 
-	InitShadowMap(snapShotCell, dc)
-
-	covBoundaryPoints := GetCovBoundaryPoints(ueHeight, snapShotCell, refSignalStrength, rpBoundaryPoints)
-	if len(covBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
-		log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
-		return
-	}
-	covBoundaryPoints = FilterBoundaryPoints(covBoundaryPoints, snapShotCell.Sector.Center)
-	log.Infof("NCGI: %v: len(covBoundaryPoints): %d", snapShotCell.NCGI, len(covBoundaryPoints))
-	snapShotCell.CachedStates[snapShotCell.CurrentStateHash].CoverageBoundaries = []model.CoverageBoundary{
-		{
-			RefSignalStrength: refSignalStrength,
-			BoundaryPoints:    covBoundaryPoints,
-		},
-	}
 }
 
 func PopulateUEs(m *model.Model, redisStore redisLib.Store) {

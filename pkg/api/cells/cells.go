@@ -82,7 +82,7 @@ func cellConfigToAPI(cellConfig model.CellConfig) *types.CellConfig {
 	}
 }
 
-func sectorToAPI(sector model.Sector) *types.Sector {
+func sectorToAPI(sector model.Carrier) *types.Sector {
 	return &types.Sector{
 		Azimuth: float64(sector.Azimuth),
 		Arc:     sector.Arc,
@@ -192,7 +192,7 @@ func CellToModel(cell *types.Cell) *model.Cell {
 	return &model.Cell{
 		CellConfig: model.CellConfig{
 			TxPowerDB: cellConfig.TxPowerdB,
-			Sector: model.Sector{
+			Sector: model.Carrier{
 				Center:  model.Coordinate{Lat: cellSector.Center.Lat, Lng: cellSector.Center.Lng},
 				Arc:     cellSector.Arc,
 				Azimuth: float64(cellSector.Azimuth),

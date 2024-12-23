@@ -153,7 +153,7 @@ func CoverageF(ueHeight float64, cell *model.Cell, refSignalStrength, mpf float6
 	}
 }
 
-func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64) []model.Coordinate {
+func GetRPBoundaryPoints(cell *model.Cell, carrierIndex, beamIndex int, refSignalStrength, ueHeight float64) []model.Coordinate {
 	log.Debugf("calculating radiation pattern for cell:%v", cell.NCGI)
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
 		return RadiationPatternF(ueHeight, cell, refSignalStrength)
@@ -188,7 +188,7 @@ func GetRPBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength f
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)
 	}
-	return utils.SortCoordinatesByBearing(cell.Sector.Center, rpBoundaryPoints)
+	return utils.SortCoordinatesByBearing(cell.CellConfig.Carriers[0].Center, rpBoundaryPoints)
 }
 
 func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {

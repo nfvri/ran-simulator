@@ -43,7 +43,7 @@ func RadiatedStrength(coord model.Coordinate, height float64, cell *model.Cell) 
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || cell.TxPowerDB == 0 {
 		return math.Inf(-1)
 	}
-	angleAtt := angularAttenuation(coord, height, cell)
+	angleAtt := angularAttenuation(coord, height, cell, beanIndex)
 	pathLoss := GetPathLoss(coord, height, cell)
 
 	antenaGain := cell.Beam.MaxGain + angleAtt

@@ -125,15 +125,6 @@ type Coordinate struct {
 	Lng float64 `mapstructure:"lng"`
 }
 
-// Sector represents a 2D arc emanating from a location
-type Sector struct {
-	Center  Coordinate `mapstructure:"center"`
-	Azimuth float64    `mapstructure:"azimuth"`
-	Arc     int32      `mapstructure:"arc"`
-	Tilt    float64    `mapstructure:"tilt"`
-	Height  int32      `mapstructure:"height"`
-}
-
 // RouteEndPoint ...
 type RouteEndPoint struct {
 	Start Coordinate `mapstructure:"start"`
@@ -190,28 +181,13 @@ type Guami struct {
 	AmfPointer  uint32 `mapstructure:"amfpointer"`
 }
 
-// Channel represents a sl sector operational frequency range
-type Channel struct {
-	SSBFrequency   uint32 `mapstructure:"ssbfrequency"`
-	ArfcnDL        uint32 `mapstructure:"arfcndl"`
-	ArfcnUL        uint32 `mapstructure:"arfcnul"`
-	Environment    string `mapstructure:"environment" validate:"oneof=urban rural"`
-	BsChannelBwDL  uint32 `json:"bSChannelBwDL"`
-	BsChannelBwUL  uint32 `json:"bSChannelBwUL"`
-	BsChannelBwSUL uint32 `json:"bSChannelBwSUL"`
-	LOS            bool   `mapstructure:"LOS"`
-}
-
 type CellConfig struct {
-	TxPowerDB float64 `mapstructure:"txpowerdb"`
-	Sector    Sector  `mapstructure:"sector"`
-	Channel   Channel `mapstructure:"channel"`
-	Beam      Beam    `mapstructure:"beam"`
+	Carriers []Carrier `mapstructure:"sector"`
 }
 
 type CellSignalInfo struct {
-	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
-	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
+	RPCoverageBoundaries map[int]map[int][]CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
+	CoverageBoundaries   map[int]map[int][]CoverageBoundary `mapstructure:"coverageBoundaries"`
 }
 
 // Cell represents a section of coverage
@@ -226,6 +202,10 @@ type Cell struct {
 	PCI                 uint32            `mapstructure:"pci"`
 	Earfcn              uint32            `mapstructure:"earfcn"`
 	CellType            types.CellType    `mapstructure:"cellType"`
+	ArfcnDL             uint32            `mapstructure:"arfcndl"`
+	ArfcnUL             uint32            `mapstructure:"arfcnul"`
+	BsChannelBwDL       uint32            `json:"bSChannelBwDL"`
+	BsChannelBwUL       uint32            `json:"bSChannelBwUL"`
 	Bwps                map[uint64]*Bwp   `mapstructure:"bwps"`
 	RrcIdleCount        uint32
 	RrcConnectedCount   uint32
@@ -237,12 +217,7 @@ type Cell struct {
 }
 
 func (cell *Cell) GetCellConfig() CellConfig {
-	return CellConfig{
-		TxPowerDB: cell.TxPowerDB,
-		Sector:    cell.Sector,
-		Channel:   cell.Channel,
-		Beam:      cell.Beam,
-	}
+	return CellConfig{Carriers: cell.Carriers}
 }
 
 func (cell *Cell) GetHashedConfig() string {
@@ -253,12 +228,28 @@ func (cell *Cell) GetHashedConfig() string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+type Carrier struct {
+	Beams                  []Beam     `mapstructure:"beam"`
+	Center                 Coordinate `mapstructure:"center"`
+	Height                 int32      `mapstructure:"height"`
+	ArfcnDL                uint32     `mapstructure:"arfcndl"`
+	ArfcnUL                uint32     `mapstructure:"arfcnul"`
+	BsChannelBwDL          uint32     `json:"bSChannelBwDL"`
+	BsChannelBwUL          uint32     `json:"bSChannelBwUL"`
+	TxPowerDB              float64    `mapstructure:"txpowerdb"`
+	VSideLobeAttenuationDB float64    `mapstructure:"vSideLobeAttenuationDB"`
+	Environment            string     `mapstructure:"environment" validate:"oneof=urban rural"`
+	LOS                    bool       `mapstructure:"LOS"`
+}
+
 type Beam struct {
-	H3dBAngle              float64 `mapstructure:"h3dBAngle"`
-	V3dBAngle              float64 `mapstructure:"v3dBAngle"`
-	MaxGain                float64 `mapstructure:"maxGain"`
-	MaxAttenuationDB       float64 `mapstructure:"maxAttenuationDB"`
-	VSideLobeAttenuationDB float64 `mapstructure:"vSideLobeAttenuationDB"`
+	BeamIndex int             `mapstructure:"beamIndex"`
+	Azimuth   float64         `mapstructure:"azimuth"`
+	Tilt      float64         `mapstructure:"tilt"`
+	H3dBAngle float64         `mapstructure:"h3dBAngle"` // BeamHorizWidth
+	V3dBAngle float64         `mapstructure:"v3dBAngle"` // BeamVertWidth
+	MaxGain   float64         `mapstructure:"maxGain"`
+	Bwps      map[uint64]*Bwp `mapstructure:"bwps"`
 }
 
 type Grid struct {

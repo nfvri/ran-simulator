@@ -1,5 +1,7 @@
 package bandwidth
 
+import "errors"
+
 // arfcn -> nX
 // nX -> FR1/FR2, Allowed CA combinations
 // FR -> allowed SCS e.g. FR1 -> [15, 30, 60]
@@ -70,6 +72,34 @@ var bands = []Band{
 	{"n95", 2010, 2025, 0, 0, "SUL"},
 }
 
+type SCSInfo struct {
+	Value      int    // Subcarrier Spacing
+	Numerology int    // Numerlogy (μ)
+	FRName     string // "FR1"/"FR2-1"/"FR2-2"
+}
+
+// SCS mapping defines the SCS values, correspoding numerologies, anf frequency ranges.
+var SCSList = []SCSInfo{
+	{15, 0, "FR1"},    // SCS 15 kHz is allowed in FR1
+	{30, 1, "FR1"},    // SCS 30 kHz is allowed in FR1
+	{60, 2, "FR2-1"},  // SCS 60 kHz spans FR1 and FR2
+	{120, 3, "FR2-2"}, // SCS 120 kHz is allowed in FR2
+	{240, 4, "FR2-2"}, // SCS 240 kHz is allowed in FR2
+	{480, 5, "FR2-2"}, // SCS 4800 kHz is allowed in FR2
+	{960, 6, "FR2-2"}, // SCS 4800 kHz is allowed in FR2
+}
+
+// NumerologyMapping defines the numerology value for each SCS.
+var NumerologyMapping = map[int]int{
+	0: 15,
+	1: 30,
+	2: 60,
+	3: 120,
+	4: 240,
+	5: 480,
+	6: 960,
+}
+
 // GetBand takes a frequency and direction and returns the operating band name.
 func GetBand(frequency float64, direction string) string {
 	for _, band := range bands {
@@ -95,4 +125,121 @@ func GetFR(frequency float64) string {
 	default:
 		return "Out of Range"
 	}
+}
+
+// GetSCS takes a frequency and returns the allowed SCSs.
+func GetSCS(frequencyRange string) []int {
+	var allowedSCS []int
+
+	// Iterate over the SCSList and add SCS values for the given frequency range
+	for _, scs := range SCSList {
+		if scs.FRName == frequencyRange {
+			allowedSCS = append(allowedSCS, scs.Value)
+		}
+	}
+
+	// Return the slice of allowed SCS values for the given frequency range
+	return allowedSCS
+}
+
+// GetNumerology takes an SCS value and returns its corresponding numerology.
+func GetNumerology(scs int) (int, bool) {
+	num, exists := NumerologyMapping[scs]
+	return num, exists
+}
+
+// ChannelSCSPRB defines the structure for Channel Bandwidth, SCS, and Max PRBs.
+type ChannelSCSPRB struct {
+	ChannelBW float64 // Channel Bandwidth in MHz
+	SCS       int     // Subcarrier Spacing in kHz
+	PRBs      int     // Maximum PRBs
+}
+
+// ChannelTable contains entries sorted by Channel Bandwidth for efficient selection.
+var ChannelTableFR1 = []ChannelSCSPRB{
+	{5, 15, 25},    // 5 MHz, SCS 15 kHz, 25 PRBs
+	{5, 30, 11},    //        SCS 15 kHz, 11 PRBs
+	{10, 15, 52},   // 10 MHz, SCS 15 kHz, 52 PRBs
+	{10, 30, 24},   //         SCS 30 kHz, 24 PRBs
+	{10, 60, 11},   //         SCS 60 kHz, 11 PRBs
+	{15, 15, 79},   // 15 MHz, SCS 15 kHz, 79 PRBs
+	{15, 30, 38},   //         SCS 30 kHz, 38 PRBs
+	{15, 60, 18},   //         SCS 60 kHz, 18 PRBs
+	{20, 15, 106},  // 20 MHz, SCS 15 kHz, 106 PRBs
+	{20, 30, 51},   //         SCS 30 kHz, 51 PRBs
+	{20, 60, 24},   //         SCS 30 kHz, 24 PRBs
+	{25, 15, 106},  // 25 MHz, SCS 15 kHz, 106 PRBs
+	{25, 30, 51},   //         SCS 30 kHz, 51 PRBs
+	{25, 60, 24},   //         SCS 30 kHz, 24 PRBs
+	{30, 15, 160},  // 30 MHz, SCS 15 kHz, 160 PRBs
+	{30, 30, 78},   //         SCS 30 kHz, 78 PRBs
+	{30, 60, 38},   //         SCS 30 kHz, 38 PRBs
+	{35, 15, 188},  // 35 MHz, SCS 15 kHz, 188 PRBs
+	{35, 30, 92},   //         SCS 30 kHz, 92 PRBs
+	{35, 60, 44},   //         SCS 30 kHz, 44 PRBs
+	{40, 15, 216},  // 40 MHz, SCS 15 kHz, 216 PRBs
+	{40, 30, 106},  //         SCS 30 kHz, 106 PRBs
+	{40, 60, 51},   //         SCS 60 kHz, 51 PRBs
+	{45, 15, 242},  // 45 MHz, SCS 15 kHz, 242 PRBs
+	{45, 30, 119},  //         SCS 30 kHz, 119 PRBs
+	{45, 60, 58},   //         SCS 60 kHz, 58 PRBs
+	{50, 15, 270},  // 50 MHz, SCS 15 kHz, 270 PRBs
+	{50, 30, 133},  //         SCS 30 kHz, 133 PRBs
+	{50, 60, 65},   //         SCS 30 kHz, 65 PRBs
+	{60, 30, 162},  // 60 MHz, SCS 30 kHz, 162 PRBs
+	{60, 60, 79},   //         SCS 60 kHz, 79 PRBs
+	{70, 30, 189},  // 70 MHz, SCS 30 kHz, 189 PRBs
+	{70, 60, 93},   //         SCS 60 kHz, 93 PRBs
+	{80, 30, 217},  // 80 MHz, SCS 30 kHz, 217 PRBs
+	{80, 60, 107},  //         SCS 60 kHz,107 PRBs
+	{90, 30, 245},  // 90 MHz, SCS 30 kHz, 245 PRBs
+	{90, 60, 121},  //         SCS 60 kHz, 121 PRBs
+	{100, 30, 273}, // 100 MHz, SCS 30 kHz, 273 PRBs
+	{100, 60, 136}, //          SCS 60 kHz, 136 PRBs
+}
+
+var ChannelTableFR2 = []ChannelSCSPRB{
+	{50, 60, 66},
+	{50, 120, 32},
+	{100, 60, 132},
+	{100, 120, 66},
+	{200, 60, 264},
+	{200, 120, 132},
+	{400, 120, 264},
+	{400, 480, 66},
+	{400, 960, 33},
+	{800, 480, 124},
+	{800, 960, 61},
+	{1600, 480, 248},
+	{1600, 960, 124},
+	{2000, 960, 148},
+}
+
+// GetPRBs returns the PRBs for the available Channel Bandwidth and SCS.
+func GetPRBs(channelBW float64, scs int, isFR2 bool) (int, error) {
+	var selectedEntry *ChannelSCSPRB
+	var table []ChannelSCSPRB
+
+	// Select the appropriate table based on FR1 or FR2
+	if isFR2 {
+		table = ChannelTableFR2 // Use FR2 table
+	} else {
+		table = ChannelTableFR1 // Use FR1 table
+	}
+
+	for _, entry := range table {
+		// Find the largest ChannelBW <= input BW and matching SCS
+		if entry.ChannelBW <= channelBW && entry.SCS == scs {
+			if selectedEntry == nil || entry.ChannelBW > selectedEntry.ChannelBW {
+				selectedEntry = &entry
+			}
+		}
+	}
+
+	// Return an error if no matching entry is found
+	if selectedEntry == nil {
+		return 0, errors.New("Not Applicable combination of Channel Bandwidth and SCS")
+	}
+
+	return selectedEntry.PRBs, nil
 }

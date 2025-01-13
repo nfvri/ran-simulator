@@ -111,7 +111,7 @@ type DefaultHOExecutor struct {
 func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
 	log.Debug("---------------------------------- ")
-	log.Debugf("handover:  ue: %v [pcell: %v ==> tcell: %v]",
+	log.Debugf("handover:  ue: %v tcells: %v",
 		hoDecision.UE.IMSI,
 		hoDecision.TargetCellNcgis,
 	)

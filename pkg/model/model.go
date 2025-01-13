@@ -45,7 +45,9 @@ type Model struct {
 
 func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, targetCellINcgis []types.NCGI) {
 
+	// TODO: handle len(targetCellINcgis) == 0
 	// delete ue from sourceCells & sourceCells from ue
+	ue := m.UEs[strconv.FormatUint(uint64(ueIMSI), 10)]
 	for _, sourceCellNcgi := range sourceCellNcgis {
 		for index, imsi := range m.CellToUEs[sourceCellNcgi] {
 			if imsi == ueIMSI {
@@ -63,12 +65,55 @@ func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, target
 	}
 
 	// append ue to targetCells &  targetCell to ue
+	ueTargetServCells := []*UECell{}
 	for _, targetCellNcgi := range targetCellINcgis {
 		if targetCellNcgi != 0 {
 			m.CellToUEs[targetCellNcgi] = append(m.CellToUEs[targetCellNcgi], ueIMSI)
 			m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], targetCellNcgi)
+
+			ueTargetServCell := ue.GetNeighborCell(targetCellNcgi)
+			ueTargetServCells = append(ueTargetServCells)
 		}
 	}
+
+	// TODO:
+	m.UpdateUECells()
+
+}
+
+// UpdateUECells updates the serving and neighbor cells pointed by the ue.
+func (m *Model) UpdateUECells(sourceCellNcgis, targetCellINcgis []types.NCGI, ue *UE) {
+
+	// TODO: for each target serving cell
+	// remove from neighbor and add to serving cells
+	for _, tCellNCGI := range targetCellINcgis {
+
+	}
+
+	// for each serving cell remove from serving and add to neighbors.
+	for _, sCellNCGI := range sourceCellNcgis {
+		for index := range ue.ServingCells {
+			ueServCell := ue.ServingCells[index]
+			if ueServCell.NCGI == sCellNCGI {
+				tCellIndex = index
+				break
+			}
+		}
+	}
+
+	uePCell := ue.ServingCells[0]
+	ue.NeighborCells = append(ue.NeighborCells, uePCell)
+	tCellIndex := -1
+	for index := range ue.NeighborCells {
+		nCell := ue.NeighborCells[index]
+		if nCell.NCGI == tCellNCGI {
+			tCellIndex = index
+			break
+		}
+	}
+	newServingCell := *ue.NeighborCells[tCellIndex]
+	ue.ServingCells[0] = &newServingCell
+	ue.NeighborCells = append(ue.NeighborCells[:tCellIndex], ue.NeighborCells[tCellIndex+1:]...)
 
 }
 
@@ -224,6 +269,8 @@ type Cell struct {
 	Neighbors           []types.NCGI      `mapstructure:"neighbors"`
 	MeasurementParams   MeasurementParams `mapstructure:"measurementParams"`
 	PCI                 uint32            `mapstructure:"pci"`
+	ArfcnDL             uint32            `mapstructure:"arfcndl"`
+	ArfcnUL             uint32            `mapstructure:"arfcnul"`
 	Earfcn              uint32            `mapstructure:"earfcn"`
 	CellType            types.CellType    `mapstructure:"cellType"`
 	Bwps                map[uint64]*Bwp   `mapstructure:"bwps"`
@@ -320,6 +367,24 @@ type UE struct {
 	NeighborCells []*UECell          `mapstructure:"neighborCells"`
 	Height        float64            `mapstructure:"height"`
 	IsAdmitted    bool               `mapstructure:"isAdmitted"`
+}
+
+func (ue *UE) GetServingCell(ncgi types.NCGI) *UECell {
+	for servCellIndex := range ue.ServingCells {
+		if ncgi == ue.ServingCells[servCellIndex].NCGI {
+			return ue.ServingCells[servCellIndex]
+		}
+	}
+	return nil
+}
+
+func (ue *UE) GetNeighborCell(ncgi types.NCGI) *UECell {
+	for neighCellIndex := range ue.NeighborCells {
+		if ncgi == ue.NeighborCells[neighCellIndex].NCGI {
+			return ue.NeighborCells[neighCellIndex]
+		}
+	}
+	return nil
 }
 
 // ServiceModel service model information

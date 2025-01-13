@@ -41,61 +41,83 @@ func InitBWPs(pCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, ava
 
 }
 
-func ReleaseBWPs(pCell *model.Cell, ue *model.UE) []*model.Bwp {
-	uePCell := ue.ServingCells[0]
-	bwps := make([]*model.Bwp, 0, len(uePCell.BwpRefs))
-	for index := range uePCell.BwpRefs {
-		bwp := *uePCell.BwpRefs[index]
-		bwps = append(bwps, &bwp)
-		delete(pCell.Bwps, bwp.ID)
+func CurrPRBsUsed(ue *model.UE) (UsedPRBs int) {
+	for uecIndex := range ue.ServingCells {
+		ueServCell := ue.ServingCells[uecIndex]
+		for bwpIndex := range ueServCell.BwpRefs {
+			bwp := *ueServCell.BwpRefs[bwpIndex]
+			UsedPRBs += bwp.NumberOfRBs
+		}
 	}
-	ue.ServingCells[0].BwpRefs = []*model.Bwp{}
+	return
+}
+
+func ReleaseBWPs(servCells []*model.Cell, ue *model.UE) []*model.Bwp {
+	bwps := []*model.Bwp{}
+	for cIndex := range servCells {
+		servCell := servCells[cIndex]
+		for uecIndex := range ue.ServingCells {
+			ueServCell := ue.ServingCells[uecIndex]
+			if ueServCell.NCGI == servCell.NCGI {
+				for bwpIndex := range ueServCell.BwpRefs {
+					bwp := *ueServCell.BwpRefs[bwpIndex]
+					bwps = append(bwps, &bwp)
+					delete(servCell.Bwps, bwp.ID)
+				}
+				ue.ServingCells[0].BwpRefs = []*model.Bwp{}
+				break
+			}
+		}
+	}
 	return bwps
 }
 
-func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCell *model.Cell, servedUEs []*model.UE) {
+func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCells []*model.Cell, getServedUEs func(ncgi types.NCGI) []*model.UE) {
 
-	// TODO: check if ue.RSRP < refSignalStrength -> RRC_STATE_IDLE
-
-	uePCell := ue.ServingCells[0]
-	scaledBwps := getScaledBwps(servedUEs, ue.FiveQi, ue.FiveQi, requestedBwps)
-	if isEnough, reqBwps := enoughBW(tCell, requestedBwps, scaledBwps); isEnough {
-		uePCell.BwpRefs = []*model.Bwp{}
-		bwpId := len(tCell.Bwps)
-		for index := range reqBwps {
-			bwp := reqBwps[index]
-			bwp.ID = uint64(bwpId)
-			uePCell.BwpRefs = append(uePCell.BwpRefs, bwp)
-			tCell.Bwps[bwp.ID] = bwp
-			bwpId++
+	// TODO: give less PRBs on lower freq and more on higher
+	for tCellIndex := range tCells {
+		tCell := tCells[tCellIndex]
+		_, ueTargetServCell := ue.GetNeighborCell(tCell.NCGI)
+		servedUEs := getServedUEs(tCell.NCGI)
+		scaledBwps := getScaledBwps(servedUEs, ue.FiveQi, ue.FiveQi, requestedBwps)
+		if isEnough, reqBwps := enoughBW(tCell, requestedBwps, scaledBwps); isEnough {
+			ueTargetServCell.BwpRefs = []*model.Bwp{}
+			bwpId := len(tCell.Bwps)
+			for index := range reqBwps {
+				bwp := reqBwps[index]
+				bwp.ID = uint64(bwpId)
+				ueTargetServCell.BwpRefs = append(ueTargetServCell.BwpRefs, bwp)
+				tCell.Bwps[bwp.ID] = bwp
+				bwpId++
+			}
+			return
 		}
-		return
-	}
 
-	uePCell.BwpRefs = requestedBwps
-	// augment allocation with new ue
-	servedUEs = append(servedUEs, ue)
-	reqAlloc := BwAllocationOf(servedUEs)
+		ueTargetServCell.BwpRefs = requestedBwps
+		// augment allocation with new ue
+		servedUEs = append(servedUEs, ue)
+		reqAlloc := BwAllocationOf(servedUEs)
 
-	// delete current allocation
-	tCell.Bwps = map[uint64]*model.Bwp{}
-	for index := range servedUEs {
-		servedUE := servedUEs[index]
-		servedUEpCell := servedUE.ServingCells[0]
-		servedUEpCell.BwpRefs = []*model.Bwp{}
-	}
-
-	// reallocate using selected scheme
-	switch tCell.ResourceAllocScheme {
-	case PROPORTIONAL_FAIR:
-	default:
-		pf := ProportionalFair{
-			Cell:            tCell,
-			ServedUEs:       servedUEs,
-			IsReallocation:  true,
-			ReqBwAllocation: reqAlloc,
+		// delete current allocation
+		tCell.Bwps = map[uint64]*model.Bwp{}
+		for index := range servedUEs {
+			servedUE := servedUEs[index]
+			servedUEpCell := servedUE.ServingCells[0]
+			servedUEpCell.BwpRefs = []*model.Bwp{}
 		}
-		pf.apply()
+
+		// reallocate using selected scheme
+		switch tCell.ResourceAllocScheme {
+		case PROPORTIONAL_FAIR:
+		default:
+			pf := ProportionalFair{
+				Cell:            tCell,
+				ServedUEs:       servedUEs,
+				IsReallocation:  true,
+				ReqBwAllocation: reqAlloc,
+			}
+			pf.apply()
+		}
 	}
 }
 

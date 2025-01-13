@@ -52,6 +52,12 @@ func RadiatedStrength(coord model.Coordinate, height float64, cell *model.Cell) 
 
 }
 
+func RSRP(ue *model.UE, cell *model.Cell) float64 {
+	mpf := RiceanFading(GetRiceanK(cell))
+	rsrp := Strength(ue.Location, ue.Height, mpf, cell)
+	return utils.RoundToDecimal(rsrp, 4)
+}
+
 func RSSI(rsrpDbm, sinrDbm float64) float64 {
 	rsrpMw := utils.DbmToMw(rsrpDbm)
 	sinrMw := utils.DbmToMw(sinrDbm)

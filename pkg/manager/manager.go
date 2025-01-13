@@ -42,6 +42,8 @@ import (
 
 var log = logging.GetLogger()
 
+const NUM_SUBFRAMES = 10
+
 // Config is a manager configuration
 type Config struct {
 	CAPath       string
@@ -334,14 +336,15 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 				sCell := ue.ServingCells[sCellIndex]
 				if sCell.NCGI == cell.NCGI {
 					for _, bwp := range sCell.BwpRefs {
+						framePRBs := bwp.NumberOfRBs * NUM_SUBFRAMES * (bwp.Scs / 15)
 						if bwp.Downlink {
-							prbsUsedDl += bwp.NumberOfRBs
+							prbsUsedDl += framePRBs
 							bwUsedDl += 12 * bwp.NumberOfRBs * bwp.Scs
-							prbsUsedDLPerCQI[ue.FiveQi] += bwp.NumberOfRBs
+							prbsUsedDLPerCQI[ue.FiveQi] += framePRBs
 						} else {
-							prbsUsedUl += bwp.NumberOfRBs
+							prbsUsedUl += framePRBs
 							bwUsedUl += 12 * bwp.NumberOfRBs * bwp.Scs
-							prbsUsedULPerCQI[ue.FiveQi] += bwp.NumberOfRBs
+							prbsUsedULPerCQI[ue.FiveQi] += framePRBs
 						}
 					}
 					break

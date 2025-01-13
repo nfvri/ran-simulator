@@ -19,6 +19,7 @@ require (
 	github.com/onosproject/onos-ric-sdk-go v0.8.12
 	github.com/onosproject/onos-test v0.6.4
 	github.com/onosproject/rrm-son-lib v0.0.5
+	github.com/plar/go-adaptive-radix-tree/v2 v2.0.3
 	github.com/pmcxs/hexgrid v0.0.0-20190126214921-42796ac894ab
 	github.com/redis/go-redis/v9 v9.5.2
 	github.com/sirupsen/logrus v1.9.0

@@ -8,9 +8,9 @@ import (
 func TestGetBand(t *testing.T) {
 	// Expected result
 	// expectedBand := "n77"
-	frequency := float64(1975)
+	var arfcn uint32 = 1975
 	direction := UL
-	band := GetBand(frequency, direction)
+	band := GetBandName(arfcn, direction)
 	fmt.Printf("Band: %v  \n", band)
 	// assert.Equal(t, band, expectedBand)
 

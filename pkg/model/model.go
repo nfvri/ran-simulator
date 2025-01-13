@@ -71,49 +71,39 @@ func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, target
 			m.CellToUEs[targetCellNcgi] = append(m.CellToUEs[targetCellNcgi], ueIMSI)
 			m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], targetCellNcgi)
 
-			ueTargetServCell := ue.GetNeighborCell(targetCellNcgi)
 			ueTargetServCells = append(ueTargetServCells)
 		}
 	}
 
-	// TODO:
-	m.UpdateUECells()
+	m.UpdateUECells(sourceCellNcgis, targetCellINcgis, ue)
 
 }
 
 // UpdateUECells updates the serving and neighbor cells pointed by the ue.
 func (m *Model) UpdateUECells(sourceCellNcgis, targetCellINcgis []types.NCGI, ue *UE) {
 
+	deletedUECells := []*UECell{}
+	// for each serving cell remove from serving and add to neighbors.
+SERVING_CELL_DELETION:
+	for _, servCellNCGI := range sourceCellNcgis {
+		for _, targetUECellINcgi := range targetCellINcgis {
+			if servCellNCGI == targetUECellINcgi {
+				continue SERVING_CELL_DELETION
+			}
+		}
+		deletedUECells = append(deletedUECells, ue.DeleteServingCell(servCellNCGI))
+	}
+
 	// TODO: for each target serving cell
 	// remove from neighbor and add to serving cells
 	for _, tCellNCGI := range targetCellINcgis {
-
-	}
-
-	// for each serving cell remove from serving and add to neighbors.
-	for _, sCellNCGI := range sourceCellNcgis {
-		for index := range ue.ServingCells {
-			ueServCell := ue.ServingCells[index]
-			if ueServCell.NCGI == sCellNCGI {
-				tCellIndex = index
-				break
-			}
+		neighUECellIndex, neighTargetUECell := ue.GetNeighborCell(tCellNCGI)
+		if neighTargetUECell != nil {
+			ue.NeighborCells = append(ue.NeighborCells[neighUECellIndex:], ue.NeighborCells[neighUECellIndex+1:]...)
 		}
 	}
 
-	uePCell := ue.ServingCells[0]
-	ue.NeighborCells = append(ue.NeighborCells, uePCell)
-	tCellIndex := -1
-	for index := range ue.NeighborCells {
-		nCell := ue.NeighborCells[index]
-		if nCell.NCGI == tCellNCGI {
-			tCellIndex = index
-			break
-		}
-	}
-	newServingCell := *ue.NeighborCells[tCellIndex]
-	ue.ServingCells[0] = &newServingCell
-	ue.NeighborCells = append(ue.NeighborCells[:tCellIndex], ue.NeighborCells[tCellIndex+1:]...)
+	ue.NeighborCells = append(ue.NeighborCells, deletedUECells...)
 
 }
 
@@ -378,13 +368,27 @@ func (ue *UE) GetServingCell(ncgi types.NCGI) *UECell {
 	return nil
 }
 
-func (ue *UE) GetNeighborCell(ncgi types.NCGI) *UECell {
-	for neighCellIndex := range ue.NeighborCells {
-		if ncgi == ue.NeighborCells[neighCellIndex].NCGI {
-			return ue.NeighborCells[neighCellIndex]
+func (ue *UE) DeleteServingCell(ncgi types.NCGI) *UECell {
+	var deletedCell *UECell
+	deletedCellIndex := 0
+	for servCellIndex := range ue.ServingCells {
+		if ncgi == ue.ServingCells[servCellIndex].NCGI {
+			deletedCellIndex = servCellIndex
+			deletedCell = ue.ServingCells[servCellIndex]
+			break
 		}
 	}
-	return nil
+	ue.ServingCells = append(ue.ServingCells[:deletedCellIndex], ue.ServingCells[deletedCellIndex+1:]...)
+	return deletedCell
+}
+
+func (ue *UE) GetNeighborCell(ncgi types.NCGI) (int, *UECell) {
+	for neighCellIndex := range ue.NeighborCells {
+		if ncgi == ue.NeighborCells[neighCellIndex].NCGI {
+			return neighCellIndex, ue.NeighborCells[neighCellIndex]
+		}
+	}
+	return -1, nil
 }
 
 // ServiceModel service model information

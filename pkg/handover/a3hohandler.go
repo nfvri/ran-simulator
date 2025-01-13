@@ -11,13 +11,14 @@ import (
 const MIN_ACCEPTABLE_RSRP = -110.0
 
 // NewA3HandoverHandler returns A3HandoverHandler object
-func NewA3HandoverHandler(ca *bw.CarrierAggregatorNR) *A3HandoverHandler {
+func NewA3HandoverHandler(ca *bw.CarrierAggregatorNR, cells map[string]*model.Cell) *A3HandoverHandler {
 	return &A3HandoverHandler{
 		Chans: A3HandoverChannel{
 			InputChan:  make(chan model.UE),
 			OutputChan: make(chan HandoverDecision),
 		},
-		ca: ca,
+		ca:    ca,
+		cells: cells,
 	}
 }
 
@@ -25,6 +26,7 @@ func NewA3HandoverHandler(ca *bw.CarrierAggregatorNR) *A3HandoverHandler {
 type A3HandoverHandler struct {
 	Chans A3HandoverChannel
 	ca    *bw.CarrierAggregatorNR
+	cells map[string]*model.Cell
 }
 
 // A3HandoverChannel struct has channels used in A3 handover handler
@@ -38,17 +40,13 @@ func (h *A3HandoverHandler) Run() {
 	for ue := range h.Chans.InputChan {
 		h.Chans.OutputChan <- HandoverDecision{
 			UE:              ue,
-			TargetCellNcgis: h.getTargetServingCellNCGIs(ue),
+			TargetCellNcgis: h.rankTargetCellsByRSRP(ue),
 		}
 	}
 }
 
-func (h *A3HandoverHandler) getTargetServingCellNCGIs(ue model.UE) []types.NCGI {
+func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
 	bestRSRPs := map[types.NCGI]float64{}
-	// TODO: search neighbors for allowed CA combinations
-	// and try k=2,3,4...6 to find a CA that covers bw requirements
-	// PRBS, SCS increasing in freq
-	uePRBsUsed := bw.CurrPRBsUsed(&ue)
 
 	for _, ueSCell := range ue.ServingCells {
 		if ueSCell.Rsrp > MIN_ACCEPTABLE_RSRP {
@@ -69,14 +67,36 @@ func (h *A3HandoverHandler) getTargetServingCellNCGIs(ue model.UE) []types.NCGI 
 		}
 	}
 
-	newServingCellNCGIs := []types.NCGI{}
+	bestNCGIsByRSRP := []types.NCGI{}
 	for ncgi := range bestRSRPs {
-		newServingCellNCGIs = append(newServingCellNCGIs, ncgi)
+		bestNCGIsByRSRP = append(bestNCGIsByRSRP, ncgi)
 	}
 
-	sort.Slice(newServingCellNCGIs, func(i, j int) bool {
-		return bestRSRPs[newServingCellNCGIs[i]] > bestRSRPs[newServingCellNCGIs[j]]
+	sort.Slice(bestNCGIsByRSRP, func(i, j int) bool {
+		return bestRSRPs[bestNCGIsByRSRP[i]] > bestRSRPs[bestNCGIsByRSRP[j]]
 	})
 
-	return newServingCellNCGIs
+	return bestNCGIsByRSRP
+}
+
+func (h *A3HandoverHandler) getValidCACombinations(targetCellNCGIs []types.NCGI) {
+	// TODO: search neighbors for allowed CA combinations
+	// and try k=2,3,4...6 to find a CA that covers bw requirements
+	// PRBS, SCS increasing in freq
+	targetCellsBands := []string{}
+	for cellIndex := range h.cells {
+		cell := h.cells[cellIndex]
+		for _, ncgi := range targetCellNCGIs {
+			if cell.NCGI == ncgi {
+				// TODO: check both DL, UL
+				targetCellsBands = append(targetCellsBands, bw.GetBandName(cell.ArfcnDL, bw.DL))
+			}
+		}
+	}
+	// TODO: fix sorting to sort on band number
+	sort.Strings(targetCellsBands)
+	// TODO: concatenate and check if valid combinations using bfs
+	// h.ca.IsValidBandCombination()
+
+	// uePRBsUsed := bw.CurrPRBsUsed(&ue)
 }

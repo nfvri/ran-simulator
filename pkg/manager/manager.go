@@ -97,7 +97,7 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) initMobilityDriver() {
-	hoHandler := handover.NewA3HandoverHandler()
+	hoHandler := handover.NewA3HandoverHandler(bw.NewCarrierAggregatorNR())
 	ho := handover.NewA3Handover(hoHandler)
 	hoCtrl := handover.NewHOController(handover.A3, ho)
 

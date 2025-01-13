@@ -11,14 +11,14 @@ import (
 const MIN_ACCEPTABLE_RSRP = -110.0
 
 // NewA3HandoverHandler returns A3HandoverHandler object
-func NewA3HandoverHandler(ca *bw.CarrierAggregatorNR, cells map[string]*model.Cell) *A3HandoverHandler {
+func NewA3HandoverHandler(ca *bw.CarrierAggregatorNR, m *model.Model) *A3HandoverHandler {
 	return &A3HandoverHandler{
 		Chans: A3HandoverChannel{
 			InputChan:  make(chan model.UE),
 			OutputChan: make(chan HandoverDecision),
 		},
 		ca:    ca,
-		cells: cells,
+		model: m,
 	}
 }
 
@@ -26,7 +26,7 @@ func NewA3HandoverHandler(ca *bw.CarrierAggregatorNR, cells map[string]*model.Ce
 type A3HandoverHandler struct {
 	Chans A3HandoverChannel
 	ca    *bw.CarrierAggregatorNR
-	cells map[string]*model.Cell
+	model *model.Model
 }
 
 // A3HandoverChannel struct has channels used in A3 handover handler
@@ -83,20 +83,42 @@ func (h *A3HandoverHandler) getValidCACombinations(targetCellNCGIs []types.NCGI)
 	// TODO: search neighbors for allowed CA combinations
 	// and try k=2,3,4...6 to find a CA that covers bw requirements
 	// PRBS, SCS increasing in freq
-	targetCellsBands := []string{}
-	for cellIndex := range h.cells {
-		cell := h.cells[cellIndex]
+	targetCellsBandsDL := []string{}
+	// targetCellsBandsUL := []string{}
+	for cellIndex := range h.model.Cells {
+		cell := h.model.Cells[cellIndex]
 		for _, ncgi := range targetCellNCGIs {
 			if cell.NCGI == ncgi {
 				// TODO: check both DL, UL
-				targetCellsBands = append(targetCellsBands, bw.GetBandName(cell.ArfcnDL, bw.DL))
+				targetCellsBandsDL = append(targetCellsBandsDL, bw.GetBandName(cell.ArfcnDL, bw.DL))
+				// [n1, n38, n5, n3]
+				// n1, n3, n5, n38
+				// n1_n3
+				// n1_n3_n5
+				// n1_n3_n5_n38 -> c1, c4, c8
+				// n2_n7 -> c1, c4, c8
+
 			}
 		}
 	}
 	// TODO: fix sorting to sort on band number
-	sort.Strings(targetCellsBands)
+	sort.Strings(targetCellsBandsDL)
 	// TODO: concatenate and check if valid combinations using bfs
 	// h.ca.IsValidBandCombination()
 
+}
+
+func (h *A3HandoverHandler) hasSufficientPRBS(caScheme [][]*model.Cell) {
 	// uePRBsUsed := bw.CurrPRBsUsed(&ue)
+
+	// caSchemes := [][]*model.Cell{
+	// 	[]*model.Cell{c1, c2....ck}, Combo1
+	// 	[]*model.Cell{c1....cl}, Combo2
+	// }
+
+	// c := &model.Cell{}
+	// h.model.GetServedUEs(c.NCGI)
+	// c.Channel.BsChannelBwDL - usedBWDL -> availableBW (MHz)
+	// c.Channel.BsChannelBwUL - usedBWUL-> availableBW (MHz)
+	// bw.GetPRBs()
 }

@@ -144,7 +144,7 @@ func bwpsToAPI(modelBWPs map[uint64]*model.Bwp) map[uint64]*types.Bwp {
 	return bwps
 }
 
-func cachedStatesToAPI(modelCachedStates map[string]*model.CellSignalInfo) map[string]*types.CellSignalInfo {
+func cachedStatesToAPI(modelCachedStates map[string]*model.CellCoverageInfo) map[string]*types.CellSignalInfo {
 	cachedStates := make(map[string]*types.CellSignalInfo, len(modelCachedStates))
 	for key, modelCellSignalInfo := range modelCachedStates {
 		cachedStates[key] = &types.CellSignalInfo{
@@ -271,10 +271,10 @@ func bwpsToModel(bwps map[uint64]*types.Bwp) map[uint64]*model.Bwp {
 	return modelBWPs
 }
 
-func cachedStatesToModel(cachedStates map[string]*types.CellSignalInfo) map[string]*model.CellSignalInfo {
-	modelCachedStates := make(map[string]*model.CellSignalInfo, len(cachedStates))
+func cachedStatesToModel(cachedStates map[string]*types.CellSignalInfo) map[string]*model.CellCoverageInfo {
+	modelCachedStates := make(map[string]*model.CellCoverageInfo, len(cachedStates))
 	for key, cellSignalInfo := range cachedStates {
-		modelCachedStates[key] = &model.CellSignalInfo{
+		modelCachedStates[key] = &model.CellCoverageInfo{
 			RPCoverageBoundaries: coverageBoundariesToModel(cellSignalInfo.RpCoverageBoundaries),
 			CoverageBoundaries:   coverageBoundariesToModel(cellSignalInfo.CoverageBoundaries),
 		}

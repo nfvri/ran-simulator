@@ -128,18 +128,23 @@ var NumerologyMapping = map[int]int{
 	6: 960,
 }
 
-// GetBandName takes a frequency and direction and returns the operating band name.
-func GetBandName(arfcn uint32, direction string) string {
-	for _, band := range nrBands {
+// GetBand takes a frequency and direction and returns the operating band name.
+func GetBand(arfcn uint32, direction string) (nrBand BandNR, found bool) {
+	for b := range nrBands {
+		band := nrBands[b]
 		arfcnFloat := float64(arfcn)
-		if direction == UL && band.ULlow <= arfcnFloat && arfcnFloat <= band.ULhigh {
-			return band.Name
+
+		found = direction == UL && band.ULlow <= arfcnFloat && arfcnFloat <= band.ULhigh
+		if found {
+			return band, found
 		}
-		if direction == DL && band.DLlow <= arfcnFloat && arfcnFloat <= band.DLhigh {
-			return band.Name
+
+		found = direction == DL && band.DLlow <= arfcnFloat && arfcnFloat <= band.DLhigh
+		if found {
+			return band, found
 		}
 	}
-	return "Unknown Band"
+	return
 }
 
 // GetFR takes a frequency and returns the frequency range designation.

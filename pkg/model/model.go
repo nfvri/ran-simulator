@@ -241,10 +241,18 @@ type CellConfig struct {
 	TxPowerDB float64 `mapstructure:"txpowerdb"`
 	Sector    Sector  `mapstructure:"sector"`
 	Channel   Channel `mapstructure:"channel"`
-	Beam      Beam    `mapstructure:"beam"`
+	SchedulingCellInfo
+	Beam Beam `mapstructure:"beam"`
 }
 
-type CellSignalInfo struct {
+type SchedulingCellInfo string
+
+const (
+	SCHEDULING_CELL_INFO_OWN   SchedulingCellInfo = "own"
+	SCHEDULING_CELL_INFO_OTHER SchedulingCellInfo = "other"
+)
+
+type CellCoverageInfo struct {
 	RPCoverageBoundaries []CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
 	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
 }
@@ -267,7 +275,7 @@ type Cell struct {
 	RrcIdleCount        uint32
 	RrcConnectedCount   uint32
 	Cached              bool
-	CachedStates        map[string]*CellSignalInfo
+	CachedStates        map[string]*CellCoverageInfo
 	CurrentStateHash    string
 	ResourceAllocScheme string
 	Grid
@@ -345,18 +353,19 @@ type Bwp struct {
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI          types.IMSI         `mapstructure:"imsi"`
-	AmfUeNgapID   types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
-	Type          UEType             `mapstructure:"type"`
-	RrcState      e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
-	Location      Coordinate         `mapstructure:"location"`
-	Heading       uint32             `mapstructure:"heading"`
-	FiveQi        int                `mapstructure:"fiveQi"`
-	ServingCells  []*UECell          `mapstructure:"servingCells"`
-	CRNTI         types.CRNTI        `mapstructure:"CRNTI"`
-	NeighborCells []*UECell          `mapstructure:"neighborCells"`
-	Height        float64            `mapstructure:"height"`
-	IsAdmitted    bool               `mapstructure:"isAdmitted"`
+	IMSI             types.IMSI         `mapstructure:"imsi"`
+	AmfUeNgapID      types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
+	Type             UEType             `mapstructure:"type"`
+	RrcState         e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
+	Location         Coordinate         `mapstructure:"location"`
+	Heading          uint32             `mapstructure:"heading"`
+	FiveQi           int                `mapstructure:"fiveQi"`
+	ServingCells     []*UECell          `mapstructure:"servingCells"`
+	CRNTI            types.CRNTI        `mapstructure:"CRNTI"`
+	NeighborCells    []*UECell          `mapstructure:"neighborCells"`
+	Height           float64            `mapstructure:"height"`
+	IsAdmitted       bool               `mapstructure:"isAdmitted"`
+	SupportedBWClass string             `mapstructure:"supportedBWClass"`
 }
 
 func (ue *UE) GetServingCell(ncgi types.NCGI) *UECell {

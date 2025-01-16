@@ -2,10 +2,14 @@ package handover
 
 import (
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
+	"k8s.io/utils/strings/slices"
 )
 
 const MIN_ACCEPTABLE_RSRP = -110.0
@@ -79,46 +83,89 @@ func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
 	return bestNCGIsByRSRP
 }
 
-func (h *A3HandoverHandler) getValidCACombinations(targetCellNCGIs []types.NCGI) {
-	// TODO: search neighbors for allowed CA combinations
-	// and try k=2,3,4...6 to find a CA that covers bw requirements
-	// PRBS, SCS increasing in freq
-	targetCellsBandsDL := []string{}
-	// targetCellsBandsUL := []string{}
+func (h *A3HandoverHandler) GetValidCACombinations(targetCellNCGIs []types.NCGI) (validCABandCombos [][]string, cellsByBand map[bw.BandNR][]*model.Cell) {
+
 	for cellIndex := range h.model.Cells {
 		cell := h.model.Cells[cellIndex]
 		for _, ncgi := range targetCellNCGIs {
-			if cell.NCGI == ncgi {
-				// TODO: check both DL, UL
-				targetCellsBandsDL = append(targetCellsBandsDL, bw.GetBandName(cell.ArfcnDL, bw.DL))
-				// [n1, n38, n5, n3]
-				// n1, n3, n5, n38
-				// n1_n3
-				// n1_n3_n5
-				// n1_n3_n5_n38 -> c1, c4, c8
-				// n2_n7 -> c1, c4, c8
-
+			crossCarrierSchedulingSupported := cell.SchedulingCellInfo == model.SCHEDULING_CELL_INFO_OTHER
+			if cell.NCGI == ncgi && crossCarrierSchedulingSupported {
+				// FIXME: For cells on different nodes
+				// we should consult DUAL CONNECTIVITY combinations in:
+				// https://www.etsi.org/deliver/etsi_ts/138100_138199/13810103/15.02.00_60/ts_13810103v150200p.pdf
+				// https://www.sqimway.com/nr_nrdc.php
+				// https://www.sqimway.com/nr_endc.php
+				// https://www.sqimway.com/nr_nedc.php
+				arfcn := utils.If(cell.ArfcnDL > 0, cell.ArfcnDL, cell.ArfcnUL)
+				cellBand, found := bw.GetBand(arfcn, bw.DL)
+				if !found {
+					continue
+				}
+				cellsByBand[cellBand] = append(cellsByBand[cellBand], cell)
 			}
 		}
 	}
-	// TODO: fix sorting to sort on band number
-	sort.Strings(targetCellsBandsDL)
-	// TODO: concatenate and check if valid combinations using bfs
-	// h.ca.IsValidBandCombination()
+
+	targetCellBands := []bw.BandNR{}
+	for b := range cellsByBand {
+		targetCellBands = append(targetCellBands, b)
+	}
+
+	caBandCombos := getCABandCombinations(sortNRBands(targetCellBands))
+
+	for _, caBandCombo := range caBandCombos {
+		if h.ca.IsValidBandCombination(caBandCombo) {
+			validCABandCombos = append(validCABandCombos, strings.Split(caBandCombo, "_"))
+		}
+	}
+
+	return
 
 }
 
-func (h *A3HandoverHandler) hasSufficientPRBS(caScheme [][]*model.Cell) {
-	// uePRBsUsed := bw.CurrPRBsUsed(&ue)
+// Function to sort the slice of strings
+func sortNRBands(bands []bw.BandNR) []bw.BandNR {
+	bandNumber := func(s string) int {
+		for _, char := range s {
+			if char >= '0' && char <= '9' {
+				num, _ := strconv.Atoi(s[1:])
+				return num
+			}
+		}
+		return 0
+	}
+	sort.Slice(bands, func(i, j int) bool {
+		return bandNumber(bands[i].Name) < bandNumber(bands[j].Name)
+	})
+	return bands
+}
 
-	// caSchemes := [][]*model.Cell{
-	// 	[]*model.Cell{c1, c2....ck}, Combo1
-	// 	[]*model.Cell{c1....cl}, Combo2
-	// }
+func getCABandCombinations(sortedBandsNR []bw.BandNR) []string {
+	var combinations []string
+	queue := []string{}
 
-	// c := &model.Cell{}
-	// h.model.GetServedUEs(c.NCGI)
-	// c.Channel.BsChannelBwDL - usedBWDL -> availableBW (MHz)
-	// c.Channel.BsChannelBwUL - usedBWUL-> availableBW (MHz)
-	// bw.GetPRBs()
+	for i := 0; i < len(sortedBandsNR); i++ {
+		for j := i + 1; j < len(sortedBandsNR); j++ {
+			initialCombo := sortedBandsNR[i].Name + "_" + sortedBandsNR[j].Name
+			queue = append(queue, initialCombo)
+		}
+	}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		combinations = append(combinations, current)
+
+		for _, b := range sortedBandsNR {
+			if !strings.Contains(current, b.Name) {
+				newCombination := current + "_" + b.Name
+				if !slices.Contains(combinations, newCombination) {
+					queue = append(queue, newCombination)
+				}
+			}
+		}
+	}
+
+	return combinations
 }

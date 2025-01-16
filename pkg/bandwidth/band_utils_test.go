@@ -10,7 +10,7 @@ func TestGetBand(t *testing.T) {
 	// expectedBand := "n77"
 	var arfcn uint32 = 1975
 	direction := UL
-	band := GetBandName(arfcn, direction)
+	band, _ := GetBand(arfcn, direction)
 	fmt.Printf("Band: %v  \n", band)
 	// assert.Equal(t, band, expectedBand)
 

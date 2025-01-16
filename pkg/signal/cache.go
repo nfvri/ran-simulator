@@ -92,7 +92,7 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 		snapShotCell.Bwps = cachedCell.Bwps
 		snapShotCell.Grid = cachedCell.Grid
 	} else {
-		snapShotCell.CachedStates = make(map[string]*model.CellSignalInfo)
+		snapShotCell.CachedStates = make(map[string]*model.CellCoverageInfo)
 	}
 
 	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, snapShotCell, refSignalStrength)
@@ -102,7 +102,7 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 	}
 	rpBoundaryPoints = FilterBoundaryPoints(rpBoundaryPoints, snapShotCell.Sector.Center)
 	snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
-	snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellSignalInfo{
+	snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellCoverageInfo{
 		RPCoverageBoundaries: []model.CoverageBoundary{
 			{
 				RefSignalStrength: refSignalStrength,

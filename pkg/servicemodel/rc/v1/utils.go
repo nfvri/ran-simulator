@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	ransimtypes "github.com/nfvri/onos-api/go/onos/ransim/types"
+	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	lho "github.com/nfvri/ran-simulator/pkg/handover"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -262,7 +263,7 @@ func (c *Client) getSSBFrequency(ctx context.Context, ncgi ransimtypes.NCGI) (in
 		return 0, err
 	}
 
-	return int32(cell.Channel.SSBFrequency), nil
+	return int32(bw.CalculateFrequencyMHz(cell.Carriers[0].ArfcnDL)), nil
 }
 
 func (c *Client) createRICIndicationFormat3(ctx context.Context, cells []ransimtypes.NCGI, subscription *subutils.Subscription, e2NodeInfoChangeID int32) (*e2appducontents.Ricindication, error) {

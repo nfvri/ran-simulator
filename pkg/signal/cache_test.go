@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"testing"
 
+	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	redisLib "github.com/nfvri/ran-simulator/pkg/store/redis"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -36,21 +37,24 @@ func Test_UpdateCellsCache(t *testing.T) {
 	cache = &redisLib.MockedRedisStore{}
 	UpdateCells(m.Cells, cache, ueHeight, -87.0, 50, "1234")
 	assert.Equal(t, 3, len(m.Cells))
-	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
-	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints), 1000)
+	beamID1 := model.BeamID{NCGI: 17660905570307, CarrierIndex: 0, BeamIndex: 0}
+	beamID2 := model.BeamID{NCGI: 17660905553922, CarrierIndex: 0, BeamIndex: 0}
+	beamID3 := model.BeamID{NCGI: 17660905537537, CarrierIndex: 0, BeamIndex: 0}
+	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].RPCoverageBoundaries[beamID1][0].BoundaryPoints), 1000)
+	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].RPCoverageBoundaries[beamID2][0].BoundaryPoints), 1000)
+	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].RPCoverageBoundaries[beamID3][0].BoundaryPoints), 1000)
 
-	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
-	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].CoverageBoundaries[0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].CoverageBoundaries[beamID1][0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].CoverageBoundaries[beamID2][0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].CoverageBoundaries[beamID3][0].BoundaryPoints), 100)
 
 	assert.Greater(t, len(m.Cells["17660905570307"].Grid.GridPoints), 100)
 	assert.Greater(t, len(m.Cells["17660905553922"].Grid.GridPoints), 100)
 	assert.Greater(t, len(m.Cells["17660905537537"].Grid.GridPoints), 100)
 
-	assert.Greater(t, len(m.Cells["17660905570307"].Grid.ShadowingMap), 100)
-	assert.Greater(t, len(m.Cells["17660905553922"].Grid.ShadowingMap), 100)
-	assert.Greater(t, len(m.Cells["17660905537537"].Grid.ShadowingMap), 100)
+	assert.Greater(t, len(m.Cells["17660905570307"].Grid.ShadowingMaps), 100)
+	assert.Greater(t, len(m.Cells["17660905553922"].Grid.ShadowingMaps), 100)
+	assert.Greater(t, len(m.Cells["17660905537537"].Grid.ShadowingMaps), 100)
 
 }
 
@@ -77,13 +81,18 @@ func Test_GenerateUEsLocations(t *testing.T) {
 		if !ok {
 			continue
 		}
+
+		numUEsPerBeamQS := bw.GetNumUEsPerBeamQS(sCell, cqiMap)
+		nCells := utils.GetNeighborCells(sCell, m.Cells)
+		nBeamIDs := GetNeighborBeamIDs(nCells)
+
 		if _, exists := uesLocations[sCellNCGI]; !exists {
 			uesLocations[sCellNCGI] = make(map[int][]model.Coordinate)
 		}
-		for cqi, numUEs := range cqiMap {
-			ueSINR := GetSINR(cqi)
-			neighborCells := utils.GetNeighborCells(sCell, m.Cells)
-			ueLocationForCqi := GetSinrPoints(ueHeight, sCell, neighborCells, ueSINR, 200, numUEs, cqi)
+		for beamQS, numUEs := range numUEsPerBeamQS {
+			ueSINR := GetSINR(beamQS.CQI)
+
+			ueLocationForCqi := GetSinrPoints(sCell, beamQS.BeamID, nCells, nBeamIDs, ueHeight, ueSINR, 200, numUEs, beamQS.CQI)
 			assert.Equal(t, numUEs, len(ueLocationForCqi))
 		}
 	}

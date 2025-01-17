@@ -97,16 +97,21 @@ func GenerateHoneycombTopology(mapCenter model.Coordinate, numTowers uint, secto
 			cell := &model.Cell{
 				NCGI: types.ToNCGI(plmnID, types.ToNCI(gnbID, cellID)),
 				CellConfig: model.CellConfig{
-					TxPowerDB: 11,
-					Sector: model.Sector{
-						Center:  *points[t],
-						Azimuth: float64(azimuth),
-						Arc:     arc,
-						Height:  int32(rand.Intn(31) + 20),
-						Tilt:    float64(rand.Intn(31) - 15)},
-					Channel: model.Channel{
-						ArfcnDL: earfcn,
-						ArfcnUL: earfcn,
+					Carriers: []*model.Carrier{
+						{
+							Beams: []*model.Beam{
+								{
+									Azimuth:   float64(azimuth),
+									Tilt:      float64(rand.Intn(31) - 15),
+									H3dBAngle: float64(arc),
+								},
+							},
+							TxPowerDB: 11,
+							Center:    *points[t],
+							Height:    int32(rand.Intn(31) + 20),
+							ArfcnDL:   earfcn,
+							ArfcnUL:   earfcn,
+						},
 					},
 				},
 
@@ -265,14 +270,14 @@ func generateServiceModels(namesAndIDs []string) map[string]model.ServiceModel {
 
 // Cells are neighbors if their sectors have the same coordinates or if their center arc vectors fall within a distance/2
 func isNeighbor(cell *model.Cell, other *model.Cell, maxDistance float64, onlyDistance bool) bool {
-	return (cell.Sector.Center.Lat == other.Sector.Center.Lat && cell.Sector.Center.Lng == other.Sector.Center.Lng) ||
-		(onlyDistance && utils.Distance(cell.Sector.Center, other.Sector.Center) <= maxDistance) ||
-		utils.Distance(reachPoint(cell.Sector, maxDistance), reachPoint(other.Sector, maxDistance)) <= maxDistance/2
+	return (cell.Carriers[0].Center.Lat == other.Carriers[0].Center.Lat && cell.Carriers[0].Center.Lng == other.Carriers[0].Center.Lng) ||
+		(onlyDistance && utils.Distance(cell.Carriers[0].Center, other.Carriers[0].Center) <= maxDistance) ||
+		utils.Distance(reachPoint(cell.Carriers[0], maxDistance), reachPoint(other.Carriers[0], maxDistance)) <= maxDistance/2
 }
 
 // Calculate the end-point of the center arc vector a distance from the sector center
-func reachPoint(sector model.Sector, distance float64) model.Coordinate {
-	return utils.TargetPoint(sector.Center, float64((int32(sector.Azimuth)+sector.Arc/2)%360), distance)
+func reachPoint(carrier *model.Carrier, distance float64) model.Coordinate {
+	return utils.TargetPoint(carrier.Center, float64((int32(carrier.Beams[0].Azimuth)+int32(carrier.Beams[0].H3dBAngle)/2)%360), distance)
 }
 
 func hexMesh(pitch float64, numTowers uint, center model.Coordinate, deformScale float64) []*model.Coordinate {

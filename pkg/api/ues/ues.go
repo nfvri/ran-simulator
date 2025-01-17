@@ -65,17 +65,17 @@ func (s *Server) SetUECount(ctx context.Context, request *modelapi.SetUECountReq
 
 func UEToAPI(modelUE *model.UE) *types.Ue {
 	return &types.Ue{
-		IMSI:       modelUE.IMSI,
-		Type:       string(modelUE.Type),
-		Location:   (*types.Coordinate)(&modelUE.Location),
-		Heading:    modelUE.Heading,
-		CRNTI:      modelUE.CRNTI,
-		Height:     modelUE.Height,
-		IsAdmitted: modelUE.IsAdmitted,
-		RrcState:   uint32(modelUE.RrcState),
-		FiveQi:     int32(modelUE.FiveQi),
-		Cell:       ueCellsToAPI([]*model.UECell{modelUE.Cell})[0],
-		Cells:      ueCellsToAPI(modelUE.Cells),
+		IMSI:          modelUE.IMSI,
+		Type:          string(modelUE.Type),
+		Location:      (*types.Coordinate)(&modelUE.Location),
+		Heading:       modelUE.Heading,
+		CRNTI:         modelUE.CRNTI,
+		Height:        modelUE.Height,
+		IsAdmitted:    modelUE.IsAdmitted,
+		RrcState:      uint32(modelUE.RrcState),
+		FiveQi:        int32(modelUE.FiveQi),
+		ServingCells:  ueCellsToAPI([]*model.UECell{modelUE.Cell}),
+		NeighborCells: ueCellsToAPI(modelUE.Cells),
 	}
 }
 
@@ -83,8 +83,10 @@ func ueCellsToAPI(modelUeCells []*model.UECell) []*types.UECell {
 	ueCells := make([]*types.UECell, len(modelUeCells))
 
 	for key, ueCell := range modelUeCells {
+		beamID := &types.BeamID{Ncgi: ueCell.NCGI, CarrierIndex: int32(ueCell.BeamID.CarrierIndex), BeamIndex: int32(ueCell.BeamID.BeamIndex)}
 		ueCells[key] = &types.UECell{
 			Ncgi:        ueCell.NCGI,
+			BeamId:      beamID,
 			Rsrp:        ueCell.Rsrp,
 			Rsrq:        ueCell.Rsrq,
 			Sinr:        ueCell.Sinr,
@@ -119,8 +121,8 @@ func UEToModel(ue *types.Ue) *model.UE {
 		IsAdmitted: ue.IsAdmitted,
 		RrcState:   e2sm_mho.Rrcstatus(ue.RrcState),
 		FiveQi:     int(ue.FiveQi),
-		Cell:       ueCellsToModel([]*types.UECell{ue.Cell})[0],
-		Cells:      ueCellsToModel(ue.Cells),
+		Cell:       ueCellsToModel([]*types.UECell{ue.ServingCells[0]})[0],
+		Cells:      ueCellsToModel(ue.NeighborCells),
 	}
 }
 

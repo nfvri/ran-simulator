@@ -11,25 +11,19 @@ import (
 )
 
 func TestGetPathLossUrbanLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "urban",
-				LOS:          true,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "urban",
+		LOS:         true,
+		ArfcnDL:     640000,
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	height := 1.5
-	expectedPathLoss := getUrbanLOSPathLoss(coord, height, cell)
+	ueHeight := 1.5
+	expectedPathLoss := getUrbanLOSPathLoss(coord, ueHeight, carrier)
 
-	pathLoss := GetPathLoss(coord, height, cell)
+	pathLoss := GetPathLoss(coord, ueHeight, carrier)
 	fmt.Println("UrbanLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -39,25 +33,19 @@ func TestGetPathLossUrbanLOS(t *testing.T) {
 }
 
 func TestGetPathLossUrbanNLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "urban",
-				LOS:          false,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "urban",
+		LOS:         false,
+		ArfcnDL:     640000,
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	height := 1.5
-	expectedPathLoss := getUrbanNLOSPathLoss(coord, height, cell)
+	ueHeight := 1.5
+	expectedPathLoss := getUrbanNLOSPathLoss(coord, ueHeight, carrier)
 
-	pathLoss := GetPathLoss(coord, height, cell)
+	pathLoss := GetPathLoss(coord, ueHeight, carrier)
 	fmt.Println("UrbanNLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -67,25 +55,19 @@ func TestGetPathLossUrbanNLOS(t *testing.T) {
 }
 
 func TestGetPathLossRuralLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "rural",
-				LOS:          true,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "rural",
+		LOS:         true,
+		ArfcnDL:     640000,
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	height := 1.5
-	expectedPathLoss := getRuralLOSPathLoss(coord, height, cell)
+	ueHeight := 1.5
+	expectedPathLoss := getRuralLOSPathLoss(coord, ueHeight, carrier)
 
-	pathLoss := GetPathLoss(coord, height, cell)
+	pathLoss := GetPathLoss(coord, ueHeight, carrier)
 	fmt.Println("RuralLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -95,25 +77,19 @@ func TestGetPathLossRuralLOS(t *testing.T) {
 }
 
 func TestGetPathLossRuralNLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "rural",
-				LOS:          false,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "rural",
+		LOS:         false,
+		ArfcnDL:     640000,
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	height := 1.5
-	expectedPathLoss := getRuralNLOSPathLoss(coord, height, cell)
+	ueHeight := 1.5
+	expectedPathLoss := getRuralNLOSPathLoss(coord, ueHeight, carrier)
 
-	pathLoss := GetPathLoss(coord, height, cell)
+	pathLoss := GetPathLoss(coord, ueHeight, carrier)
 	fmt.Println("RuralNLOS")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -123,25 +99,19 @@ func TestGetPathLossRuralNLOS(t *testing.T) {
 }
 
 func TestGetPathLossUnknownEnvironment(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "unknown",
-				LOS:          true,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "unknown",
+		LOS:         true,
+		ArfcnDL:     640000,
 	}
 
 	coord := model.Coordinate{Lat: 1, Lng: 1}
-	height := 1.5
-	expectedPathLoss := getRuralNLOSPathLoss(coord, height, cell)
+	ueHeight := 1.5
+	expectedPathLoss := getRuralNLOSPathLoss(coord, ueHeight, carrier)
 
-	pathLoss := GetPathLoss(coord, height, cell)
+	pathLoss := GetPathLoss(coord, ueHeight, carrier)
 	fmt.Println("Unknown")
 	fmt.Printf("expectedPathLoss: %f\n", expectedPathLoss)
 	fmt.Printf("pathLoss: %f\n", pathLoss)
@@ -151,29 +121,25 @@ func TestGetPathLossUnknownEnvironment(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossUrbanLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "urban",
-				LOS:          true,
-				SSBFrequency: 3600,
-			}},
+
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "urban",
+		LOS:         true,
+		ArfcnDL:     640000,
 	}
 
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	height := 1.5
-	firstPathLoss := GetPathLoss(firstCoord, height, cell)
+	ueHeight := 1.5
+	firstPathLoss := GetPathLoss(firstCoord, ueHeight, carrier)
 
 	fmt.Println("UrbanLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
 
-	secondPathLoss := GetPathLoss(secondCoord, height, cell)
+	secondPathLoss := GetPathLoss(secondCoord, ueHeight, carrier)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -183,29 +149,23 @@ func TestGetChangingPositionPathLossUrbanLOS(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossUrbanNLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "urban",
-				LOS:          false,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "urban",
+		LOS:         false,
+		ArfcnDL:     640000,
 	}
 
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	height := 1.5
-	firstPathLoss := GetPathLoss(firstCoord, height, cell)
+	ueHeight := 1.5
+	firstPathLoss := GetPathLoss(firstCoord, ueHeight, carrier)
 
 	fmt.Println("UrbanNLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
-	secondPathLoss := GetPathLoss(secondCoord, height, cell)
+	secondPathLoss := GetPathLoss(secondCoord, ueHeight, carrier)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -215,29 +175,23 @@ func TestGetChangingPositionPathLossUrbanNLOS(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossRuralLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "rural",
-				LOS:          true,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "rural",
+		LOS:         true,
+		ArfcnDL:     640000,
 	}
 
-	height := 1.5
+	ueHeight := 1.5
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	firstPathLoss := GetPathLoss(firstCoord, height, cell)
+	firstPathLoss := GetPathLoss(firstCoord, ueHeight, carrier)
 
 	fmt.Println("RuralLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
-	secondPathLoss := GetPathLoss(secondCoord, height, cell)
+	secondPathLoss := GetPathLoss(secondCoord, ueHeight, carrier)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -247,29 +201,23 @@ func TestGetChangingPositionPathLossRuralLOS(t *testing.T) {
 }
 
 func TestGetChangingPositionPathLossRuralNLOS(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 30,
-			},
-			Channel: model.Channel{
-				Environment:  "rural",
-				LOS:          false,
-				SSBFrequency: 3600,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:      model.Coordinate{Lat: 0, Lng: 0},
+		Height:      30,
+		Environment: "rural",
+		LOS:         false,
+		ArfcnDL:     640000,
 	}
 
-	height := 1.5
+	ueHeight := 1.5
 	firstCoord := model.Coordinate{Lat: 0.0001, Lng: 0.0001}
-	firstPathLoss := GetPathLoss(firstCoord, height, cell)
+	firstPathLoss := GetPathLoss(firstCoord, ueHeight, carrier)
 
 	fmt.Println("RuralNLOS")
 	fmt.Printf("(1,1) pathLoss: %f\n", firstPathLoss)
 
 	secondCoord := model.Coordinate{Lat: 0.0002, Lng: 0.0002}
-	secondPathLoss := GetPathLoss(secondCoord, height, cell)
+	secondPathLoss := GetPathLoss(secondCoord, ueHeight, carrier)
 
 	fmt.Printf("(2,2) pathLoss: %f\n", secondPathLoss)
 
@@ -279,19 +227,13 @@ func TestGetChangingPositionPathLossRuralNLOS(t *testing.T) {
 }
 
 func TestPathloss(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 0, Lng: 0},
-				Height: 35,
-			},
-			Channel: model.Channel{
-				SSBFrequency: 3000,
-			},
-		},
+	carrier := &model.Carrier{
+		Center:  model.Coordinate{Lat: 0, Lng: 0},
+		Height:  35,
+		ArfcnDL: 620000,
 	}
 
-	height := 1.5
+	ueHeight := 1.5
 	file, err := os.Create("pathloss.csv")
 	if err != nil {
 		t.Fatalf("failed to create file: %v", err)
@@ -311,11 +253,11 @@ func TestPathloss(t *testing.T) {
 		lng := 0 + (float64(i) * math.Pow(10, -3))
 
 		coord := model.Coordinate{Lat: 0.0001, Lng: lng}
-		dist3d := get3dEuclideanDistanceFromGPS(coord, height, cell)
-		urbanLOSPathLoss := getUrbanLOSPathLoss(coord, height, cell)
-		urbanNLOSPathLoss := getUrbanNLOSPathLoss(coord, height, cell)
-		ruralLOSPathLoss := getRuralLOSPathLoss(coord, height, cell)
-		ruralNLOSPathLoss := getRuralNLOSPathLoss(coord, height, cell)
+		dist3d := get3dEuclideanDistanceFromGPS(coord, ueHeight, carrier)
+		urbanLOSPathLoss := getUrbanLOSPathLoss(coord, ueHeight, carrier)
+		urbanNLOSPathLoss := getUrbanNLOSPathLoss(coord, ueHeight, carrier)
+		ruralLOSPathLoss := getRuralLOSPathLoss(coord, ueHeight, carrier)
+		ruralNLOSPathLoss := getRuralNLOSPathLoss(coord, ueHeight, carrier)
 		fmt.Printf("%d \t| %.3v \t| %f \t| %f \t\t| %f \t\t| %f \t\t| %f \t|\n", i, coord, dist3d, urbanLOSPathLoss, urbanNLOSPathLoss, ruralLOSPathLoss, ruralNLOSPathLoss)
 
 		row := []string{

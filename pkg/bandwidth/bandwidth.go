@@ -11,6 +11,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type FrequencyRange struct {
+	ARFCNStart   uint32
+	ARFCNEnd     uint32
+	FreqStartMHz float64
+	StepHz       float64
+}
+
+// Frequency ranges for 5G NR as per 3GPP TS 38.104.
+var frequencyRanges = []FrequencyRange{
+	{0, 599999, 0, 50000},          // Frequency Range 1 (FR1)
+	{600000, 2016666, 3000, 15000}, // Frequency Range 2 (FR2)
+}
+
+func CalculateFrequencyMHz(arfcn uint32) float64 {
+	for _, rangeInfo := range frequencyRanges {
+		if arfcn >= rangeInfo.ARFCNStart && arfcn <= rangeInfo.ARFCNEnd {
+			offsetARFCN := float64(arfcn - rangeInfo.ARFCNStart)
+			frequency := rangeInfo.FreqStartMHz + (offsetARFCN * rangeInfo.StepHz / 1e6)
+			return frequency
+		}
+	}
+	return 0
+}
+
 func InitBWPs(sCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
 	if len(sCell.Bwps) == 0 {
 		AllocateBW(sCell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
@@ -119,8 +143,12 @@ func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, av
 func enoughBW(tCell *model.Cell, requestedBwps, scaledBwps []*model.Bwp) (bool, []*model.Bwp) {
 	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
 
-	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
-	totalBWUL := MHzToHz(float64(tCell.Channel.BsChannelBwUL))
+	totalBWDL := 0.0
+	totalBWUL := 0.0
+	for _, carrier := range tCell.Carriers {
+		totalBWDL += MHzToHz(float64(carrier.BsChannelBwDL))
+		totalBWUL += MHzToHz(float64(carrier.BsChannelBwUL))
+	}
 
 	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
@@ -249,6 +277,10 @@ func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*mod
 
 func MHzToHz(MHz float64) float64 {
 	return MHz * 1e6
+}
+
+func MHzToGHz(MHz float64) float64 {
+	return MHz / 1e3
 }
 
 func CreateUsedPrbsMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]float64, map[uint64]map[int]float64) {
@@ -523,4 +555,50 @@ func CheckBWOverflow(usedPRBsPerCQIByCell map[uint64]map[int]int, prbMeasPerCell
 
 	}
 	return usedPRBsPerCQIByCell
+}
+
+func GetNumUEsPerBeamQS(sCell *model.Cell, numUEsPerCQI map[int]int) map[model.BeamQS]int {
+	numUEsPerCQIByBeam := make(map[model.BeamQS]int)
+
+	totalBeams := 0
+	for _, carrier := range sCell.Carriers {
+		totalBeams += len(carrier.Beams)
+	}
+
+	remainingUEsPerCQI := make(map[int]int)
+	for cqi, numUEs := range numUEsPerCQI {
+		uesPerBeam := numUEs / totalBeams
+		remainingUEsPerCQI[cqi] = numUEs % totalBeams
+
+		for carrierIndex, carrier := range sCell.Carriers {
+			for beamIndex := range carrier.Beams {
+				beamQS := model.BeamQS{
+					BeamID: model.BeamID{NCGI: sCell.NCGI, CarrierIndex: carrierIndex, BeamIndex: beamIndex},
+					CQI:    cqi,
+				}
+				numUEsPerCQIByBeam[beamQS] += uesPerBeam
+			}
+		}
+	}
+
+	for cqi, remainingUEs := range remainingUEsPerCQI {
+		if remainingUEs == 0 {
+			continue
+		}
+		for carrierIndex, carrier := range sCell.Carriers {
+			for beamIndex := range carrier.Beams {
+				if remainingUEs == 0 {
+					break
+				}
+				beamQS := model.BeamQS{
+					BeamID: model.BeamID{NCGI: sCell.NCGI, CarrierIndex: carrierIndex, BeamIndex: beamIndex},
+					CQI:    cqi,
+				}
+				numUEsPerCQIByBeam[beamQS]++
+				remainingUEs--
+			}
+		}
+	}
+
+	return numUEsPerCQIByBeam
 }

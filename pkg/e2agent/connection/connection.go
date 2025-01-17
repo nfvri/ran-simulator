@@ -756,7 +756,7 @@ func (e *e2Connection) setup() error {
 			NrPCI:                           int32(m.PCI),
 			SulFreqBandIndicationNr:         defaultSulFreqBandIndicationNr,
 			FreqBandIndicatorNr:             defaultFreqBandIndicatorNr,
-			NrArfcn:                         int32(m.Channel.SSBFrequency),
+			NrArfcn:                         int32(m.Carriers[0].ArfcnDL),
 			MeasureTimingConfigurationBytes: defaultMeasureTimingConfigurationBytes,
 		}
 		sCellItemListF1 = append(sCellItemListF1, sCellItem)
@@ -765,7 +765,7 @@ func (e *e2Connection) setup() error {
 			NrCellIDBytes:                   nci.Bytes(),
 			NrCellIDLen:                     defaultNrCellIDLen,
 			NrPCI:                           int32(m.PCI),
-			NrArfcn:                         int32(m.Channel.SSBFrequency),
+			NrArfcn:                         int32(m.Carriers[0].ArfcnDL),
 			SulFreqBand:                     defaultSulFreqBandIndicationNr,
 			FreqBand:                        defaultFreqBandIndicatorNr,
 			MeasureTimingConfigurationBytes: defaultMeasureTimingConfigurationBytes,
@@ -786,7 +786,7 @@ func (e *e2Connection) setup() error {
 				NrCellIDBytes:                   neighborNci.Bytes(),
 				NrCellIDLen:                     defaultNrCellIDLen,
 				NrPCI:                           int32(nCell.PCI),
-				NrArfcn:                         int32(nCell.Channel.SSBFrequency),
+				NrArfcn:                         int32(nCell.Carriers[0].ArfcnDL),
 				SulFreqBand:                     defaultSulFreqBandIndicationNr,
 				FreqBand:                        defaultFreqBandIndicatorNr,
 				MeasureTimingConfigurationBytes: defaultMeasureTimingConfigurationBytes,

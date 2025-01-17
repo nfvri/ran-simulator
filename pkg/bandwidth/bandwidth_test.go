@@ -1,6 +1,7 @@
 package bandwidth
 
 import (
+	"fmt"
 	"testing"
 
 	"gotest.tools/assert"
@@ -33,4 +34,13 @@ func TestGetNumUEsPerCQIByCell(t *testing.T) {
 	}
 
 	assert.DeepEqual(t, expectedMap, GetNumUEsPerCQIByCell(numUEsByCell))
+}
+
+func TestCalculateFrequencyMHz(t *testing.T) {
+
+	arfcn := uint32(300000)
+	frequency := CalculateFrequencyMHz(arfcn)
+
+	fmt.Printf("ARFCN: %d -> Frequency: %.3f MHz\n", arfcn, frequency)
+
 }

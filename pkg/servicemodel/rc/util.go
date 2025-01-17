@@ -15,6 +15,7 @@ import (
 
 	"github.com/nfvri/ran-simulator/pkg/model"
 
+	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	indicationutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/indication"
 	subutils "github.com/nfvri/ran-simulator/pkg/utils/e2ap/subscription"
 	rcindicationhdr "github.com/nfvri/ran-simulator/pkg/utils/e2sm/rc/indication/header"
@@ -132,7 +133,7 @@ func (sm *Client) getSSBFrequency(ctx context.Context, ncgi ransimtypes.NCGI) (i
 		return 0, err
 	}
 
-	return int32(cell.Channel.SSBFrequency), nil
+	return int32(bw.CalculateFrequencyMHz(cell.Carriers[0].ArfcnDL)), nil
 }
 
 func (sm *Client) getCellSize(ctx context.Context, ncgi ransimtypes.NCGI) (string, error) {

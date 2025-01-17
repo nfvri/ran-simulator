@@ -66,8 +66,12 @@ func (s *ProportionalFair) apply() {
 		s.ScsOptionsHz = []int{15_000, 30_000, 60_000, 120_000}
 	}
 
-	totalBWDL := MHzToHz(float64(s.Cell.Channel.BsChannelBwDL))
-	totalBWUL := MHzToHz(float64(s.Cell.Channel.BsChannelBwUL))
+	totalBWDL := 0.0
+	totalBWUL := 0.0
+	for _, carrier := range s.Cell.Carriers {
+		totalBWDL += MHzToHz(float64(carrier.BsChannelBwDL))
+		totalBWUL += MHzToHz(float64(carrier.BsChannelBwUL))
+	}
 
 	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)

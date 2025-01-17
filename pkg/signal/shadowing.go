@@ -4,13 +4,12 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-func ComputeGridPoints(bb *model.BoundingBox, d_c float64, ncgi types.NCGI) []model.Coordinate {
+func ComputeGridPoints(bb *model.BoundingBox, d_c float64, beamID model.BeamID) []model.Coordinate {
 
 	log.Debugf("square min point(%v, %v), max point(%v, %v)\n", bb.MinLat, bb.MinLng, bb.MaxLat, bb.MaxLng)
 
@@ -27,7 +26,7 @@ func ComputeGridPoints(bb *model.BoundingBox, d_c float64, ncgi types.NCGI) []mo
 	numLngPoints := int(math.Ceil(lngDiff / d_c_lng))
 
 	if numLatPoints != numLngPoints {
-		log.Warnf("NCGI: %v: grid dimensions unequal: lat:%v, lng:%v", ncgi, numLatPoints, numLngPoints)
+		log.Warnf("%+v: grid dimensions unequal: lat:%v, lng:%v", beamID, numLatPoints, numLngPoints)
 	}
 	maxDim := int(math.Max(float64(numLatPoints), float64(numLngPoints)))
 
@@ -142,17 +141,17 @@ func IsPointInsideBoundingBox(point model.Coordinate, bb *model.BoundingBox) boo
 }
 
 // Function to find overlapping grid points between two grids and return index pointers
-func FindOverlappingGridPoints(cell1, cell2 *model.Cell) (pointIndxsG1, pointIndxsG2 [][]int, overlapping bool) {
+func FindOverlappingGridPoints(cell1, cell2 *model.Cell, beamID1, beamID2 model.BeamID) (pointIndxsG1, pointIndxsG2 [][]int, overlapping bool) {
 
 	pointIndxsG1 = make([][]int, 0)
 	pointIndxsG2 = make([][]int, 0)
 	overlapping = false
 
-	for _, p1 := range cell1.GridPoints {
-		if IsPointInsideBoundingBox(p1, cell2.BoundingBox) {
+	for _, p1 := range cell1.GridPoints[beamID1] {
+		if IsPointInsideBoundingBox(p1, cell2.BoundingBoxes[beamID2]) {
 			overlapping = true
-			rowG1, colG1 := FindGridCell(p1, cell1.GridPoints)
-			rowG2, colG2 := FindGridCell(p1, cell2.GridPoints)
+			rowG1, colG1 := FindGridCell(p1, cell1.GridPoints[beamID1])
+			rowG2, colG2 := FindGridCell(p1, cell2.GridPoints[beamID2])
 			pointIndxsG1 = append(pointIndxsG1, []int{rowG1, colG1})
 			pointIndxsG2 = append(pointIndxsG2, []int{rowG2, colG2})
 		}
@@ -161,20 +160,21 @@ func FindOverlappingGridPoints(cell1, cell2 *model.Cell) (pointIndxsG1, pointInd
 	return
 }
 
-func InitShadowMap(cell *model.Cell, d_c float64) {
+func InitShadowMap(cell *model.Cell, beamID model.BeamID, d_c float64) {
+	carrier := cell.Carriers[beamID.CarrierIndex]
 
 	sigma := 6.0
 	switch {
-	case cell.Channel.Environment == "urban" && cell.Channel.LOS:
+	case carrier.Environment == "urban" && carrier.LOS:
 		sigma = 4.0
-	case cell.Channel.Environment == "urban" && !cell.Channel.LOS:
+	case carrier.Environment == "urban" && !carrier.LOS:
 		sigma = 6.0
-	case cell.Channel.Environment == "rural" && cell.Channel.LOS:
+	case carrier.Environment == "rural" && carrier.LOS:
 		sigma = 4.0
-	case cell.Channel.Environment != "rural" && !cell.Channel.LOS:
+	case carrier.Environment != "rural" && !carrier.LOS:
 		sigma = 8.0
 	}
-	rpBoundaryPoints := cell.CachedStates[cell.CurrentStateHash].RPCoverageBoundaries[0].BoundaryPoints
+	rpBoundaryPoints := cell.CachedStates[cell.CurrentStateHash].RPCoverageBoundaries[beamID][0].BoundaryPoints
 	if len(rpBoundaryPoints) == 0 {
 		return
 	}
@@ -182,24 +182,24 @@ func InitShadowMap(cell *model.Cell, d_c float64) {
 
 	boundingBox := FindBoundingBox(rpBoundaryPoints)
 
-	if cell.BoundingBox == nil || boundingBox.GreaterThan(cell.BoundingBox) {
-		cell.BoundingBox = boundingBox
+	if cell.BoundingBoxes[beamID] == nil || boundingBox.GreaterThan(cell.BoundingBoxes[beamID]) {
+		cell.BoundingBoxes[beamID] = boundingBox
 
-		cell.GridPoints = ComputeGridPoints(cell.BoundingBox, d_c, cell.NCGI)
+		cell.GridPoints[beamID] = ComputeGridPoints(cell.BoundingBoxes[beamID], d_c, beamID)
 
-		log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints))
-		cell.ShadowingMap = CalculateShadowMap(cell.GridPoints, d_c, sigma)
-		log.Infof("NCGI: %v: len(ShadowingMap): %d", cell.NCGI, len(cell.ShadowingMap))
+		log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints[beamID]))
+		cell.ShadowingMaps[beamID] = CalculateShadowMap(cell.GridPoints[beamID], d_c, sigma)
+		log.Infof("NCGI: %v: len(ShadowingMap): %d", cell.NCGI, len(cell.ShadowingMaps[beamID]))
 	}
 }
 
-func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell) {
-	pointIndxsG1, pointIndxsG2, overlapping := FindOverlappingGridPoints(cell1, cell2)
-	if overlapping && (cell1.NCGI != cell2.NCGI) {
+func replaceOverlappingShadowMapValues(cell1 *model.Cell, cell2 *model.Cell, beamID1, beamID2 model.BeamID) {
+	pointIndxsG1, pointIndxsG2, overlapping := FindOverlappingGridPoints(cell1, cell2, beamID1, beamID2)
+	if overlapping && (beamID1 != beamID2) {
 		for i := range pointIndxsG1 {
-			log.Debugf("%d and %d overlapping: (%v) and (%v)\n", cell1.NCGI, cell2.NCGI, pointIndxsG1[i], pointIndxsG2[i])
-			si2 := GetShadowMapIndex(len(cell2.ShadowingMap), pointIndxsG2[i][0], pointIndxsG2[i][1])
-			cell2.ShadowingMap[si2] = GetShadowValue(cell1.ShadowingMap, pointIndxsG1[i][0], pointIndxsG1[i][1])
+			log.Debugf("%d and %d overlapping: (%v) and (%v)\n", beamID1.NCGI, beamID1.NCGI, pointIndxsG1[i], pointIndxsG2[i])
+			si2 := GetShadowMapIndex(len(cell2.ShadowingMaps[beamID2]), pointIndxsG2[i][0], pointIndxsG2[i][1])
+			cell2.ShadowingMaps[beamID2][si2] = GetShadowValue(cell1.ShadowingMaps[beamID1], pointIndxsG1[i][0], pointIndxsG1[i][1])
 		}
 	}
 }

@@ -56,17 +56,17 @@ func ComputePoints(fp FProvider, guessChan <-chan []float64, nonLinSolver nonlin
 	return pointsChannel
 }
 
-func GetRandGuessesChanUEs(cell *model.Cell, numGuesses, cqi, stepMeters int) <-chan []float64 {
+func GetRandGuessesChanUEs(cell *model.Cell, beamID model.BeamID, numGuesses, cqi, stepMeters int) <-chan []float64 {
 	rgChan := make(chan []float64)
 
 	step := utils.MetersToLatDegrees(float64(stepMeters))
 	cutOffDistance := utils.MetersToLatDegrees(5000)
+	bb := cell.BoundingBoxes[beamID]
+	latScalingFactor := utils.DegreesToMeters(bb.MaxLat-bb.MinLat) * 0.01
+	lngScalingFactor := utils.DegreesToMeters(bb.MaxLng-bb.MinLng) * 0.01
 
-	latScalingFactor := utils.DegreesToMeters(cell.BoundingBox.MaxLat-cell.BoundingBox.MinLat) * 0.01
-	lngScalingFactor := utils.DegreesToMeters(cell.BoundingBox.MaxLng-cell.BoundingBox.MinLng) * 0.01
-
-	centerLat := (cell.BoundingBox.MinLat + cell.BoundingBox.MaxLat) / 2.0
-	centerLng := (cell.BoundingBox.MinLng + cell.BoundingBox.MaxLng) / 2.0
+	centerLat := (bb.MinLat + bb.MaxLat) / 2.0
+	centerLng := (bb.MinLng + bb.MaxLng) / 2.0
 	go func() {
 		defer close(rgChan)
 		for j := 0; j < 5; j++ {
@@ -90,7 +90,7 @@ func GetRandGuessesChanUEs(cell *model.Cell, numGuesses, cqi, stepMeters int) <-
 	return rgChan
 }
 
-func GetRandGuessesChanCells(cell *model.Cell, numGuesses, stepSizeMeters, initOffsetMeters, cutOffDistanceMeters float64) <-chan []float64 {
+func GetRandGuessesChanCells(carrier *model.Carrier, numGuesses, stepSizeMeters, initOffsetMeters, cutOffDistanceMeters float64) <-chan []float64 {
 	rgChan := make(chan []float64)
 
 	stepSize := utils.MetersToLatDegrees(float64(stepSizeMeters))
@@ -108,7 +108,7 @@ func GetRandGuessesChanCells(cell *model.Cell, numGuesses, stepSizeMeters, initO
 				latSign := (rand.Float64() - 0.5) * 2
 				longSign := (rand.Float64() - 0.5) * 2
 
-				guess := []float64{cell.Sector.Center.Lat + (latSign * (initOffset + offsetLat)), cell.Sector.Center.Lng + (longSign * (initOffset + offsetLong))}
+				guess := []float64{carrier.Center.Lat + (latSign * (initOffset + offsetLat)), carrier.Center.Lng + (longSign * (initOffset + offsetLong))}
 				select {
 				case rgChan <- guess:
 				default:
@@ -136,27 +136,29 @@ func GetGuessesChan(guessesCoord []model.Coordinate) <-chan []float64 {
 	return gChan
 }
 
-func RadiationPatternF(ueHeight float64, cell *model.Cell, refSignalStrength float64) (f func(out, x []float64)) {
+func RadiationPatternF(cell *model.Cell, carrier *model.Carrier, beamIndex int, ueHeight, refSignalStrength float64) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		fValue := RadiatedStrength(coord, ueHeight, cell) - refSignalStrength
+		fValue := RadiatedStrength(coord, ueHeight, carrier, beamIndex) - refSignalStrength
 		out[0] = fValue
 		out[1] = fValue
 	}
 }
-func CoverageF(ueHeight float64, cell *model.Cell, refSignalStrength, mpf float64, radiationPatternBoundary []model.Coordinate) (f func(out, x []float64)) {
+func CoverageF(cell *model.Cell, beamID model.BeamID, ueHeight, refSignalStrength, mpf float64, radiationPatternBoundary []model.Coordinate) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		fValue := Strength(coord, ueHeight, mpf, cell) - refSignalStrength
+		fValue := Strength(coord, ueHeight, mpf, cell, beamID) - refSignalStrength
 		out[0] = fValue
 		out[1] = fValue
 	}
 }
 
-func GetRPBoundaryPoints(cell *model.Cell, carrierIndex, beamIndex int, refSignalStrength, ueHeight float64) []model.Coordinate {
+func GetRPBoundaryPoints(cell *model.Cell, beamID model.BeamID, refSignalStrength, ueHeight float64) []model.Coordinate {
 	log.Debugf("calculating radiation pattern for cell:%v", cell.NCGI)
+	carrier := cell.Carriers[beamID.CarrierIndex]
+
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
-		return RadiationPatternF(ueHeight, cell, refSignalStrength)
+		return RadiationPatternF(cell, carrier, beamID.BeamIndex, ueHeight, refSignalStrength)
 	}
 
 	// TODO: add cell.Channel.SSBFrequency in equation
@@ -168,7 +170,7 @@ func GetRPBoundaryPoints(cell *model.Cell, carrierIndex, beamIndex int, refSigna
 	initOffset := cutOffDistance / 5
 	stepsize := (20 * cutOffDistance) / numGuesses
 	log.Infof("cutOffDistance: %v -- initOffset: %v -- stepsize: %v -- stepSizeKrylof: %v", cutOffDistance, initOffset, stepsize, stepSizeMeters)
-	guessChan := GetRandGuessesChanCells(cell, numGuesses, stepsize, initOffset, cutOffDistance)
+	guessChan := GetRandGuessesChanCells(carrier, numGuesses, stepsize, initOffset, cutOffDistance)
 	newtonKrylovSolver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
 		Maxiter: maxIter,
@@ -188,14 +190,17 @@ func GetRPBoundaryPoints(cell *model.Cell, carrierIndex, beamIndex int, refSigna
 	for rpBp := range rpBoundaryPointsCh {
 		rpBoundaryPoints = append(rpBoundaryPoints, rpBp)
 	}
-	return utils.SortCoordinatesByBearing(cell.CellConfig.Carriers[0].Center, rpBoundaryPoints)
+	return utils.SortCoordinatesByBearing(carrier.Center, rpBoundaryPoints)
 }
 
-func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {
+func GetCovBoundaryPoints(cell *model.Cell, beamID model.BeamID, ueHeight, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {
 	log.Debugf("calculating coverage for cell:%v", cell.NCGI)
+
+	carrier := cell.Carriers[beamID.CarrierIndex]
+	mpf := RiceanFading(GetRiceanK(carrier))
+
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
-		mpf := RiceanFading(GetRiceanK(cell))
-		return CoverageF(ueHeight, cell, refSignalStrength, mpf, rpBoundaryPoints)
+		return CoverageF(cell, beamID, ueHeight, refSignalStrength, mpf, rpBoundaryPoints)
 	}
 	maxIter := 200
 	stepSizeMeters := 10.0
@@ -218,7 +223,7 @@ func GetCovBoundaryPoints(ueHeight float64, cell *model.Cell, refSignalStrength 
 	for cbp := range covBoundaryPointsCh {
 		covBoundaryPoints = append(covBoundaryPoints, cbp)
 	}
-	return utils.SortCoordinatesByBearing(cell.Sector.Center, covBoundaryPoints)
+	return utils.SortCoordinatesByBearing(carrier.Center, covBoundaryPoints)
 }
 
 func FilterBoundaryPoints(boundaryPoints []model.Coordinate, cellCenter model.Coordinate) []model.Coordinate {

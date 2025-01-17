@@ -52,10 +52,10 @@ func (d *driver) establishArea(ctx context.Context) {
 	d.min = &model.Coordinate{Lat: 90.0, Lng: 180.0}
 	d.max = &model.Coordinate{Lat: -90.0, Lng: -180.0}
 	for _, cell := range cells {
-		d.min.Lat = math.Min(cell.Sector.Center.Lat, d.min.Lat)
-		d.min.Lng = math.Min(cell.Sector.Center.Lng, d.min.Lng)
-		d.max.Lat = math.Max(cell.Sector.Center.Lat, d.max.Lat)
-		d.max.Lng = math.Max(cell.Sector.Center.Lng, d.max.Lng)
+		d.min.Lat = math.Min(cell.Carriers[0].Center.Lat, d.min.Lat)
+		d.min.Lng = math.Min(cell.Carriers[0].Center.Lng, d.min.Lng)
+		d.max.Lat = math.Max(cell.Carriers[0].Center.Lat, d.max.Lat)
+		d.max.Lng = math.Max(cell.Carriers[0].Center.Lng, d.max.Lng)
 	}
 
 	// Widen the area slightly to allow UEs to move at the edges of the RAN topology

@@ -50,22 +50,19 @@ func Test_AngularAttenuation(t *testing.T) {
 		Height: 1.5,
 	}
 
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			TxPowerDB: 45,
-			Sector: model.Sector{
-				Azimuth: 90,
-				Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
-				Height:  30,
-			},
-			Beam: model.Beam{
-				H3dBAngle:              65,
-				V3dBAngle:              65,
-				MaxGain:                8,
-				MaxAttenuationDB:       30,
-				VSideLobeAttenuationDB: 30,
+	carrier := &model.Carrier{
+		Beams: []*model.Beam{
+			{
+				Azimuth:   90,
+				H3dBAngle: 65,
+				V3dBAngle: 65,
+				MaxGain:   8,
 			},
 		},
+		TxPowerDB:              45,
+		Center:                 model.Coordinate{Lat: 37.979207, Lng: 23.716702},
+		Height:                 30,
+		VSideLobeAttenuationDB: 30,
 	}
 
 	// Test horizontal -3dB Coordinate
@@ -77,15 +74,15 @@ func Test_AngularAttenuation(t *testing.T) {
 	expectedVAttenuation := -3
 
 	ue.Location = model.Coordinate{Lat: 37.979207, Lng: 23.720989} // 4 degree vertical angle from cell center
-	cell.Sector.Tilt = -29
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, cell)))
+	carrier.Beams[0].Tilt = -29
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, 0)))
 
-	cell.Sector.Tilt = 37
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, cell)))
+	carrier.Beams[0].Tilt = 37
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, 0)))
 
 	// Test horizon
-	cell.Sector.Tilt = 4 // target ue
+	carrier.Beams[0].Tilt = 4 // target ue
 	expectedVAttenuation = 0
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, cell)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, 0)))
 
 }

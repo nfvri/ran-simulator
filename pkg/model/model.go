@@ -113,6 +113,16 @@ func (m *Model) GetServingCells(imsi types.IMSI) []*Cell {
 	return servingCells
 }
 
+func (m *Model) GetCarrier(beamID BeamID) *Carrier {
+	sCell := m.Cells[strconv.FormatUint(uint64(beamID.NCGI), 10)]
+	return sCell.Carriers[beamID.CarrierIndex]
+}
+
+func (m *Model) GetBeam(beamID BeamID) *Beam {
+	sCell := m.Cells[strconv.FormatUint(uint64(beamID.NCGI), 10)]
+	return sCell.Carriers[beamID.CarrierIndex].Beams[beamID.BeamIndex]
+}
+
 type ServiceMappings struct {
 	sync.RWMutex
 	CellToUEs        map[types.NCGI][]types.IMSI
@@ -182,12 +192,12 @@ type Guami struct {
 }
 
 type CellConfig struct {
-	Carriers []Carrier `mapstructure:"sector"`
+	Carriers []*Carrier `mapstructure:"carriers"`
 }
 
-type CellSignalInfo struct {
-	RPCoverageBoundaries map[int]map[int][]CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
-	CoverageBoundaries   map[int]map[int][]CoverageBoundary `mapstructure:"coverageBoundaries"`
+type CellCoverageInfo struct {
+	RPCoverageBoundaries map[BeamID][]CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
+	CoverageBoundaries   map[BeamID][]CoverageBoundary `mapstructure:"coverageBoundaries"`
 }
 
 // Cell represents a section of coverage
@@ -210,9 +220,10 @@ type Cell struct {
 	RrcIdleCount        uint32
 	RrcConnectedCount   uint32
 	Cached              bool
-	CachedStates        map[string]*CellSignalInfo
+	CachedStates        map[string]*CellCoverageInfo
 	CurrentStateHash    string
 	ResourceAllocScheme string
+	InterferingBeams    map[BeamID][]BeamID `mapstructure:"interfearingBeamsrefs"`
 	Grid
 }
 
@@ -228,8 +239,16 @@ func (cell *Cell) GetHashedConfig() string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+func (cell *Cell) GetBeam(beamID BeamID) *Beam {
+	return cell.Carriers[beamID.CarrierIndex].Beams[beamID.BeamIndex]
+}
+
+func (cell *Cell) GetCarrier(beamID BeamID) *Carrier {
+	return cell.Carriers[beamID.CarrierIndex]
+}
+
 type Carrier struct {
-	Beams                  []Beam     `mapstructure:"beam"`
+	Beams                  []*Beam    `mapstructure:"beam"`
 	Center                 Coordinate `mapstructure:"center"`
 	Height                 int32      `mapstructure:"height"`
 	ArfcnDL                uint32     `mapstructure:"arfcndl"`
@@ -242,20 +261,30 @@ type Carrier struct {
 	LOS                    bool       `mapstructure:"LOS"`
 }
 
+type BeamID struct {
+	NCGI         types.NCGI
+	CarrierIndex int
+	BeamIndex    int
+}
+
+type BeamQS struct {
+	BeamID BeamID
+	CQI    int
+}
+
 type Beam struct {
-	BeamIndex int             `mapstructure:"beamIndex"`
-	Azimuth   float64         `mapstructure:"azimuth"`
-	Tilt      float64         `mapstructure:"tilt"`
-	H3dBAngle float64         `mapstructure:"h3dBAngle"` // BeamHorizWidth
-	V3dBAngle float64         `mapstructure:"v3dBAngle"` // BeamVertWidth
-	MaxGain   float64         `mapstructure:"maxGain"`
-	Bwps      map[uint64]*Bwp `mapstructure:"bwps"`
+	BeamIndex int     `mapstructure:"beamIndex"`
+	Azimuth   float64 `mapstructure:"azimuth"`
+	Tilt      float64 `mapstructure:"tilt"`
+	H3dBAngle float64 `mapstructure:"h3dBAngle"` // BeamHorizWidth
+	V3dBAngle float64 `mapstructure:"v3dBAngle"` // BeamVertWidth
+	MaxGain   float64 `mapstructure:"maxGain"`
 }
 
 type Grid struct {
-	ShadowingMap []float64    `json:"shadowingMap"`
-	GridPoints   []Coordinate `json:"gridPoints"`
-	BoundingBox  *BoundingBox `json:"boundingBox"`
+	ShadowingMaps map[BeamID][]float64    `json:"shadowingMap"`
+	GridPoints    map[BeamID][]Coordinate `json:"gridPoints"`
+	BoundingBoxes map[BeamID]*BoundingBox `json:"boundingBox"`
 }
 
 type BoundingBox struct {
@@ -283,6 +312,7 @@ type UEType string
 type UECell struct {
 	ID          types.GnbID `mapstructure:"id"`
 	NCGI        types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
+	BeamID      BeamID      `mapstructure:"beamID"`
 	Rsrp        float64     `mapstructure:"rsrp"`
 	Rsrq        float64     `mapstructure:"rsrq"`
 	Sinr        float64     `mapstructure:"sinr"`

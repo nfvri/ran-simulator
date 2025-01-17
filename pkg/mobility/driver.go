@@ -253,17 +253,18 @@ func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 	}
 
 	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
-	ue.Cell.Rsrp = calculateRSRP(ue, sCell)
+	ue.Cell.Rsrp = calculateRSRP(ue, sCell, ue.Cell.BeamID)
 
 	for index := range ue.Cells {
 		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
-		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell)
+		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell, ue.Cells[index].BeamID)
 	}
 }
 
-func calculateRSRP(ue *model.UE, sCell *model.Cell) float64 {
-	mpf := signal.RiceanFading(signal.GetRiceanK(sCell))
-	rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell)
+func calculateRSRP(ue *model.UE, sCell *model.Cell, beamID model.BeamID) float64 {
+	carrier := sCell.GetCarrier(beamID)
+	mpf := signal.RiceanFading(signal.GetRiceanK(carrier))
+	rsrp := signal.Strength(ue.Location, ue.Height, mpf, sCell, beamID)
 
 	return math.Round(rsrp*100) / 100
 }
@@ -271,15 +272,17 @@ func calculateRSRP(ue *model.UE, sCell *model.Cell) float64 {
 func (d *driver) UpdateUECellsParams(ue *model.UE) {
 
 	sCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cell.NCGI), 10)]
-	ue.Cell.Rsrp = calculateRSRP(ue, sCell)
-	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, d.m.Cells))
+	ue.Cell.Rsrp = calculateRSRP(ue, sCell, ue.Cell.BeamID)
+	iBeamIDs, nCells := signal.GetInterferingBeams(ue.Location, sCell, ue.Cell.BeamID, d.m.Cells)
+	ue.Cell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, ue.Cell.BeamID, iBeamIDs, nCells)
 	ue.Cell.Rsrq = signal.RSRQ(ue.Cell.Sinr, ue.Cell.AvailPrbsDl)
 	ue.FiveQi = signal.GetCQI(ue.Cell.Sinr)
 
 	for index := range ue.Cells {
 		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.Cells[index].NCGI), 10)]
-		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell)
-		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, utils.GetNeighborCells(nCell, d.m.Cells))
+		ue.Cells[index].Rsrp = calculateRSRP(ue, nCell, ue.Cells[index].BeamID)
+		interfBeamIDs, interfCells := signal.GetInterferingBeams(ue.Location, nCell, ue.Cells[index].BeamID, d.m.Cells)
+		ue.Cells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, ue.Cells[index].BeamID, interfBeamIDs, interfCells)
 		ue.Cells[index].Rsrq = signal.RSRQ(ue.Cells[index].Sinr, ue.Cells[index].AvailPrbsDl)
 	}
 	ueCopy := *ue

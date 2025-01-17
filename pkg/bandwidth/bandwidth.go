@@ -41,12 +41,16 @@ func InitBWPs(pCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, ava
 
 }
 
-func CurrPRBsUsed(ue *model.UE) (UsedPRBs int) {
+func CurrPRBsUsed(ue *model.UE) (UsedPRBsDL, UsedPRBsUL int) {
 	for uecIndex := range ue.ServingCells {
 		ueServCell := ue.ServingCells[uecIndex]
 		for bwpIndex := range ueServCell.BwpRefs {
 			bwp := *ueServCell.BwpRefs[bwpIndex]
-			UsedPRBs += bwp.NumberOfRBs
+			if bwp.Downlink {
+				UsedPRBsDL += bwp.NumberOfRBs
+			} else {
+				UsedPRBsUL += bwp.NumberOfRBs
+			}
 		}
 	}
 	return

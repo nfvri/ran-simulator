@@ -84,7 +84,8 @@ func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
 }
 
 func (h *A3HandoverHandler) GetValidCACombinations(targetCellNCGIs []types.NCGI) (validCABandCombos [][]string, cellsByBand map[bw.BandNR][]*model.Cell) {
-
+	validCABandCombos = make([][]string, 0)
+	cellsByBand = make(map[bw.BandNR][]*model.Cell)
 	for cellIndex := range h.model.Cells {
 		cell := h.model.Cells[cellIndex]
 		for _, ncgi := range targetCellNCGIs {
@@ -168,4 +169,69 @@ func getCABandCombinations(sortedBandsNR []bw.BandNR) []string {
 	}
 
 	return combinations
+}
+
+func (h *A3HandoverHandler) hasSufficientPRBS(
+	validCABandCombos [][]string,
+	cellsByBand map[string][]*model.Cell,
+	isFR2 bool,
+	ue *model.UE) bool {
+
+	requiredPRBsDL, requiredPRBsUL := bw.CurrPRBsUsed(ue)
+
+	// Iterate over CA band combinations
+	for _, bandCombo := range validCABandCombos {
+		// Extract cells for the band combination
+		var caScheme []*model.Cell
+		for _, band := range bandCombo {
+			if cells, exists := cellsByBand[band]; exists {
+				caScheme = append(caScheme, cells...)
+			}
+		}
+
+		// Check PRB availability across the gathered cells
+		totalAvailableBWDL := 0.0
+		totalAvailableBWUL := 0.0
+
+		for _, cell := range caScheme {
+			// Get served UEs to calculate current bandwidth usage in the cell
+			servedUEs := h.model.GetServedUEs(cell.NCGI)
+
+			usedBWDL := 0.0
+			usedBWUL := 0.0
+			for _, servedUE := range servedUEs {
+				for _, bwp := range servedUE.GetServingCell(cell.NCGI).BwpRefs {
+					if bwp.Downlink {
+						usedBWDL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					} else {
+						usedBWUL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					}
+				}
+			}
+
+			// Available bandwidth in DL and UL
+			totalAvailableBWDL += float64(cell.Channel.BsChannelBwDL) - usedBWDL
+			totalAvailableBWUL += float64(cell.Channel.BsChannelBwUL) - usedBWUL
+		}
+
+		// Determine minimum SCS
+		var minSCS int
+		if isFR2 {
+			minSCS = bw.FRtoSCS["FR2"][0]
+		} else {
+			minSCS = bw.FRtoSCS["FR1"][0]
+		}
+
+		// Calculate PRBs based on available bandwidth and minimum SCS
+		DLPRBS, _ := bw.GetPRBs(totalAvailableBWDL, minSCS, isFR2)
+		ULPRBS, _ := bw.GetPRBs(totalAvailableBWUL, minSCS, isFR2)
+
+		// Check if PRB requirements are met
+		if (ULPRBS > requiredPRBsUL) && (DLPRBS > requiredPRBsDL) {
+			return true
+		}
+	}
+
+	// If no combination meets the criteria, return false
+	return false
 }

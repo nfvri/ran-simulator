@@ -100,33 +100,28 @@ var nrBands = map[string]BandNR{
 	"n95": {"n95", 2010, 2025, 0, 0, "SUL"},
 }
 
-type SCSInfo struct {
-	Value      int    // Subcarrier Spacing
-	Numerology int    // Numerlogy (μ)
-	FRName     string // "FR1"/"FR2-1"/"FR2-2"
-}
+// type SCSInfo struct {
+// 	Value      int    // Subcarrier Spacing
+// 	Numerology int    // Numerology (μ)
+// 	FRName     string // "FR1"/"FR2-1"/"FR2-2"
+// }
 
 // SCS mapping defines the SCS values, correspoding numerologies, anf frequency ranges.
-var SCSList = []SCSInfo{
-	{15, 0, "FR1"},    // SCS 15 kHz is allowed in FR1
-	{30, 1, "FR1"},    // SCS 30 kHz is allowed in FR1
-	{60, 2, "FR2-1"},  // SCS 60 kHz spans FR1 and FR2
-	{120, 3, "FR2-2"}, // SCS 120 kHz is allowed in FR2
-	{240, 4, "FR2-2"}, // SCS 240 kHz is allowed in FR2
-	{480, 5, "FR2-2"}, // SCS 4800 kHz is allowed in FR2
-	{960, 6, "FR2-2"}, // SCS 4800 kHz is allowed in FR2
+var FRtoSCS = map[string][]int{
+	"FR1": {15, 30, 60},        // FR1 SCSs
+	"FR2": {60, 120, 480, 960}, // FR1 SCSs
 }
 
 // NumerologyMapping defines the numerology value for each SCS.
-var NumerologyMapping = map[int]int{
-	0: 15,
-	1: 30,
-	2: 60,
-	3: 120,
-	4: 240,
-	5: 480,
-	6: 960,
-}
+// var NumerologyMapping = map[int]int{
+// 	0: 15,
+// 	1: 30,
+// 	2: 60,
+// 	3: 120,
+// 	4: 240,
+// 	5: 480,
+// 	6: 960,
+// }
 
 // GetBand takes a frequency and direction and returns the operating band name.
 func GetBand(arfcn uint32, direction string) (nrBand BandNR, found bool) {
@@ -152,35 +147,33 @@ func GetFR(arfcn float64) string {
 	switch {
 	case arfcn >= 410 && arfcn <= 7125:
 		return "FR1"
-	case arfcn >= 24250 && arfcn <= 52600:
-		return "FR2-1"
-	case arfcn > 52600 && arfcn <= 71000:
-		return "FR2-2"
+	case arfcn >= 24250 && arfcn <= 71000:
+		return "FR2"
 	default:
 		return "Out of Range"
 	}
 }
 
-// GetSCS takes a frequency and returns the allowed SCSs.
-func GetSCS(frequencyRange string) []int {
-	var allowedSCS []int
+// // GetSCS takes a frequency and returns the allowed SCSs.
+// func GetSCS(frequencyRange string) []int {
+// 	var allowedSCS []int
 
-	// Iterate over the SCSList and add SCS values for the given frequency range
-	for _, scs := range SCSList {
-		if scs.FRName == frequencyRange {
-			allowedSCS = append(allowedSCS, scs.Value)
-		}
-	}
+// 	// Iterate over the SCSList and add SCS values for the given frequency range
+// 	for _, scs := ran {
+// 		if scs.FRName == frequencyRange {
+// 			allowedSCS = append(allowedSCS, scs.Value)
+// 		}
+// 	}
 
-	// Return the slice of allowed SCS values for the given frequency range
-	return allowedSCS
-}
+// 	// Return the slice of allowed SCS values for the given frequency range
+// 	return allowedSCS
+// }
 
 // GetNumerology takes an SCS value and returns its corresponding numerology.
-func GetNumerology(scs int) (int, bool) {
-	num, exists := NumerologyMapping[scs]
-	return num, exists
-}
+// func GetNumerology(scs int) (int, bool) {
+// 	num, exists := NumerologyMapping[scs]
+// 	return num, exists
+// }
 
 // ChannelSCSPRB defines the structure for Channel Bandwidth, SCS, and Max PRBs.
 type ChannelSCSPRB struct {

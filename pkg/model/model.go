@@ -8,7 +8,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
@@ -265,6 +267,39 @@ type BeamID struct {
 	NCGI         types.NCGI
 	CarrierIndex int
 	BeamIndex    int
+}
+
+func (beamID BeamID) ToString() string {
+	return fmt.Sprintf("%d_%d_%d", beamID.NCGI, beamID.CarrierIndex, beamID.BeamIndex)
+}
+
+func ParseBeamID(key string) (BeamID, error) {
+	parts := strings.Split(key, "_")
+	if len(parts) != 3 {
+		return BeamID{}, fmt.Errorf("invalid BeamID key: %s", key)
+	}
+	ncgi, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		return BeamID{}, err
+	}
+	carrierIndex, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return BeamID{}, err
+	}
+	beamIndex, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return BeamID{}, err
+	}
+	return BeamID{NCGI: types.NCGI(ncgi), CarrierIndex: carrierIndex, BeamIndex: beamIndex}, nil
+}
+
+func StringToBeamID(s string) BeamID {
+	var beamID BeamID
+	_, err := fmt.Sscanf(s, "%d_%d_%d", &beamID.NCGI, &beamID.CarrierIndex, &beamID.BeamIndex)
+	if err != nil {
+		return BeamID{}
+	}
+	return beamID
 }
 
 type BeamQS struct {

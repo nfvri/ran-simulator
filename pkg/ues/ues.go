@@ -140,9 +140,9 @@ func GetUERsrpsBasedOnLocation(sCell *model.Cell, beamID model.BeamID, uesLocati
 	ueRSRPs = []float64{}
 	mpf := signal.RiceanFading(signal.GetRiceanK(sCell.GetCarrier(beamID)))
 
-	for index, ueCoord := range uesLocations {
+	for _, ueCoord := range uesLocations {
 		rsrp := signal.Strength(ueCoord, ueHeight, mpf, sCell, beamID)
-		ueRSRPs[index] = math.Round(rsrp*100) / 100
+		ueRSRPs = append(ueRSRPs, math.Round(rsrp*100)/100)
 	}
 
 	return

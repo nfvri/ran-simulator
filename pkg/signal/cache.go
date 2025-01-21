@@ -110,11 +110,16 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 		snapShotCell.Grid = cachedCell.Grid
 	} else {
 		snapShotCell.CachedStates = make(map[string]*model.CellCoverageInfo)
+		snapShotCell.Grid.BoundingBoxes = make(map[model.BeamID]*model.BoundingBox)
+		snapShotCell.Grid.GridPoints = make(map[model.BeamID][]model.Coordinate)
+		snapShotCell.Grid.ShadowingMaps = make(map[model.BeamID][]float64)
+		snapShotCell.InterferingBeams = make(map[model.BeamID][]model.BeamID)
 	}
 
 	snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
 	snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellCoverageInfo{
 		RPCoverageBoundaries: map[model.BeamID][]model.CoverageBoundary{},
+		CoverageBoundaries:   map[model.BeamID][]model.CoverageBoundary{},
 	}
 
 	for carrierIndex, carrier := range snapShotCell.Carriers {
@@ -150,7 +155,6 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 			}
 		}
 	}
-
 }
 
 func PopulateUEs(m *model.Model, redisStore redisLib.Store) {

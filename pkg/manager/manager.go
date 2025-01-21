@@ -217,7 +217,7 @@ func (m *Manager) initMetricStore() {
 func (m *Manager) computeCellAttributes() error {
 
 	ueHeight := 1.5
-	refSignalStrength := -107.0
+	refSignalStrength := -87.0
 	// change model's cells key from designated name to ncgi
 	cellGroup := make(map[string]*model.Cell)
 	for _, cell := range m.model.Cells {

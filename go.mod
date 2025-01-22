@@ -26,6 +26,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.11.0
 	github.com/stretchr/testify v1.9.0
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	gonum.org/v1/plot v0.14.0
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.2

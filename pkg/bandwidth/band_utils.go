@@ -1,11 +1,10 @@
 package bandwidth
 
-import "errors"
+import (
+	"errors"
 
-// arfcn -> nX
-// nX -> FR1/FR2, Allowed CA combinations
-// FR -> allowed SCS e.g. FR1 -> [15, 30, 60]
-// SCS, ChannelBW -> Max #PRBs e.g. 15, 40MHz -> 216
+	"github.com/nfvri/ran-simulator/pkg/model"
+)
 
 const (
 	UL = "Uplink"
@@ -13,31 +12,37 @@ const (
 )
 
 // TODO: determine if needed/how it will be used
-// NRBandwidthClass represents a single row of the table.
-type NRBandwidthClass struct {
+// BandwidthClassNR represents a single row of the table.
+type BandwidthClassNR struct {
 	Class             string `json:"class"`
-	AggregateBWMinMHz int    `json:"aggregate_bw_min_mhz"`
-	AggregateBWMaxMHz string `json:"aggregate_bw_max_mhz"`
+	AggregateBWMinMHz uint32 `json:"aggregate_bw_min_mhz"`
+	AggregateBWMaxMHz uint32 `json:"aggregate_bw_max_mhz"`
 	NumContiguousCC   int    `json:"num_contiguous_cc"`
 	FallbackGroup     []int  `json:"fallback_group"`
 }
 
 // TODO: determine if needed/how it will be used
-var classes = []NRBandwidthClass{
-	{"A", 0, "1 x BWChannel,max", 1, []int{1, 2, 3}},
-	{"B", 20, "100", 2, []int{2, 3}},
-	{"C", 100, "2 x BWChannel,max", 2, []int{1, 3}},
-	{"D", 200, "3 x BWChannel,max", 3, []int{1, 3}},
-	{"E", 300, "4 x BWChannel,max", 4, []int{1, 3}},
-	{"G", 100, "150", 3, []int{2}},
-	{"H", 150, "200", 4, []int{2}},
-	{"I", 200, "250", 5, []int{2}},
-	{"J", 250, "300", 6, []int{2}},
-	{"K", 300, "350", 7, []int{2}},
-	{"L", 350, "400", 8, []int{2}},
-	{"M", 50, "200", 3, []int{3}},
-	{"N", 80, "300", 4, []int{3}},
-	{"O", 100, "400", 5, []int{3}},
+func GetBandwidthClassNR(ue *model.UE, channelBwMax uint32) (BandwidthClassNR, bool) {
+	var bwClassesNR = map[string]BandwidthClassNR{
+		"A": {"A", 0, channelBwMax, 1, []int{1, 2, 3}},
+		"B": {"B", 20, 100, 2, []int{2, 3}},
+		"C": {"C", 100, 2 * channelBwMax, 2, []int{1, 3}},
+		"D": {"D", 200, 3 * channelBwMax, 3, []int{1, 3}},
+		"E": {"E", 300, 4 * channelBwMax, 4, []int{1, 3}},
+		"G": {"G", 100, 150, 3, []int{2}},
+		"H": {"H", 150, 200, 4, []int{2}},
+		"I": {"I", 200, 250, 5, []int{2}},
+		"J": {"J", 250, 300, 6, []int{2}},
+		"K": {"K", 300, 350, 7, []int{2}},
+		"L": {"L", 350, 400, 8, []int{2}},
+		"M": {"M", 50, 200, 3, []int{3}},
+		"N": {"N", 80, 300, 4, []int{3}},
+		"O": {"O", 100, 400, 5, []int{3}},
+	}
+	if bwc, bwcFound := bwClassesNR[ue.SupportedBWClass]; bwcFound {
+		return bwc, true
+	}
+	return BandwidthClassNR{}, false
 }
 
 type BandNR struct {

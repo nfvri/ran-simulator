@@ -1,6 +1,14 @@
 package bandwidth
 
 import (
+	"sort"
+	"strconv"
+	"strings"
+
+	"golang.org/x/exp/slices"
+
+	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	art "github.com/plar/go-adaptive-radix-tree/v2"
 )
 
@@ -585,4 +593,85 @@ func NewCarrierAggregatorNR() (ca *CarrierAggregatorNR) {
 func (ca *CarrierAggregatorNR) IsValidBandCombination(bandCombo string) bool {
 	_, found := ca.bandCombinationsNRTree.Search(art.Key(bandCombo))
 	return found
+}
+
+func (ca *CarrierAggregatorNR) GetValidCACombinations(targetCells []*model.Cell) (validCABandCombos [][]string, cellsByBand map[string][]*model.Cell) {
+
+	validCABandCombos = make([][]string, 0)
+	cellsByBand = make(map[string][]*model.Cell)
+	for cellIndex := range targetCells {
+		cell := targetCells[cellIndex]
+
+		// FIXME: For cells on different nodes
+		// we should consult DUAL CONNECTIVITY combinations in:
+		// https://www.etsi.org/deliver/etsi_ts/138100_138199/13810103/15.02.00_60/ts_13810103v150200p.pdf
+		// https://www.sqimway.com/nr_nrdc.php
+		// https://www.sqimway.com/nr_endc.php
+		// https://www.sqimway.com/nr_nedc.php
+		arfcn := utils.If(cell.ArfcnDL > 0, cell.ArfcnDL, cell.ArfcnUL)
+		cellBand, found := GetBand(arfcn, DL)
+		if !found {
+			continue
+		}
+		cellsByBand[cellBand.Name] = append(cellsByBand[cellBand.Name], cell)
+
+	}
+
+	targetCellBands := []string{}
+	for b := range cellsByBand {
+		targetCellBands = append(targetCellBands, b)
+	}
+
+	caBandCombos := GetCABandCombinations(SortNRBands(targetCellBands))
+
+	for _, caBandCombo := range caBandCombos {
+		if ca.IsValidBandCombination(caBandCombo) {
+			validCABandCombos = append(validCABandCombos, strings.Split(caBandCombo, "_"))
+		}
+	}
+
+	return
+
+}
+
+// Function to sort NR bands based on their names
+func SortNRBands(bands []string) []string {
+	bandNumber := func(s string) int {
+		num, _ := strconv.Atoi(s[1:])
+		return num
+	}
+	sort.Slice(bands, func(i, j int) bool {
+		return bandNumber(bands[i]) < bandNumber(bands[j])
+	})
+	return bands
+}
+
+func GetCABandCombinations(sortedBandsNR []string) []string {
+	var combinations []string
+	queue := []string{}
+
+	for i := 0; i < len(sortedBandsNR); i++ {
+		for j := i + 1; j < len(sortedBandsNR); j++ {
+			initialCombo := sortedBandsNR[i] + "_" + sortedBandsNR[j]
+			queue = append(queue, initialCombo)
+		}
+	}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		combinations = append(combinations, current)
+
+		for _, b := range sortedBandsNR {
+			if !strings.Contains(current, b) {
+				newCombination := current + "_" + b
+				if !slices.Contains(combinations, newCombination) {
+					queue = append(queue, newCombination)
+				}
+			}
+		}
+	}
+
+	return combinations
 }

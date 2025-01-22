@@ -63,7 +63,7 @@ type ProportionalFair struct {
 func (s *ProportionalFair) apply() {
 
 	if len(s.ScsOptionsHz) == 0 {
-		s.ScsOptionsHz = []int{15_000, 30_000, 60_000, 120_000}
+		s.ScsOptionsHz = FRtoSCS[GetFR(float64(s.Cell.Channel.ArfcnDL))]
 	}
 
 	totalBWDL := MHzToHz(float64(s.Cell.Channel.BsChannelBwDL))

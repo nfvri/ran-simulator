@@ -6,6 +6,7 @@ import (
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -439,4 +440,185 @@ func ReallocateUsedPRBs(cellMeasurements []*metrics.Metric, cellReqLoadMetric me
 		}
 	}
 
+}
+
+// func hasSufficientPRBS(
+//     validCABandCombos [][]string,
+//     cellsByBand map[string][]*model.Cell,
+//     isFR2 bool,
+//     ranModel *model.Model,
+//     ue *model.UE,
+// ) (bool, [][]string, [][]*model.Cell) {
+//     requiredPRBsDL, requiredPRBsUL := CurrPRBsUsed(ue)
+
+//     maxDLPRBS := -1
+//     var bestBandCombo []string
+//     var bestCells []*model.Cell
+
+//     sufficientBandCombos := [][]string{}
+//     correspondingCells := [][]*model.Cell{}
+
+//     for _, bandCombo := range validCABandCombos {
+//         var caScheme []*model.Cell
+//         for _, band := range bandCombo {
+//             if cells, exists := cellsByBand[band]; exists {
+//                 caScheme = append(caScheme, cells...)
+//             } else {
+//                 continue
+//             }
+//         }
+
+//         totalAvailableBWDL := 0.0
+//         totalAvailableBWUL := 0.0
+
+//         for _, cell := range caScheme {
+//             servedUEs := ranModel.GetServedUEs(cell.NCGI)
+
+//             usedBWDL := 0.0
+//             usedBWUL := 0.0
+//             for _, servedUE := range servedUEs {
+//                 for _, bwp := range servedUE.GetServingCell(cell.NCGI).BwpRefs {
+//                     if bwp.Downlink {
+//                         usedBWDL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+//                     } else {
+//                         usedBWUL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+//                     }
+//                 }
+//             }
+
+//             totalAvailableBWDL += float64(cell.Channel.BsChannelBwDL) - usedBWDL
+//             totalAvailableBWUL += float64(cell.Channel.BsChannelBwUL) - usedBWUL
+//         }
+
+//         var minSCS int
+//         if isFR2 {
+//             minSCS = FRtoSCS["FR2"][0]
+//         } else {
+//             minSCS = FRtoSCS["FR1"][0]
+//         }
+
+//         DLPRBS, err := GetPRBs(totalAvailableBWDL, minSCS, isFR2)
+//         if err != nil {
+//             continue
+//         }
+
+//         ULPRBS, err := GetPRBs(totalAvailableBWUL, minSCS, isFR2)
+//         if err != nil {
+//             continue
+//         }
+
+//         if ULPRBS > requiredPRBsUL && DLPRBS > requiredPRBsDL {
+//             // Sufficient PRBs: Add to the results
+//             sufficientBandCombos = append(sufficientBandCombos, bandCombo)
+//             correspondingCells = append(correspondingCells, caScheme)
+//         }
+
+//         if DLPRBS > maxDLPRBS {
+//             maxDLPRBS = DLPRBS
+//             bestBandCombo = bandCombo
+//             bestCells = caScheme
+//         }
+//     }
+
+//     if len(sufficientBandCombos) == 0 {
+//         // No sufficient combinations: Return the best-ranked combo
+
+//         sufficientBandCombos = append(sufficientBandCombos, bestBandCombo)
+//         correspondingCells = append(correspondingCells, bestCells)
+//     }
+
+//     return len(sufficientBandCombos) > 0, sufficientBandCombos, correspondingCells
+// }
+
+type BandComboWithCells struct {
+	Bands []string
+	Cells []*model.Cell
+}
+
+func hasSufficientPRBS(
+	validCABandCombos [][]string,
+	cellsByBand map[string][]*model.Cell,
+	isFR2 bool,
+	ranModel *model.Model,
+	ue *model.UE) (bool, []BandComboWithCells) {
+
+	requiredPRBsDL, requiredPRBsUL := CurrPRBsUsed(ue)
+
+	maxDLPRBS := -1
+	var bestCombo BandComboWithCells
+
+	bandCellCombos := []BandComboWithCells{}
+
+	for _, bandCombo := range validCABandCombos {
+		var caScheme []*model.Cell
+		for _, band := range bandCombo {
+			if cells, exists := cellsByBand[band]; exists {
+				caScheme = append(caScheme, cells...)
+			} else {
+				continue
+			}
+		}
+
+		totalAvailableBWDL := 0.0
+		totalAvailableBWUL := 0.0
+
+		for _, cell := range caScheme {
+			servedUEs := ranModel.GetServedUEs(cell.NCGI)
+
+			usedBWDL := 0.0
+			usedBWUL := 0.0
+			for _, servedUE := range servedUEs {
+				for _, bwp := range servedUE.GetServingCell(cell.NCGI).BwpRefs {
+					if bwp.Downlink {
+						usedBWDL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					} else {
+						usedBWUL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					}
+				}
+			}
+
+			totalAvailableBWDL += float64(cell.Channel.BsChannelBwDL) - usedBWDL
+			totalAvailableBWUL += float64(cell.Channel.BsChannelBwUL) - usedBWUL
+		}
+
+		var minSCS int
+		if isFR2 {
+			minSCS = FRtoSCS["FR2"][0]
+		} else {
+			minSCS = FRtoSCS["FR1"][0]
+		}
+
+		DLPRBS, err := GetPRBs(totalAvailableBWDL, minSCS, isFR2)
+		if err != nil {
+			continue
+		}
+
+		ULPRBS, err := GetPRBs(totalAvailableBWUL, minSCS, isFR2)
+		if err != nil {
+			continue
+		}
+
+		if ULPRBS > requiredPRBsUL && DLPRBS > requiredPRBsDL {
+			// Add to the combinations with sucfficient BW
+			bandCellCombos = append(bandCellCombos, BandComboWithCells{
+				Bands: bandCombo,
+				Cells: caScheme,
+			})
+		}
+
+		if DLPRBS > maxDLPRBS {
+			maxDLPRBS = DLPRBS
+			bestCombo = BandComboWithCells{
+				Bands: bandCombo,
+				Cells: caScheme,
+			}
+		}
+	}
+
+	if len(bandCellCombos) == 0 && len(bestCombo.Bands) > 0 {
+		// Best-ranked combo selected as no combinations with sufficient BW found
+		bandCellCombos = append(bandCellCombos, bestCombo)
+	}
+
+	return len(bandCellCombos) > 0, bandCellCombos
 }

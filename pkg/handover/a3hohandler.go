@@ -6,7 +6,6 @@ import (
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/model"
-	"github.com/sirupsen/logrus"
 )
 
 const MIN_ACCEPTABLE_RSRP = -110.0
@@ -45,7 +44,7 @@ func (h *A3HandoverHandler) Run() {
 	for ue := range h.Chans.InputChan {
 		h.Chans.OutputChan <- HandoverDecision{
 			UE:              ue,
-			TargetCellNcgis: h.rankTargetCellsByRSRP(ue),
+			TargetCellNcgis: h.getTargetCells(ue, h.rankTargetCellsByRSRP(ue)),
 		}
 	}
 }
@@ -84,13 +83,21 @@ func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
 	return bestNCGIsByRSRP
 }
 
-func (h *A3HandoverHandler) getTargetCells(ue *model.UE, bestNCGIsByRSRP []types.NCGI) []*model.Cell {
+func (h *A3HandoverHandler) getTargetCells(ue model.UE, bestNCGIsByRSRP []types.NCGI) []types.NCGI {
+
 	var maxChannelBwDL uint32 = 0
+	ueBWC, bwcFound := bw.GetBandwidthClassNR(&ue, maxChannelBwDL)
+	ueSupportsCA := bwcFound && ueBWC.NumContiguousCC >= 2
+
+	if !ueSupportsCA {
+		return bestNCGIsByRSRP
+	}
+
 	targetCells := []*model.Cell{}
 	for cellIndex := range h.model.Cells {
 		cell := h.model.Cells[cellIndex]
-		servCell := ue.GetServingCell(cell.NCGI)
-		if servCell != nil && maxChannelBwDL < cell.Channel.BsChannelBwDL {
+		_, isServingCell := ue.GetServingCell(cell.NCGI)
+		if isServingCell && maxChannelBwDL < cell.Channel.BsChannelBwDL {
 			maxChannelBwDL = cell.Channel.BsChannelBwDL
 		}
 		for _, ncgi := range bestNCGIsByRSRP {
@@ -101,11 +108,13 @@ func (h *A3HandoverHandler) getTargetCells(ue *model.UE, bestNCGIsByRSRP []types
 		}
 	}
 
-	bwc, bwcFound := bw.GetBandwidthClassNR(ue, maxChannelBwDL)
-	caSupported := len(targetCells) > 1 && bwcFound && bwc.NumContiguousCC >= 2
-	if caSupported {
-		validCACombinations, cellsByBand := h.ca.GetValidCACombinations(targetCells)
-		logrus.Infof("\n=================\n%+v, \n%+v \n=================\n", validCACombinations, cellsByBand)
+	validCACombinations, cellsByBand := h.ca.GetValidCACombinations(targetCells)
+	feasibleCASchemes := bw.GetFeasibleCASchemes(validCACombinations, cellsByBand, h.model, &ue)
+
+	targetCellNcgis := []types.NCGI{}
+	for _, c := range feasibleCASchemes[0].Cells {
+		targetCellNcgis = append(targetCellNcgis, c.NCGI)
 	}
-	return targetCells
+
+	return targetCellNcgis
 }

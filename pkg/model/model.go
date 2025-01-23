@@ -368,13 +368,13 @@ type UE struct {
 	SupportedBWClass string             `mapstructure:"supportedBWClass"`
 }
 
-func (ue *UE) GetServingCell(ncgi types.NCGI) *UECell {
+func (ue *UE) GetServingCell(ncgi types.NCGI) (*UECell, bool) {
 	for servCellIndex := range ue.ServingCells {
 		if ncgi == ue.ServingCells[servCellIndex].NCGI {
-			return ue.ServingCells[servCellIndex]
+			return ue.ServingCells[servCellIndex], true
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func (ue *UE) DeleteServingCell(ncgi types.NCGI) *UECell {

@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/exp/slices"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	art "github.com/plar/go-adaptive-radix-tree/v2"
@@ -674,4 +675,107 @@ func GetCABandCombinations(sortedBandsNR []string) []string {
 	}
 
 	return combinations
+}
+
+type prbInfo struct {
+	prbsUL int
+	prbsDL int
+}
+type CAScheme struct {
+	Bands          []string
+	NumPRBsPerCell map[types.NCGI]prbInfo
+	Cells          []*model.Cell
+}
+
+func GetFeasibleCASchemes(
+	validCABandCombos [][]string,
+	cellsByBand map[string][]*model.Cell,
+	ranModel *model.Model,
+	ue *model.UE) []CAScheme {
+
+	requiredPRBsDL, requiredPRBsUL := CurrPRBsUsed(ue)
+
+	maxPRBsDL := 0
+	var maxBWCAScheme CAScheme
+	feasibleCASchemes := []CAScheme{}
+
+	for _, bandCombo := range validCABandCombos {
+		var bandComboCells []*model.Cell
+		for _, band := range bandCombo {
+			if cells, exists := cellsByBand[band]; exists {
+				bandComboCells = append(bandComboCells, cells...)
+			} else {
+				continue
+			}
+		}
+
+		totalAvailPRBsDL := 0
+		totalAvailPRBsUL := 0
+		numPRBsPerCell := map[types.NCGI]prbInfo{}
+
+		for _, cell := range bandComboCells {
+			servedUEs := ranModel.GetServedUEs(cell.NCGI)
+
+			usedBWDL := 0.0
+			usedBWUL := 0.0
+			for _, servedUE := range servedUEs {
+				ueServCell, _ := servedUE.GetServingCell(cell.NCGI)
+				for _, bwp := range ueServCell.BwpRefs {
+					if bwp.Downlink {
+						usedBWDL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					} else {
+						usedBWUL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					}
+				}
+			}
+
+			arfcn := utils.If(cell.Channel.ArfcnDL > 0, float64(cell.Channel.ArfcnDL), float64(cell.Channel.ArfcnUL))
+			fr := GetFR(arfcn)
+			cellAvailBwDL := float64(cell.Channel.BsChannelBwDL) - usedBWDL
+			cellAvailBwUL := float64(cell.Channel.BsChannelBwUL) - usedBWUL
+			minSCS := SupportedSCSByFR[fr][0]
+
+			cellAvailPrbsUL, err := GetPRBs(cellAvailBwUL, minSCS, fr)
+			if err != nil {
+				continue
+			}
+			cellAvailPrbsDL, err := GetPRBs(cellAvailBwDL, minSCS, fr)
+			if err != nil {
+				continue
+			}
+
+			totalAvailPRBsUL += cellAvailPrbsUL
+			totalAvailPRBsDL += cellAvailPrbsDL
+
+			cellPrbInfo := numPRBsPerCell[cell.NCGI]
+			cellPrbInfo.prbsUL = cellAvailPrbsUL
+			cellPrbInfo.prbsDL = cellAvailPrbsDL
+			numPRBsPerCell[cell.NCGI] = cellPrbInfo
+
+		}
+
+		if totalAvailPRBsDL > requiredPRBsUL && totalAvailPRBsUL > requiredPRBsDL {
+			// Add to the combinations with sucfficient BW
+			feasibleCASchemes = append(feasibleCASchemes, CAScheme{
+				Bands: bandCombo,
+				Cells: bandComboCells,
+			})
+		}
+
+		if totalAvailPRBsDL > maxPRBsDL {
+			maxPRBsDL = totalAvailPRBsDL
+			maxBWCAScheme = CAScheme{
+				Bands: bandCombo,
+				Cells: bandComboCells,
+			}
+		}
+	}
+
+	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
+	if !anyFeasibleCAScheme && len(maxBWCAScheme.Bands) > 0 {
+		// Best-ranked combo selected as no combinations with sufficient BW found
+		feasibleCASchemes = append(feasibleCASchemes, maxBWCAScheme)
+	}
+
+	return feasibleCASchemes
 }

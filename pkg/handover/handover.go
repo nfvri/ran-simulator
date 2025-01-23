@@ -147,7 +147,7 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
 	noTargetCells := len(hoDecision.TargetCellNcgis) == 0
 	if noTargetCells {
-		bw.ReleaseBWPs(servCells, ue)
+		bw.ReleaseBW(servCells, ue)
 		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
 		e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
 		return
@@ -184,12 +184,11 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
 	// TODO: Check if target contains existing serving cells
 	// if so exclude them from reallocation
-	// first reallocate and then release bw?
 	if len(hoDecision.TargetCellNcgis) != 0 {
-		requestedBwps := bw.ReleaseBWPs(servCells, ue)
+		prevAlloc := bw.ReleaseBW(servCells, ue)
 		e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
 		e.ComputeCellMetricsFor(ue)
-		bw.ReallocateBW(ue, requestedBwps, targetCells, e.Model.GetServedUEs)
+		bw.ReallocateBW(ue, prevAlloc, targetCells, e.Model.GetServedUEs)
 		logHO(hoDecision, servCellNCGIs)
 	} else {
 		ue.ServingCells[0].BwpRefs = []*model.Bwp{}

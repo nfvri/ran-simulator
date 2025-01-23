@@ -7,8 +7,12 @@ import (
 )
 
 const (
-	UL = "Uplink"
-	DL = "Downlink"
+	UL    = "Uplink"
+	DL    = "Downlink"
+	FR1   = "FR1"
+	FR2   = "FR2"
+	FR2_1 = "FR2-1"
+	FR2_2 = "FR2-2"
 )
 
 // TODO: determine if needed/how it will be used
@@ -112,9 +116,9 @@ var nrBands = map[string]BandNR{
 // }
 
 // SCS mapping defines the SCS values, correspoding numerologies, anf frequency ranges.
-var FRtoSCS = map[string][]int{
-	"FR1": {15, 30, 60},        // FR1 SCSs
-	"FR2": {60, 120, 480, 960}, // FR1 SCSs
+var SupportedSCSByFR = map[string][]int{
+	FR1: {15, 30, 60},        // FR1 SCSs
+	FR2: {60, 120, 480, 960}, // FR1 SCSs
 }
 
 // NumerologyMapping defines the numerology value for each SCS.
@@ -248,12 +252,12 @@ var ChannelTableFR2 = []ChannelSCSPRB{
 }
 
 // GetPRBs returns the PRBs for the available Channel Bandwidth and SCS.
-func GetPRBs(channelBW float64, scs int, isFR2 bool) (int, error) {
+func GetPRBs(channelBW float64, scs int, fr string) (int, error) {
 	var selectedEntry *ChannelSCSPRB
 	var table []ChannelSCSPRB
 
 	// Select the appropriate table based on FR1 or FR2
-	if isFR2 {
+	if fr == FR1 {
 		table = ChannelTableFR2 // Use FR2 table
 	} else {
 		table = ChannelTableFR1 // Use FR1 table

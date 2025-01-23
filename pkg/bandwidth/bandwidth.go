@@ -56,35 +56,35 @@ func CurrPRBsUsed(ue *model.UE) (UsedPRBsDL, UsedPRBsUL int) {
 	return
 }
 
-func ReleaseBWPs(servCells []*model.Cell, ue *model.UE) []*model.Bwp {
-	bwps := []*model.Bwp{}
+func ReleaseBW(servCells []*model.Cell, ue *model.UE) map[types.NCGI][]*model.Bwp {
+	bwpsPerNCGI := map[types.NCGI][]*model.Bwp{}
 	for cIndex := range servCells {
 		servCell := servCells[cIndex]
-		for uecIndex := range ue.ServingCells {
-			ueServCell := ue.ServingCells[uecIndex]
-			if ueServCell.NCGI == servCell.NCGI {
-				for bwpIndex := range ueServCell.BwpRefs {
-					bwp := *ueServCell.BwpRefs[bwpIndex]
-					bwps = append(bwps, &bwp)
-					delete(servCell.Bwps, bwp.ID)
-				}
-				ue.ServingCells[0].BwpRefs = []*model.Bwp{}
-				break
+		ueServCell, isServingCell := ue.GetServingCell(servCell.NCGI)
+		if isServingCell {
+			for bwpIndex := range ueServCell.BwpRefs {
+				bwp := *ueServCell.BwpRefs[bwpIndex]
+				bwpsPerNCGI[servCell.NCGI] = append(bwpsPerNCGI[servCell.NCGI], &bwp)
+				delete(servCell.Bwps, bwp.ID)
 			}
+			ueServCell.BwpRefs = []*model.Bwp{}
 		}
 	}
-	return bwps
+	return bwpsPerNCGI
 }
 
-func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCells []*model.Cell, getServedUEs func(ncgi types.NCGI) []*model.UE) {
+func ReallocateBW(ue *model.UE, prevAlloc map[types.NCGI][]*model.Bwp, tCells []*model.Cell, getServedUEs func(ncgi types.NCGI) []*model.UE) {
 
 	// TODO: give less PRBs on lower freq and more on higher
 	for tCellIndex := range tCells {
 		tCell := tCells[tCellIndex]
 		_, ueTargetServCell := ue.GetNeighborCell(tCell.NCGI)
+		// TODO: map prevAlloc PRBs -> new cells
+
 		servedUEs := getServedUEs(tCell.NCGI)
-		scaledBwps := getScaledBwps(servedUEs, ue.FiveQi, ue.FiveQi, requestedBwps)
-		if isEnough, reqBwps := enoughBW(tCell, requestedBwps, scaledBwps); isEnough {
+		scaledBwps := getScaledBwps(servedUEs, ue.FiveQi, ue.FiveQi, prevAlloc[tCell.NCGI])
+
+		if isEnough, reqBwps := enoughBW(tCell, prevAlloc[tCell.NCGI], scaledBwps); isEnough {
 			ueTargetServCell.BwpRefs = []*model.Bwp{}
 			bwpId := len(tCell.Bwps)
 			for index := range reqBwps {
@@ -97,7 +97,7 @@ func ReallocateBW(ue *model.UE, requestedBwps []*model.Bwp, tCells []*model.Cell
 			return
 		}
 
-		ueTargetServCell.BwpRefs = requestedBwps
+		ueTargetServCell.BwpRefs = prevAlloc[tCell.NCGI]
 		// augment allocation with new ue
 		servedUEs = append(servedUEs, ue)
 		reqAlloc := BwAllocationOf(servedUEs)
@@ -213,13 +213,14 @@ func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 	return bwAlloc
 }
 
+// TODO: refactor
 func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*model.Bwp {
 	cqiBWDL := 0
 	cqiBWUL := 0
-	cqiUEs := 0
+	cqiNumUEs := 0
 	for _, ue := range ues {
 		if cqi == ue.FiveQi {
-			cqiUEs++
+			cqiNumUEs++
 			for _, bwp := range ue.ServingCells[0].BwpRefs {
 				if bwp.Downlink {
 					cqiBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
@@ -229,7 +230,7 @@ func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*mod
 			}
 		}
 	}
-	if cqiUEs == 0 {
+	if cqiNumUEs == 0 {
 		if cqi-1 == 0 {
 			if ueCQI+1 > 15 {
 				return reqBwps
@@ -245,8 +246,8 @@ func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*mod
 		return getScaledBwps(ues, ueCQI, cqi-1, reqBwps)
 	}
 
-	avgCqiBWDL := cqiBWDL / cqiUEs
-	avgCqiBWUL := cqiBWUL / cqiUEs
+	avgCqiBWDL := cqiBWDL / cqiNumUEs
+	avgCqiBWUL := cqiBWUL / cqiNumUEs
 
 	reqPRBsDL := 0
 	reqBWDL := 0
@@ -268,10 +269,12 @@ func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*mod
 	}
 	scaledBwpsDL := reqBWPsDL
 	if reqBWDL > avgCqiBWDL {
+		// TODO: see how to obtain scsOptions
 		scaledBwpsDL, _ = generateBWPs(avgCqiBWDL, reqPRBsDL, true)
 	}
 	scaledBwpsUL := reqBWPsUL
 	if reqBWUL > avgCqiBWUL {
+		// TODO: see how to obtain scsOptions
 		scaledBwpsUL, _ = generateBWPs(avgCqiBWUL, reqPRBsUL, false)
 	}
 

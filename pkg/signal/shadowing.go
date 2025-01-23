@@ -134,6 +134,9 @@ func FindBoundingBox(gridPoints []model.Coordinate) (bb *model.BoundingBox) {
 
 // Function to check if a point is inside a bounding box
 func IsPointInsideBoundingBox(point model.Coordinate, bb *model.BoundingBox) bool {
+	if bb == nil {
+		return false
+	}
 	return point.Lat >= bb.MinLat &&
 		point.Lat <= bb.MaxLat &&
 		point.Lng >= bb.MinLng &&
@@ -161,7 +164,7 @@ func FindOverlappingGridPoints(cell1, cell2 *model.Cell, beamID1, beamID2 model.
 }
 
 func InitShadowMap(cell *model.Cell, beamID model.BeamID, d_c float64) {
-	carrier := cell.Carriers[beamID.CarrierIndex]
+	carrier := cell.GetCarrier(beamID)
 
 	sigma := 6.0
 	switch {

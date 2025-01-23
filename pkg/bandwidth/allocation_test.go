@@ -124,7 +124,7 @@ func setup() (*model.Cell, []*model.UE) {
 				{
 					Beams: []*model.Beam{
 						{
-							BeamIndex: 0,
+							BeamIndex: 1,
 						},
 					},
 					ArfcnDL:       640000,

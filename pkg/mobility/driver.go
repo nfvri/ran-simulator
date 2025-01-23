@@ -138,6 +138,14 @@ func (d *driver) GetHoCtrl() handover.HOController {
 
 func (d *driver) processHandoverDecision(ctx context.Context) {
 	log.Info("Handover decision process starting")
+
+	d.hoCounter.Lock()
+	if d.hoCounter.hosRemaining == 0 {
+		d.hoCounter.Unlock()
+		d.finishHOsChan <- true
+		return
+	}
+
 	for {
 		select {
 		case hoDecision := <-d.hoCtrl.GetOutputChan():

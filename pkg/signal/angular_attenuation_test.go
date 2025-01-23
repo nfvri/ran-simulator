@@ -75,14 +75,14 @@ func Test_AngularAttenuation(t *testing.T) {
 
 	ue.Location = model.Coordinate{Lat: 37.979207, Lng: 23.720989} // 4 degree vertical angle from cell center
 	carrier.Beams[0].Tilt = -29
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, 0)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, carrier.Beams[0])))
 
 	carrier.Beams[0].Tilt = 37
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, 0)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, carrier.Beams[0])))
 
 	// Test horizon
 	carrier.Beams[0].Tilt = 4 // target ue
 	expectedVAttenuation = 0
-	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, 0)))
+	assert.Equal(t, expectedHAttenuation+expectedVAttenuation, int(angularAttenuation(ue.Location, ue.Height, carrier, carrier.Beams[0])))
 
 }

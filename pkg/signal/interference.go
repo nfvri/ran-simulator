@@ -164,8 +164,10 @@ func GetNeighborBeamIDs(neighborCells map[types.NCGI]*model.Cell) []model.BeamID
 	nBeamIDs := []model.BeamID{}
 	for nNCGI, nCell := range neighborCells {
 		for nCarrierIndex, nCarrier := range nCell.Carriers {
+			nCarIndex := nCarrierIndex + 1
 			for nBeamIndex := range nCarrier.Beams {
-				nBeamID := model.BeamID{NCGI: nNCGI, CarrierIndex: nCarrierIndex, BeamIndex: nBeamIndex}
+				nBmIndex := nBeamIndex + 1
+				nBeamID := model.BeamID{NCGI: nNCGI, CarrierIndex: nCarIndex, BeamIndex: nBmIndex}
 				nBeamIDs = append(nBeamIDs, nBeamID)
 			}
 		}
@@ -185,12 +187,13 @@ func GetInterferingBeams(point model.Coordinate, sCell *model.Cell, beamID model
 		}
 
 		for nCarrierIndex, nCarrier := range nCell.Carriers {
-			if nCarrier.ArfcnDL != sCell.Carriers[beamID.CarrierIndex].ArfcnDL {
+			if nCarrier.ArfcnDL != sCell.GetCarrier(beamID).ArfcnDL {
 				continue
 			}
-
+			nCarIndex := nCarrierIndex + 1
 			for nBeamIndex := range nCarrier.Beams {
-				interferingBeamID := model.BeamID{NCGI: nNCGI, CarrierIndex: nCarrierIndex, BeamIndex: nBeamIndex}
+				nBmIndex := nBeamIndex + 1
+				interferingBeamID := model.BeamID{NCGI: nNCGI, CarrierIndex: nCarIndex, BeamIndex: nBmIndex}
 				if IsPointInsideBoundingBox(point, nCell.BoundingBoxes[interferingBeamID]) {
 					neighborCells[nNCGI] = nCell
 					interferingBeamIDs = append(interferingBeamIDs, interferingBeamID)

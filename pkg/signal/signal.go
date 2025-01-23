@@ -28,8 +28,9 @@ func Strength(coord model.Coordinate, ueHeight, mpf float64, cell *model.Cell, b
 
 	latIdx, lngIdx := FindGridCell(coord, cell.GridPoints[beamID])
 	carrier := cell.GetCarrier(beamID)
+	beam := cell.GetBeam(beamID)
 
-	radiatedStrength := RadiatedStrength(coord, ueHeight, carrier, beamID.BeamIndex)
+	radiatedStrength := RadiatedStrength(coord, ueHeight, carrier, beam)
 
 	shadowing := 0.0
 	if len(cell.ShadowingMaps[beamID]) > 0 {
@@ -40,14 +41,14 @@ func Strength(coord model.Coordinate, ueHeight, mpf float64, cell *model.Cell, b
 
 }
 
-func RadiatedStrength(coord model.Coordinate, ueHeight float64, carrier *model.Carrier, beamIndex int) float64 {
+func RadiatedStrength(coord model.Coordinate, ueHeight float64, carrier *model.Carrier, beam *model.Beam) float64 {
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) || carrier.TxPowerDB == 0 {
 		return math.Inf(-1)
 	}
-	angleAtt := angularAttenuation(coord, ueHeight, carrier, beamIndex)
+	angleAtt := angularAttenuation(coord, ueHeight, carrier, beam)
 	pathLoss := GetPathLoss(coord, ueHeight, carrier)
 
-	antenaGain := carrier.Beams[beamIndex].MaxGain + angleAtt
+	antenaGain := beam.MaxGain + angleAtt
 
 	return carrier.TxPowerDB + antenaGain - pathLoss
 
@@ -88,11 +89,11 @@ func RSRQ1(rsrpDbm, sinrDbm float64, numPRBs int) float64 {
 // A 60° wide beam will be half that and so will have double the gain
 // https://en.wikipedia.org/wiki/Sector_antenna
 // https://en.wikipedia.org/wiki/Steradian
-func DistanceAttenuation(coord model.Coordinate, carrier *model.Carrier, beamIndex int) float64 {
+func DistanceAttenuation(coord model.Coordinate, carrier *model.Carrier, beam *model.Beam) float64 {
 	latDist := coord.Lat - carrier.Center.Lat
 	realLngDist := (coord.Lng - carrier.Center.Lng) / utils.AspectRatio(carrier.Center.Lat)
 	r := math.Hypot(latDist, realLngDist)
-	gain := 120.0 / float64(carrier.Beams[beamIndex].H3dBAngle)
+	gain := 120.0 / float64(beam.H3dBAngle)
 	return utils.MwToDbm(gain * math.Sqrt(powerFactor/r))
 }
 
@@ -101,11 +102,11 @@ func DistanceAttenuation(coord model.Coordinate, carrier *model.Carrier, beamInd
 // It is an approximation of the directivity of the antenna
 // https://en.wikipedia.org/wiki/Radiation_pattern
 // https://en.wikipedia.org/wiki/Sector_antenna
-func AngleAttenuation(coord model.Coordinate, carrier *model.Carrier, beamIndex int) float64 {
-	azRads := utils.AzimuthToRads(float64(carrier.Beams[beamIndex].Azimuth))
+func AngleAttenuation(coord model.Coordinate, carrier *model.Carrier, beam *model.Beam) float64 {
+	azRads := utils.AzimuthToRads(float64(beam.Azimuth))
 	pointRads := math.Atan2(coord.Lat-carrier.Center.Lat, coord.Lng-carrier.Center.Lng)
 	angularOffset := math.Abs(azRads - pointRads)
-	angleScaling := float64(carrier.Beams[beamIndex].H3dBAngle) / 120.0 // Compensate for narrower beams
+	angleScaling := float64(beam.H3dBAngle) / 120.0 // Compensate for narrower beams
 
 	// We just use a simple linear formula 0 => no loss
 	// 33° => -3dB for a 120° sector according to [2]
@@ -116,15 +117,15 @@ func AngleAttenuation(coord model.Coordinate, carrier *model.Carrier, beamIndex 
 
 // https://www.etsi.org/deliver/etsi_tr/138900_138999/138901/17.00.00_60/tr_138901v170000p.pdf
 // Table 7.3-1: Radiation power pattern of a single antenna element
-func angularAttenuation(coord model.Coordinate, ueHeight float64, carrier *model.Carrier, beamIndex int) float64 {
+func angularAttenuation(coord model.Coordinate, ueHeight float64, carrier *model.Carrier, beam *model.Beam) float64 {
 	log.Debug("\n======================================\n")
 	ueAngle := utils.CalculateBearing(carrier.Center.Lat, carrier.Center.Lng, coord.Lat, coord.Lng)
 
-	azimuthOffset := math.Abs(carrier.Beams[beamIndex].Azimuth - ueAngle)
+	azimuthOffset := math.Abs(beam.Azimuth - ueAngle)
 	if azimuthOffset > 180 {
 		azimuthOffset = 360 - azimuthOffset
 	}
-	horizontalCut := azimuthAttenuation(azimuthOffset, carrier.Beams[beamIndex].H3dBAngle, carrier.TxPowerDB)
+	horizontalCut := azimuthAttenuation(azimuthOffset, beam.H3dBAngle, carrier.TxPowerDB)
 
 	log.Debugf(
 		`
@@ -134,20 +135,20 @@ func angularAttenuation(coord model.Coordinate, ueHeight float64, carrier *model
 		azimuthOffset: %v 
 		`,
 		horizontalCut,
-		carrier.Beams[beamIndex].Azimuth,
+		beam.Azimuth,
 		ueAngle,
 		azimuthOffset,
 	)
 
 	log.Debug("\n======================================\n")
-	zenithAngle := calcZenithAngle(coord, ueHeight, carrier, beamIndex)
-	verticalCut := zenithAttenuation(zenithAngle, carrier.Beams[beamIndex].V3dBAngle, carrier.VSideLobeAttenuationDB)
+	zenithAngle := calcZenithAngle(coord, ueHeight, carrier, beam)
+	verticalCut := zenithAttenuation(zenithAngle, beam.V3dBAngle, carrier.VSideLobeAttenuationDB)
 	log.Debugf("\nverticalCut: %v \nzenithAngle: %v", verticalCut, zenithAngle)
 	log.Debug("\n======================================\n")
 	return -math.Min(-(verticalCut + horizontalCut), carrier.TxPowerDB)
 }
 
-func calcZenithAngle(coord model.Coordinate, ueHeight float64, carrier *model.Carrier, beamIndex int) float64 {
+func calcZenithAngle(coord model.Coordinate, ueHeight float64, carrier *model.Carrier, beam *model.Beam) float64 {
 
 	d2D := utils.GetSphericalDistance(coord, carrier.Center) // assume small error for small distances
 	d3D := get3dEuclideanDistanceFromGPS(coord, ueHeight, carrier)
@@ -163,7 +164,7 @@ func calcZenithAngle(coord model.Coordinate, ueHeight float64, carrier *model.Ca
 	ueAngleRads := math.Acos(d2D / d3D)
 	zUERads := 90*(math.Pi/180) + ueAngleSign*ueAngleRads
 
-	zTilt := 90 + carrier.Beams[beamIndex].Tilt
+	zTilt := 90 + beam.Tilt
 	zTiltRads := zTilt * (math.Pi / 180)
 	zAngleOffset := math.Abs(zUERads - zTiltRads)
 

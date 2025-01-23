@@ -41,8 +41,9 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	refSignalStrength := -87.0
 
 	carrier := cell.Carriers[0]
+	beam := carrier.Beams[0]
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
-		return RadiationPatternF(cell, carrier, 0, ueHeight, refSignalStrength)
+		return RadiationPatternF(cell, carrier, beam, ueHeight, refSignalStrength)
 	}
 	newtonKrylovSolver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
@@ -98,7 +99,7 @@ func TestStrength(t *testing.T) {
 
 	coord := model.Coordinate{Lat: 87.63223356680056, Lng: 73.40325326694467}
 	mpf := 0.3638433520844825
-	beamID := model.BeamID{NCGI: cell.NCGI, CarrierIndex: 0, BeamIndex: 0}
+	beamID := model.BeamID{NCGI: cell.NCGI, CarrierIndex: 1, BeamIndex: 1}
 	s := Strength(coord, 1.5, mpf, cell, beamID)
 	fmt.Printf("s: %v", s)
 }

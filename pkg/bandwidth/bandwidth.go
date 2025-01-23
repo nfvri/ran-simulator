@@ -571,9 +571,11 @@ func GetNumUEsPerBeamQS(sCell *model.Cell, numUEsPerCQI map[int]int) map[model.B
 		remainingUEsPerCQI[cqi] = numUEs % totalBeams
 
 		for carrierIndex, carrier := range sCell.Carriers {
+			carIndex := carrierIndex + 1
 			for beamIndex := range carrier.Beams {
+				bmIndex := beamIndex + 1
 				beamQS := model.BeamQS{
-					BeamID: model.BeamID{NCGI: sCell.NCGI, CarrierIndex: carrierIndex, BeamIndex: beamIndex},
+					BeamID: model.BeamID{NCGI: sCell.NCGI, CarrierIndex: carIndex, BeamIndex: bmIndex},
 					CQI:    cqi,
 				}
 				numUEsPerCQIByBeam[beamQS] += uesPerBeam
@@ -586,12 +588,14 @@ func GetNumUEsPerBeamQS(sCell *model.Cell, numUEsPerCQI map[int]int) map[model.B
 			continue
 		}
 		for carrierIndex, carrier := range sCell.Carriers {
+			carIndex := carrierIndex + 1
 			for beamIndex := range carrier.Beams {
+				bmIndex := beamIndex + 1
 				if remainingUEs == 0 {
 					break
 				}
 				beamQS := model.BeamQS{
-					BeamID: model.BeamID{NCGI: sCell.NCGI, CarrierIndex: carrierIndex, BeamIndex: beamIndex},
+					BeamID: model.BeamID{NCGI: sCell.NCGI, CarrierIndex: carIndex, BeamIndex: bmIndex},
 					CQI:    cqi,
 				}
 				numUEsPerCQIByBeam[beamQS]++

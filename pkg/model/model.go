@@ -117,12 +117,12 @@ func (m *Model) GetServingCells(imsi types.IMSI) []*Cell {
 
 func (m *Model) GetCarrier(beamID BeamID) *Carrier {
 	sCell := m.Cells[strconv.FormatUint(uint64(beamID.NCGI), 10)]
-	return sCell.Carriers[beamID.CarrierIndex]
+	return sCell.Carriers[beamID.CarrierIndex-1]
 }
 
 func (m *Model) GetBeam(beamID BeamID) *Beam {
 	sCell := m.Cells[strconv.FormatUint(uint64(beamID.NCGI), 10)]
-	return sCell.Carriers[beamID.CarrierIndex].Beams[beamID.BeamIndex]
+	return sCell.Carriers[beamID.CarrierIndex-1].Beams[beamID.BeamIndex-1]
 }
 
 type ServiceMappings struct {
@@ -242,11 +242,11 @@ func (cell *Cell) GetHashedConfig() string {
 }
 
 func (cell *Cell) GetBeam(beamID BeamID) *Beam {
-	return cell.Carriers[beamID.CarrierIndex].Beams[beamID.BeamIndex]
+	return cell.Carriers[beamID.CarrierIndex-1].Beams[beamID.BeamIndex-1]
 }
 
 func (cell *Cell) GetCarrier(beamID BeamID) *Carrier {
-	return cell.Carriers[beamID.CarrierIndex]
+	return cell.Carriers[beamID.CarrierIndex-1]
 }
 
 type Carrier struct {
@@ -291,15 +291,6 @@ func ParseBeamID(key string) (BeamID, error) {
 		return BeamID{}, err
 	}
 	return BeamID{NCGI: types.NCGI(ncgi), CarrierIndex: carrierIndex, BeamIndex: beamIndex}, nil
-}
-
-func StringToBeamID(s string) BeamID {
-	var beamID BeamID
-	_, err := fmt.Sscanf(s, "%d_%d_%d", &beamID.NCGI, &beamID.CarrierIndex, &beamID.BeamIndex)
-	if err != nil {
-		return BeamID{}
-	}
-	return beamID
 }
 
 type BeamQS struct {

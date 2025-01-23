@@ -249,10 +249,6 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 	for ncgi := range m.model.Cells {
 		cell := m.model.Cells[ncgi]
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
-		if len(servedUEs) == 0 {
-			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
-			continue
-		}
 
 		usedPRBsDL := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)]
 		usedPRBsUL := usedPRBsULPerCQIByCell[uint64(cell.NCGI)]
@@ -271,6 +267,11 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 
 		m.setBWUtilization(ctx, cell, sumUsedPRBsDL, sumUsedPRBsUL, availPRBsDL, availPRBsUL)
 
+		if len(servedUEs) == 0 {
+			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
+			continue
+		}
+
 		bw.AllocateBW(cell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
 		if len(cell.Bwps) == 0 && sumUsedPRBsDL+sumUsedPRBsUL != 0 {
 			log.Error("failed to initialize BWPs for cell: %v", cell.NCGI)
@@ -288,8 +289,14 @@ func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, sumUse
 	availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)
 
-	bwUtilizationDL := float64(sumUsedPRBsDL) / float64(availPRBsDL)
-	bwUtilizationUL := float64(sumUsedPRBsUL) / float64(availPRBsUL)
+	bwUtilizationDL := 0.0
+	if sumUsedPRBsDL != 0 || availPRBsDL != 0 {
+		bwUtilizationDL = float64(sumUsedPRBsDL) / float64(availPRBsDL)
+	}
+	bwUtilizationUL := 0.0
+	if sumUsedPRBsUL != 0 || availPRBsUL != 0 {
+		bwUtilizationUL = float64(sumUsedPRBsUL) / float64(availPRBsUL)
+	}
 
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationDL)
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC, 100*bwUtilizationUL)

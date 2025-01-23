@@ -364,6 +364,7 @@ func redisToCellInterferingBeams(redisInterferingBeams map[string][]model.BeamID
 	for beamIdStr, interferingBeams := range redisInterferingBeams {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
+			log.Warnf("error in parsing beam id: %v", beamIdStr)
 			continue
 		}
 		cellInterferingBeams[beamID] = interferingBeams
@@ -381,6 +382,7 @@ func redisToCellGrid(redisGrid RedisGrid) model.Grid {
 	for beamIdStr, boundingBox := range redisGrid.BoundingBoxes {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
+			log.Warnf("error in parsing beam id: %v", beamIdStr)
 			continue
 		}
 		cellGrid.BoundingBoxes[beamID] = boundingBox
@@ -389,6 +391,7 @@ func redisToCellGrid(redisGrid RedisGrid) model.Grid {
 	for beamIdStr, gridPoints := range redisGrid.GridPoints {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
+			log.Warnf("error in parsing beam id: %v", beamIdStr)
 			continue
 		}
 		cellGrid.GridPoints[beamID] = gridPoints
@@ -397,6 +400,7 @@ func redisToCellGrid(redisGrid RedisGrid) model.Grid {
 	for beamIdStr, shadowingMap := range redisGrid.ShadowingMaps {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
+			log.Warnf("error in parsing beam id: %v", beamIdStr)
 			continue
 		}
 		cellGrid.ShadowingMaps[beamID] = shadowingMap

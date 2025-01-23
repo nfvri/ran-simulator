@@ -197,7 +197,7 @@ func GetNeighborCells(cell *model.Cell, cells map[string]*model.Cell) map[types.
 			continue
 		}
 		for nCellcarriedIndex := range nCell.Carriers {
-			for carriedIndex := range nCell.Carriers {
+			for carriedIndex := range cell.Carriers {
 				if nCell.Carriers[nCellcarriedIndex].ArfcnDL == cell.Carriers[carriedIndex].ArfcnDL {
 					neighborCells[ncgi] = nCell
 				}

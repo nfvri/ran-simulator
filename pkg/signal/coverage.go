@@ -136,10 +136,10 @@ func GetGuessesChan(guessesCoord []model.Coordinate) <-chan []float64 {
 	return gChan
 }
 
-func RadiationPatternF(cell *model.Cell, carrier *model.Carrier, beamIndex int, ueHeight, refSignalStrength float64) (f func(out, x []float64)) {
+func RadiationPatternF(cell *model.Cell, carrier *model.Carrier, beam *model.Beam, ueHeight, refSignalStrength float64) (f func(out, x []float64)) {
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		fValue := RadiatedStrength(coord, ueHeight, carrier, beamIndex) - refSignalStrength
+		fValue := RadiatedStrength(coord, ueHeight, carrier, beam) - refSignalStrength
 		out[0] = fValue
 		out[1] = fValue
 	}
@@ -155,10 +155,11 @@ func CoverageF(cell *model.Cell, beamID model.BeamID, ueHeight, refSignalStrengt
 
 func GetRPBoundaryPoints(cell *model.Cell, beamID model.BeamID, refSignalStrength, ueHeight float64) []model.Coordinate {
 	log.Debugf("calculating radiation pattern for cell:%v", cell.NCGI)
-	carrier := cell.Carriers[beamID.CarrierIndex]
+	carrier := cell.GetCarrier(beamID)
+	beam := cell.GetBeam(beamID)
 
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
-		return RadiationPatternF(cell, carrier, beamID.BeamIndex, ueHeight, refSignalStrength)
+		return RadiationPatternF(cell, carrier, beam, ueHeight, refSignalStrength)
 	}
 
 	// TODO: add cell.Channel.SSBFrequency in equation
@@ -196,7 +197,7 @@ func GetRPBoundaryPoints(cell *model.Cell, beamID model.BeamID, refSignalStrengt
 func GetCovBoundaryPoints(cell *model.Cell, beamID model.BeamID, ueHeight, refSignalStrength float64, rpBoundaryPoints []model.Coordinate) []model.Coordinate {
 	log.Debugf("calculating coverage for cell:%v", cell.NCGI)
 
-	carrier := cell.Carriers[beamID.CarrierIndex]
+	carrier := cell.GetCarrier(beamID)
 	mpf := RiceanFading(GetRiceanK(carrier))
 
 	cfp := func(x0 []float64) (f func(out, x []float64)) {

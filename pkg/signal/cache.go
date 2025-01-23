@@ -82,11 +82,16 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			}
 
 			for carrierIndexI, carrierI := range cellList[i].Carriers {
+				carIndexI := carrierIndexI + 1
 				for beamIndexI := range carrierI.Beams {
+					bmIndexI := beamIndexI + 1
+					beamIDI := model.BeamID{NCGI: cellList[i].NCGI, CarrierIndex: carIndexI, BeamIndex: bmIndexI}
+
 					for carrierIndexJ, carrierJ := range cellList[j].Carriers {
+						carIndexJ := carrierIndexJ + 1
 						for beamIndexJ := range carrierJ.Beams {
-							beamIDJ := model.BeamID{NCGI: cellList[j].NCGI, CarrierIndex: carrierIndexJ, BeamIndex: beamIndexJ}
-							beamIDI := model.BeamID{NCGI: cellList[i].NCGI, CarrierIndex: carrierIndexI, BeamIndex: beamIndexI}
+							bmIndexJ := beamIndexJ + 1
+							beamIDJ := model.BeamID{NCGI: cellList[j].NCGI, CarrierIndex: carIndexJ, BeamIndex: bmIndexJ}
 							replaceOverlappingShadowMapValues(cellList[i], cellList[j], beamIDI, beamIDJ)
 						}
 					}
@@ -123,11 +128,13 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 	}
 
 	for carrierIndex, carrier := range snapShotCell.Carriers {
+		carIndex := carrierIndex + 1
 		for beamIndex := range carrier.Beams {
-			beamID := model.BeamID{NCGI: snapShotCell.NCGI, CarrierIndex: carrierIndex, BeamIndex: beamIndex}
+			bmIndex := beamIndex + 1
+			beamID := model.BeamID{NCGI: snapShotCell.NCGI, CarrierIndex: carIndex, BeamIndex: bmIndex}
 			rpBoundaryPoints := GetRPBoundaryPoints(snapShotCell, beamID, refSignalStrength, ueHeight)
 			if len(rpBoundaryPoints) == 0 && carrier.TxPowerDB != 0 {
-				log.Errorf("failed to update cell's '%v' carrier's '%v'beam's '%v' beamrpBoundaryPoints", snapShotCell.NCGI, carrierIndex, beamIndex)
+				log.Errorf("failed to update cell's '%v' carrier's '%v'beam's '%v' beamrpBoundaryPoints", snapShotCell.NCGI, carIndex, bmIndex)
 				return
 			}
 			rpBoundaryPointsFiltered := FilterBoundaryPoints(rpBoundaryPoints, carrier.Center)
@@ -139,13 +146,13 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 			}
 
 			InitShadowMap(snapShotCell, beamID, dc)
-
+			carrier := snapShotCell.GetCarrier(beamID)
 			covBoundaryPoints := GetCovBoundaryPoints(snapShotCell, beamID, ueHeight, refSignalStrength, rpBoundaryPoints)
-			if len(covBoundaryPoints) == 0 && snapShotCell.Carriers[carrierIndex].TxPowerDB != 0 {
+			if len(covBoundaryPoints) == 0 && carrier.TxPowerDB != 0 {
 				log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
 				return
 			}
-			covBoundaryPoints = FilterBoundaryPoints(covBoundaryPoints, snapShotCell.Carriers[carrierIndex].Center)
+			covBoundaryPoints = FilterBoundaryPoints(covBoundaryPoints, carrier.Center)
 			log.Infof("NCGI: %v: len(covBoundaryPoints): %d", snapShotCell.NCGI, len(covBoundaryPoints))
 			snapShotCell.CachedStates[snapShotCell.CurrentStateHash].CoverageBoundaries[beamID] = []model.CoverageBoundary{
 				{

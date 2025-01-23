@@ -37,9 +37,9 @@ func Test_UpdateCellsCache(t *testing.T) {
 	cache = &redisLib.MockedRedisStore{}
 	UpdateCells(m.Cells, cache, ueHeight, -87.0, 50, "1234")
 	assert.Equal(t, 3, len(m.Cells))
-	beamID1 := model.BeamID{NCGI: 17660905570307, CarrierIndex: 0, BeamIndex: 0}
-	beamID2 := model.BeamID{NCGI: 17660905553922, CarrierIndex: 0, BeamIndex: 0}
-	beamID3 := model.BeamID{NCGI: 17660905537537, CarrierIndex: 0, BeamIndex: 0}
+	beamID1 := model.BeamID{NCGI: 17660905570307, CarrierIndex: 1, BeamIndex: 1}
+	beamID2 := model.BeamID{NCGI: 17660905553922, CarrierIndex: 1, BeamIndex: 1}
+	beamID3 := model.BeamID{NCGI: 17660905537537, CarrierIndex: 1, BeamIndex: 1}
 	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].RPCoverageBoundaries[beamID1][0].BoundaryPoints), 1000)
 	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].RPCoverageBoundaries[beamID2][0].BoundaryPoints), 1000)
 	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].RPCoverageBoundaries[beamID3][0].BoundaryPoints), 1000)

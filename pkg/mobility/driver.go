@@ -145,6 +145,7 @@ func (d *driver) processHandoverDecision(ctx context.Context) {
 		d.finishHOsChan <- true
 		return
 	}
+	d.hoCounter.Unlock()
 
 	for {
 		select {

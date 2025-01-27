@@ -106,38 +106,38 @@ func InitClient(redisHost, redisPort, db, username, password string) *redis.Clie
 }
 
 type RedisGrid struct {
-	ShadowingMaps map[string][]float64          `json:"shadowingMap"`
-	GridPoints    map[string][]model.Coordinate `json:"gridPoints"`
-	BoundingBoxes map[string]*model.BoundingBox `json:"boundingBox"`
+	ShadowingMaps map[string][]float64          `mapstructure:"shadowingMaps" json:"shadowingMaps"`
+	GridPoints    map[string][]model.Coordinate `mapstructure:"gridPoints" json:"gridPoints"`
+	BoundingBoxes map[string]*model.BoundingBox `mapstructure:"boundingBoxes" json:"boundingBoxes"`
 }
 
 type RedisCellCoverageInfo struct {
-	RPCoverageBoundaries map[string][]model.CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
-	CoverageBoundaries   map[string][]model.CoverageBoundary `mapstructure:"coverageBoundaries"`
+	RPCoverageBoundaries map[string][]model.CoverageBoundary `mapstructure:"rpCoverageBoundaries" json:"rpCoverageBoundaries"`
+	CoverageBoundaries   map[string][]model.CoverageBoundary `mapstructure:"coverageBoundaries" json:"coverageBoundaries"`
 }
 
 type RedisCell struct {
 	model.CellConfig
-	NCGI                types.NCGI              `mapstructure:"ncgi"`
-	Color               string                  `mapstructure:"color"`
-	MaxUEs              uint32                  `mapstructure:"maxUEs"`
-	Neighbors           []types.NCGI            `mapstructure:"neighbors"`
-	MeasurementParams   model.MeasurementParams `mapstructure:"measurementParams"`
-	PCI                 uint32                  `mapstructure:"pci"`
-	Earfcn              uint32                  `mapstructure:"earfcn"`
-	CellType            types.CellType          `mapstructure:"cellType"`
-	ArfcnDL             uint32                  `mapstructure:"arfcndl"`
-	ArfcnUL             uint32                  `mapstructure:"arfcnul"`
-	BsChannelBwDL       uint32                  `json:"bSChannelBwDL"`
-	BsChannelBwUL       uint32                  `json:"bSChannelBwUL"`
-	Bwps                map[uint64]*model.Bwp   `mapstructure:"bwps"`
-	RrcIdleCount        uint32
-	RrcConnectedCount   uint32
-	Cached              bool
-	CachedStates        map[string]*RedisCellCoverageInfo
-	CurrentStateHash    string
-	ResourceAllocScheme string
-	InterferingBeams    map[string][]model.BeamID `mapstructure:"interfearingBeamsrefs"`
+	NCGI                types.NCGI                        `mapstructure:"ncgi" json:"ncgi"`
+	Color               string                            `mapstructure:"color" json:"color"`
+	MaxUEs              uint32                            `mapstructure:"maxUEs" json:"maxUEs"`
+	Neighbors           []types.NCGI                      `mapstructure:"neighbors" json:"neighbors"`
+	MeasurementParams   model.MeasurementParams           `mapstructure:"measurementParams" json:"measurementParams"`
+	PCI                 uint32                            `mapstructure:"pci" json:"pci"`
+	Earfcn              uint32                            `mapstructure:"earfcn" json:"earfcn"`
+	CellType            types.CellType                    `mapstructure:"cellType" json:"cellType"`
+	ArfcnDL             uint32                            `mapstructure:"arfcndl" json:"arfcndl"`
+	ArfcnUL             uint32                            `mapstructure:"arfcnul" json:"arfcnul"`
+	BsChannelBwDL       uint32                            `mapstructure:"bSChannelBwDL" json:"bSChannelBwDL"`
+	BsChannelBwUL       uint32                            `mapstructure:"bSChannelBwUL" json:"bSChannelBwUL"`
+	Bwps                map[uint64]*model.Bwp             `mapstructure:"bwps" json:"bwps"`
+	RrcIdleCount        uint32                            `mapstructure:"rrcIdleCount" json:"rrcIdleCount"`
+	RrcConnectedCount   uint32                            `mapstructure:"rrcConnectedCount" json:"rrcConnectedCount"`
+	Cached              bool                              `mapstructure:"cached" json:"cached"`
+	CurrentStateHash    string                            `mapstructure:"currentStateHash" json:"currentStateHash"`
+	ResourceAllocScheme string                            `mapstructure:"resourceAllocScheme" json:"resourceAllocScheme"`
+	CachedStates        map[string]*RedisCellCoverageInfo `mapstructure:"cachedStates" json:"cachedStates"`
+	InterferingBeams    map[string][]model.BeamID         `mapstructure:"interfearingBeamsrefs" json:"interfearingBeamsrefs"`
 	RedisGrid
 }
 

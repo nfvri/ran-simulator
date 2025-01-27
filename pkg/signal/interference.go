@@ -125,12 +125,15 @@ func SinrF(ueHeight float64, cell *model.Cell, beamID model.BeamID, refSinr floa
 }
 
 func GetSinrPoints(cell *model.Cell, beamID model.BeamID, nCells map[types.NCGI]*model.Cell, nBeamIDs []model.BeamID, ueHeight, refSinr, dc float64, numUes, cqi int) []model.Coordinate {
+	sinrPoints := []model.Coordinate{}
+	if numUes <= 0 {
+		return sinrPoints
+	}
 
 	cfp := func(x0 []float64) (f func(out, x []float64)) {
 		return SinrF(ueHeight, cell, beamID, refSinr, nBeamIDs, nCells)
 	}
 
-	sinrPoints := []model.Coordinate{}
 	stepSizeMeters := 10.0
 	overSampling := 100
 	maxIter := 300

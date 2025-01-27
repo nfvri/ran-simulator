@@ -38,10 +38,10 @@ type Model struct {
 	PlmnID                  types.PlmnID            `mapstructure:"plmnNumber" yaml:"plmnNumber"` // overridden and derived post-load from "Plmn" field
 	APIKey                  string                  `mapstructure:"apiKey" yaml:"apiKey"`         // Google Maps API key (optional)
 	Guami                   Guami                   `mapstructure:"guami" yaml:"guami"`
-	DecorrelationDistance   float64                 `mapstructure:"decorrelationdistance"`
-	SnapshotId              string                  `mapstructure:"snapshotID"` //used to retrieve snapshot Cell Group and UE Group
-	CellMeasurements        []*metrics.Metric       `yaml:"cellMeasurements"`
-	CreationTimestamp       string                  `yaml:"creationTimestamp"`
+	DecorrelationDistance   float64                 `mapstructure:"decorrelationdistance" yaml:"decorrelationdistance"`
+	SnapshotId              string                  `mapstructure:"snapshotID" yaml:"snapshotID" ` //used to retrieve snapshot Cell Group and UE Group
+	CellMeasurements        []*metrics.Metric       `mapstructure:"cellMeasurements" yaml:"cellMeasurements"`
+	CreationTimestamp       string                  `mapstructure:"creationTimestamp" yaml:"creationTimestamp"`
 	ServiceMappings
 }
 
@@ -127,105 +127,105 @@ func (m *Model) GetBeam(beamID BeamID) *Beam {
 
 type ServiceMappings struct {
 	sync.RWMutex
-	CellToUEs        map[types.NCGI][]types.IMSI
-	UEToServingCells map[types.IMSI][]types.NCGI
+	CellToUEs        map[types.NCGI][]types.IMSI `mapstructure:"cellToUEs" yaml:"cellToUEs"`
+	UEToServingCells map[types.IMSI][]types.NCGI `mapstructure:"ueToServingCells" yaml:"ueToServingCells"`
 }
 
 // Coordinate represents a geographical location
 type Coordinate struct {
-	Lat float64 `mapstructure:"lat"`
-	Lng float64 `mapstructure:"lng"`
+	Lat float64 `mapstructure:"lat" yaml:"lat"`
+	Lng float64 `mapstructure:"lng" yaml:"lng"`
 }
 
 // RouteEndPoint ...
 type RouteEndPoint struct {
-	Start Coordinate `mapstructure:"start"`
-	End   Coordinate `mapstructure:"end"`
+	Start Coordinate `mapstructure:"start" yaml:"start"`
+	End   Coordinate `mapstructure:"end" yaml:"end"`
 }
 
 // Route represents a series of points for tracking movement of user-equipment
 type Route struct {
-	IMSI        types.IMSI
-	Points      []*Coordinate
-	Color       string
-	SpeedAvg    uint32
-	SpeedStdDev uint32
-	Reverse     bool
-	NextPoint   uint32
+	IMSI        types.IMSI    `mapstructure:"imsi" yaml:"imsi"`
+	Points      []*Coordinate `mapstructure:"points" yaml:"points"`
+	Color       string        `mapstructure:"color" yaml:"color"`
+	SpeedAvg    uint32        `mapstructure:"speedAvg" yaml:"speedAvg"`
+	SpeedStdDev uint32        `mapstructure:"speedStdDev" yaml:"speedStdDev"`
+	Reverse     bool          `mapstructure:"reverse" yaml:"reverse"`
+	NextPoint   uint32        `mapstructure:"nextPoint" yaml:"nextPoint"`
 }
 
 // Node e2 node
 type Node struct {
-	GnbID         types.GnbID  `mapstructure:"gnbid"`
-	Controllers   []string     `mapstructure:"controllers"`
-	ServiceModels []string     `mapstructure:"servicemodels"`
-	Cells         []types.NCGI `mapstructure:"cells"`
-	Status        string       `mapstructure:"status"`
+	GnbID         types.GnbID  `mapstructure:"gnbid" yaml:"gnbid"`
+	Controllers   []string     `mapstructure:"controllers" yaml:"controllers"`
+	ServiceModels []string     `mapstructure:"servicemodels" yaml:"servicemodels"`
+	Cells         []types.NCGI `mapstructure:"cells" yaml:"cells"`
+	Status        string       `mapstructure:"status" yaml:"status"`
 }
 
 // Controller E2T endpoint information
 type Controller struct {
-	ID      string `mapstructure:"id"`
-	Address string `mapstructure:"address"`
-	Port    int    `mapstructure:"port"`
+	ID      string `mapstructure:"id" yaml:"id"`
+	Address string `mapstructure:"address" yaml:"address"`
+	Port    int    `mapstructure:"port" yaml:"port"`
 }
 
 // MeasurementParams has measurement parameters
 type MeasurementParams struct {
-	TimeToTrigger          int32                `mapstructure:"timeToTrigger"`
-	FrequencyOffset        int32                `mapstructure:"frequencyOffset"`
-	PCellIndividualOffset  int32                `mapstructure:"pcellIndividualOffset"`
-	NCellIndividualOffsets map[types.NCGI]int32 `mapstructure:"ncellIndividualOffsets"`
-	Hysteresis             int32                `mapstructure:"hysteresis"`
-	EventA3Params          EventA3Params        `mapstructure:"eventA3Params"`
+	TimeToTrigger          int32                `mapstructure:"timeToTrigger" yaml:"timeToTrigger"`
+	FrequencyOffset        int32                `mapstructure:"frequencyOffset" yaml:"frequencyOffset"`
+	PCellIndividualOffset  int32                `mapstructure:"pcellIndividualOffset" yaml:"pcellIndividualOffset"`
+	NCellIndividualOffsets map[types.NCGI]int32 `mapstructure:"ncellIndividualOffsets" yaml:"ncellIndividualOffsets"`
+	Hysteresis             int32                `mapstructure:"hysteresis" yaml:"hysteresis"`
+	EventA3Params          EventA3Params        `mapstructure:"eventA3Params" yaml:"eventA3Params"`
 }
 
 // EventA3Params has event a3 parameters
 type EventA3Params struct {
-	A3Offset      int32 `mapstructure:"a3Offset"`
-	ReportOnLeave bool  `mapstructure:"reportOnLeave"`
+	A3Offset      int32 `mapstructure:"a3Offset" yaml:"a3Offset"`
+	ReportOnLeave bool  `mapstructure:"reportOnLeave" yaml:"reportOnLeave"`
 }
 
 // Guami is AMF ID
 type Guami struct {
-	AmfRegionID uint32 `mapstructure:"amfregionid"`
-	AmfSetID    uint32 `mapstructure:"amfsetid"`
-	AmfPointer  uint32 `mapstructure:"amfpointer"`
+	AmfRegionID uint32 `mapstructure:"amfregionid" yaml:"amfregionid"`
+	AmfSetID    uint32 `mapstructure:"amfsetid" yaml:"amfsetid"`
+	AmfPointer  uint32 `mapstructure:"amfpointer" yaml:"amfpointer"`
 }
 
 type CellConfig struct {
-	Carriers []*Carrier `mapstructure:"carriers"`
+	Carriers []*Carrier `mapstructure:"carriers" yaml:"carriers"`
 }
 
 type CellCoverageInfo struct {
-	RPCoverageBoundaries map[BeamID][]CoverageBoundary `mapstructure:"rpCoverageBoundaries"`
-	CoverageBoundaries   map[BeamID][]CoverageBoundary `mapstructure:"coverageBoundaries"`
+	RPCoverageBoundaries map[BeamID][]CoverageBoundary `mapstructure:"rpCoverageBoundaries" yaml:"rpCoverageBoundaries"`
+	CoverageBoundaries   map[BeamID][]CoverageBoundary `mapstructure:"coverageBoundaries" yaml:"coverageBoundaries"`
 }
 
 // Cell represents a section of coverage
 type Cell struct {
 	sync.RWMutex
 	CellConfig
-	NCGI                types.NCGI        `mapstructure:"ncgi"`
-	Color               string            `mapstructure:"color"`
-	MaxUEs              uint32            `mapstructure:"maxUEs"`
-	Neighbors           []types.NCGI      `mapstructure:"neighbors"`
-	MeasurementParams   MeasurementParams `mapstructure:"measurementParams"`
-	PCI                 uint32            `mapstructure:"pci"`
-	Earfcn              uint32            `mapstructure:"earfcn"`
-	CellType            types.CellType    `mapstructure:"cellType"`
-	ArfcnDL             uint32            `mapstructure:"arfcndl"`
-	ArfcnUL             uint32            `mapstructure:"arfcnul"`
-	BsChannelBwDL       uint32            `json:"bSChannelBwDL"`
-	BsChannelBwUL       uint32            `json:"bSChannelBwUL"`
-	Bwps                map[uint64]*Bwp   `mapstructure:"bwps"`
-	RrcIdleCount        uint32
-	RrcConnectedCount   uint32
-	Cached              bool
-	CachedStates        map[string]*CellCoverageInfo
-	CurrentStateHash    string
-	ResourceAllocScheme string
-	InterferingBeams    map[BeamID][]BeamID `mapstructure:"interfearingBeamsrefs"`
+	NCGI                types.NCGI                   `mapstructure:"ncgi" yaml:"ncgi"`
+	Color               string                       `mapstructure:"color" yaml:"color"`
+	MaxUEs              uint32                       `mapstructure:"maxUEs" yaml:"maxUEs"`
+	Neighbors           []types.NCGI                 `mapstructure:"neighbors" yaml:"neighbors"`
+	MeasurementParams   MeasurementParams            `mapstructure:"measurementParams" yaml:"measurementParams"`
+	PCI                 uint32                       `mapstructure:"pci" yaml:"pci"`
+	Earfcn              uint32                       `mapstructure:"earfcn" yaml:"earfcn"`
+	CellType            types.CellType               `mapstructure:"cellType" yaml:"cellType"`
+	ArfcnDL             uint32                       `mapstructure:"arfcndl" yaml:"arfcndl"`
+	ArfcnUL             uint32                       `mapstructure:"arfcnul" yaml:"arfcnul"`
+	BsChannelBwDL       uint32                       `mapstructure:"bSChannelBwDL" yaml:"bSChannelBwDL"`
+	BsChannelBwUL       uint32                       `mapstructure:"bSChannelBwUL" yaml:"bSChannelBwUL"`
+	Bwps                map[uint64]*Bwp              `mapstructure:"bwps" yaml:"bwps"`
+	RrcIdleCount        uint32                       `mapstructure:"rrcIdleCount" yaml:"rrcIdleCount"`
+	RrcConnectedCount   uint32                       `mapstructure:"rrcConnectedCount" yaml:"rrcConnectedCount"`
+	Cached              bool                         `mapstructure:"cached" yaml:"cached"`
+	CachedStates        map[string]*CellCoverageInfo `mapstructure:"cachedStates" yaml:"cachedStates"`
+	CurrentStateHash    string                       `mapstructure:"currentStateHash" yaml:"currentStateHash"`
+	ResourceAllocScheme string                       `mapstructure:"resourceAllocScheme" yaml:"resourceAllocScheme"`
+	InterferingBeams    map[BeamID][]BeamID          `mapstructure:"interfearingBeamsrefs" yaml:"interfearingBeamsrefs"`
 	Grid
 }
 
@@ -250,23 +250,23 @@ func (cell *Cell) GetCarrier(beamID BeamID) *Carrier {
 }
 
 type Carrier struct {
-	Beams                  []*Beam    `mapstructure:"beam"`
-	Center                 Coordinate `mapstructure:"center"`
-	Height                 int32      `mapstructure:"height"`
-	ArfcnDL                uint32     `mapstructure:"arfcndl"`
-	ArfcnUL                uint32     `mapstructure:"arfcnul"`
-	BsChannelBwDL          uint32     `json:"bSChannelBwDL"`
-	BsChannelBwUL          uint32     `json:"bSChannelBwUL"`
-	TxPowerDB              float64    `mapstructure:"txpowerdb"`
-	VSideLobeAttenuationDB float64    `mapstructure:"vSideLobeAttenuationDB"`
-	Environment            string     `mapstructure:"environment" validate:"oneof=urban rural"`
-	LOS                    bool       `mapstructure:"LOS"`
+	Beams                  []*Beam    `mapstructure:"beams" yaml:"beams" json:"beams"`
+	Center                 Coordinate `mapstructure:"center" yaml:"center" json:"center"`
+	Height                 int32      `mapstructure:"height" yaml:"height" json:"height"`
+	ArfcnDL                uint32     `mapstructure:"arfcndl" yaml:"arfcndl" json:"arfcndl"`
+	ArfcnUL                uint32     `mapstructure:"arfcnul" yaml:"arfcnul" json:"arfcnul"`
+	BsChannelBwDL          uint32     `mapstructure:"bSChannelBwDL" yaml:"bSChannelBwDL" json:"bSChannelBwDL"`
+	BsChannelBwUL          uint32     `mapstructure:"bSChannelBwUL" yaml:"bSChannelBwUL" json:"bSChannelBwUL"`
+	TxPowerDB              float64    `mapstructure:"txpowerdb" yaml:"txpowerdb" json:"txpowerdb"`
+	VSideLobeAttenuationDB float64    `mapstructure:"vSideLobeAttenuationDB" yaml:"vSideLobeAttenuationDB" json:"vSideLobeAttenuationDB"`
+	Environment            string     `mapstructure:"environment" yaml:"environment" json:"environment" validate:"oneof=urban rural"`
+	LOS                    bool       `mapstructure:"LOS" yaml:"LOS" json:"LOS"`
 }
 
 type BeamID struct {
-	NCGI         types.NCGI
-	CarrierIndex int
-	BeamIndex    int
+	NCGI         types.NCGI `mapstructure:"ncgi" yaml:"ncgi" json:"ncgi"`
+	CarrierIndex int        `mapstructure:"carrierIndex" yaml:"carrierIndex" json:"carrierIndex"`
+	BeamIndex    int        `mapstructure:"beamIndex" yaml:"beamIndex" json:"beamIndex"`
 }
 
 func (beamID BeamID) ToString() string {
@@ -294,30 +294,30 @@ func ParseBeamID(key string) (BeamID, error) {
 }
 
 type BeamQS struct {
-	BeamID BeamID
-	CQI    int
+	BeamID BeamID `mapstructure:"beamID" yaml:"beamID" json:"beamID"`
+	CQI    int    `mapstructure:"cqi" yaml:"cqi" json:"cqi"`
 }
 
 type Beam struct {
-	BeamIndex int     `mapstructure:"beamIndex"`
-	Azimuth   float64 `mapstructure:"azimuth"`
-	Tilt      float64 `mapstructure:"tilt"`
-	H3dBAngle float64 `mapstructure:"h3dBAngle"` // BeamHorizWidth
-	V3dBAngle float64 `mapstructure:"v3dBAngle"` // BeamVertWidth
-	MaxGain   float64 `mapstructure:"maxGain"`
+	BeamIndex int     `mapstructure:"beamIndex" yaml:"beamIndex"`
+	Azimuth   float64 `mapstructure:"azimuth" yaml:"azimuth"`
+	Tilt      float64 `mapstructure:"tilt" yaml:"tilt"`
+	H3dBAngle float64 `mapstructure:"h3dBAngle" yaml:"h3dBAngle"` // BeamHorizWidth
+	V3dBAngle float64 `mapstructure:"v3dBAngle" yaml:"v3dBAngle"` // BeamVertWidth
+	MaxGain   float64 `mapstructure:"maxGain" yaml:"maxGain"`
 }
 
 type Grid struct {
-	ShadowingMaps map[BeamID][]float64    `json:"shadowingMap"`
-	GridPoints    map[BeamID][]Coordinate `json:"gridPoints"`
-	BoundingBoxes map[BeamID]*BoundingBox `json:"boundingBox"`
+	ShadowingMaps map[BeamID][]float64    `mapstructure:"shadowingMaps" yaml:"shadowingMaps" json:"shadowingMaps"`
+	GridPoints    map[BeamID][]Coordinate `mapstructure:"gridPoints" yaml:"gridPoints" json:"gridPoints"`
+	BoundingBoxes map[BeamID]*BoundingBox `mapstructure:"boundingBoxes" yaml:"boundingBoxes" json:"boundingBoxes"`
 }
 
 type BoundingBox struct {
-	MinLat float64 `json:"minLat"`
-	MinLng float64 `json:"minLng"`
-	MaxLat float64 `json:"maxLat"`
-	MaxLng float64 `json:"maxLng"`
+	MinLat float64 `mapstructure:"minLat" yaml:"minLat" json:"minLat"`
+	MinLng float64 `mapstructure:"minLng" yaml:"minLng" json:"minLng"`
+	MaxLat float64 `mapstructure:"maxLat" yaml:"maxLat" json:"maxLat"`
+	MaxLng float64 `mapstructure:"maxLng" yaml:"maxLng" json:"maxLng"`
 }
 
 func (bb *BoundingBox) GreaterThan(bb2 *BoundingBox) bool {
@@ -327,8 +327,8 @@ func (bb *BoundingBox) GreaterThan(bb2 *BoundingBox) bool {
 }
 
 type CoverageBoundary struct {
-	RefSignalStrength float64      `json:"refSignalStrength"`
-	BoundaryPoints    []Coordinate `json:"boundaryPoints"`
+	RefSignalStrength float64      `mapstructure:"refSignalStrength" yaml:"refSignalStrength" json:"refSignalStrength"`
+	BoundaryPoints    []Coordinate `mapstructure:"boundaryPoints" yaml:"boundaryPoints" json:"boundaryPoints"`
 }
 
 // UEType represents type of user-equipment
@@ -336,44 +336,44 @@ type UEType string
 
 // UECell represents UE-cell relationship
 type UECell struct {
-	ID          types.GnbID `mapstructure:"id"`
-	NCGI        types.NCGI  `mapstructure:"ncgi"` // Auxiliary form of association
-	BeamID      BeamID      `mapstructure:"beamID"`
-	Rsrp        float64     `mapstructure:"rsrp"`
-	Rsrq        float64     `mapstructure:"rsrq"`
-	Sinr        float64     `mapstructure:"sinr"`
-	BwpRefs     []*Bwp      `mapstructure:"bwpRefs"`
-	AvailPrbsDl int
+	ID          types.GnbID `mapstructure:"id" yaml:"id" json:"id"`
+	NCGI        types.NCGI  `mapstructure:"ncgi" yaml:"ncgi" json:"ncgi"` // Auxiliary form of association
+	BeamID      BeamID      `mapstructure:"beamID" yaml:"beamID" json:"beamID"`
+	Rsrp        float64     `mapstructure:"rsrp" yaml:"rsrp" json:"rsrp"`
+	Rsrq        float64     `mapstructure:"rsrq" yaml:"rsrq" json:"rsrq"`
+	Sinr        float64     `mapstructure:"sinr" yaml:"sinr" json:"sinr"`
+	BwpRefs     []*Bwp      `mapstructure:"bwpRefs" yaml:"bwpRefs" json:"bwpRefs"`
+	AvailPrbsDl int         `mapstructure:"availPrbsDl" yaml:"availPrbsDl" json:"availPrbsDl"`
 }
 
 type Bwp struct {
-	ID          uint64 `mapstructure:"id"`
-	Scs         int    `mapstructure:"scs"`
-	NumberOfRBs int    `mapstructure:"numberOfRBs"`
-	Downlink    bool   `mapstructure:"downlink"`
+	ID          uint64 `mapstructure:"id" yaml:"id" json:"id"`
+	Scs         int    `mapstructure:"scs" yaml:"scs" json:"scs"`
+	NumberOfRBs int    `mapstructure:"numberOfRBs" yaml:"numberOfRBs" json:"numberOfRBs"`
+	Downlink    bool   `mapstructure:"downlink" yaml:"downlink" json:"downlink"`
 }
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI        types.IMSI         `mapstructure:"imsi"`
-	AmfUeNgapID types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
-	Type        UEType             `mapstructure:"type"`
-	RrcState    e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
-	Location    Coordinate         `mapstructure:"location"`
-	Heading     uint32             `mapstructure:"heading"`
-	FiveQi      int                `mapstructure:"fiveQi"`
-	Cell        *UECell            `mapstructure:"cell"`
-	CRNTI       types.CRNTI        `mapstructure:"CRNTI"`
-	Cells       []*UECell          `mapstructure:"cells"`
-	Height      float64            `mapstructure:"height"`
-	IsAdmitted  bool               `mapstructure:"isAdmitted"`
+	IMSI        types.IMSI         `mapstructure:"imsi" yaml:"imsi" json:"imsi"`
+	AmfUeNgapID types.AmfUENgapID  `mapstructure:"amfUeNgapID" yaml:"amfUeNgapID" json:"amfUeNgapID"`
+	Type        UEType             `mapstructure:"type" yaml:"type" json:"type"`
+	RrcState    e2sm_mho.Rrcstatus `mapstructure:"rrcState" yaml:"rrcState" json:"rrcState"`
+	Location    Coordinate         `mapstructure:"location" yaml:"location" json:"location"`
+	Heading     uint32             `mapstructure:"heading" yaml:"heading" json:"heading"`
+	FiveQi      int                `mapstructure:"fiveQi" yaml:"fiveQi" json:"fiveQi"`
+	Cell        *UECell            `mapstructure:"cell" yaml:"cell" json:"cell"`
+	CRNTI       types.CRNTI        `mapstructure:"CRNTI" yaml:"CRNTI" json:"CRNTI"`
+	Cells       []*UECell          `mapstructure:"cells" yaml:"cells" json:"cells"`
+	Height      float64            `mapstructure:"height" yaml:"height" json:"height"`
+	IsAdmitted  bool               `mapstructure:"isAdmitted" yaml:"isAdmitted" json:"isAdmitted"`
 }
 
 // ServiceModel service model information
 type ServiceModel struct {
-	ID          int    `mapstructure:"id"`
-	Description string `mapstructure:"description"`
-	Version     string `mapstructure:"version"`
+	ID          int    `mapstructure:"id" yaml:"id" json:"id"`
+	Description string `mapstructure:"description" yaml:"description" json:"description"`
+	Version     string `mapstructure:"version" yaml:"version" json:"version"`
 }
 
 // GetServiceModel gets a service model based on a given name.

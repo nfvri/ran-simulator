@@ -76,7 +76,7 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 			continue
 		}
 
-		ues, cellServedUEs = GenerateUEsBasedOnBeamQS(sCell, cells, numUEsPerBeamQS, ueHeight, dc, prbMeasPerCell)
+		ues, cellServedUEs = GenerateUEsBasedOnBeamQS(sCell, cells, numUEsPerBeamQS, ueHeight, dc, prbMeasPerCell, ues)
 
 		usedPRBsDL := usedPRBsDLPerCQIByCell[sCellNCGI]
 		usedPRBsUL := usedPRBsULPerCQIByCell[sCellNCGI]
@@ -91,18 +91,21 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 	return ues, storeInCache
 }
 
-func GenerateUEsBasedOnBeamQS(sCell *model.Cell, cells map[string]*model.Cell, numUEsPerBeamQS map[model.BeamQS]int, ueHeight float64, dc float64, prbMeasPerCell map[uint64]map[string]int) (map[string]*model.UE, []*model.UE) {
+func GenerateUEsBasedOnBeamQS(sCell *model.Cell, cells map[string]*model.Cell, numUEsPerBeamQS map[model.BeamQS]int, ueHeight float64, dc float64, prbMeasPerCell map[uint64]map[string]int, ues map[string]*model.UE) (map[string]*model.UE, []*model.UE) {
 	nCells := utils.GetNeighborCells(sCell, cells)
 	nBeamIDs := signal.GetNeighborBeamIDs(nCells)
 
-	ues := map[string]*model.UE{}
 	cellServedUEs := []*model.UE{}
 	mtx := sync.RWMutex{}
 	var wg sync.WaitGroup
 
 	for beamQS, numUEs := range numUEsPerBeamQS {
+		if numUEs <= 0 {
+			continue
+		}
 		wg.Add(1)
 		go func(servCell *model.Cell, beamQs model.BeamQS, numUes int) {
+			defer wg.Done()
 			ueSINR := signal.GetSINR(beamQs.CQI)
 			ueLocations := signal.GetSinrPoints(servCell, beamQs.BeamID, nCells, nBeamIDs, ueHeight, ueSINR, dc, numUes, beamQs.CQI)
 			ueRSRPs := GetUERsrpsBasedOnLocation(servCell, beamQs.BeamID, ueLocations, cells, ueHeight)
@@ -122,7 +125,7 @@ func GenerateUEsBasedOnBeamQS(sCell *model.Cell, cells map[string]*model.Cell, n
 				mtx.Lock()
 				counter := len(ues) + 1
 				mtx.Unlock()
-				simUE, ueIMSI := CreateSimulationUE(uint64(sCell.NCGI), counter, beamQs.CQI, totalPrbsDl, ueHeight, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
+				simUE, ueIMSI := CreateSimulationUE(uint64(sCell.NCGI), beamQs, counter, totalPrbsDl, ueHeight, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
 
 				mtx.Lock()
 				ues[ueIMSI] = simUE
@@ -148,7 +151,7 @@ func GetUERsrpsBasedOnLocation(sCell *model.Cell, beamID model.BeamID, uesLocati
 	return
 }
 
-func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
+func CreateSimulationUE(ncgi uint64, beamQS model.BeamQS, counter, totalPrbsDl int, ueHeight, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
 
 	imsi := utils.ImsiGenerator(counter)
 	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
@@ -158,6 +161,7 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, si
 	servingCell := &model.UECell{
 		ID:          types.GnbID(ncgi),
 		NCGI:        types.NCGI(ncgi),
+		BeamID:      model.BeamID{NCGI: beamQS.BeamID.NCGI, CarrierIndex: beamQS.BeamID.CarrierIndex, BeamIndex: beamQS.BeamID.BeamIndex},
 		Rsrq:        rsrq,
 		Rsrp:        rsrp,
 		Sinr:        sinr,
@@ -171,7 +175,7 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, si
 		Location:    location,
 		Heading:     0,
 		Cell:        servingCell,
-		FiveQi:      cqi,
+		FiveQi:      beamQS.CQI,
 		CRNTI:       types.CRNTI(90125 + counter),
 		Cells:       neighborCells,
 		IsAdmitted:  false,
@@ -197,19 +201,19 @@ func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, beamID model.Bea
 		if signal.IsPointInsideBoundingBox(point, nCell.BoundingBoxes[nBeamID]) {
 
 			mpf := signal.RiceanFading(signal.GetRiceanK(nCarrier))
-			interfBeamIDs, interfCells := signal.GetInterferingBeams(point, sCell, beamID, cells)
+			interfBeamIDs, interfCells := signal.GetInterferingBeams(point, nCell, nBeamID, cells)
 			rsrp := signal.Strength(point, ueHeight, mpf, nCell, nBeamID)
 			sinr := signal.Sinr(point, ueHeight, nCell, nBeamID, interfBeamIDs, interfCells)
 			rsrq := signal.RSRQ(sinr, 24)
 
 			ueCell := &model.UECell{
-				ID:          types.GnbID(nCell.NCGI),
-				NCGI:        nCell.NCGI,
-				BeamID:      model.BeamID{},
+				ID:          types.GnbID(nBeamID.NCGI),
+				NCGI:        nBeamID.NCGI,
+				BeamID:      nBeamID,
 				Rsrp:        math.Round(rsrp*100) / 100,
 				Rsrq:        math.Round(rsrq*100) / 100,
 				Sinr:        math.Round(sinr*100) / 100,
-				AvailPrbsDl: prbMeasPerCell[uint64(nCell.NCGI)][bw.AVAIL_PRBS_DL_METRIC],
+				AvailPrbsDl: prbMeasPerCell[uint64(nBeamID.NCGI)][bw.AVAIL_PRBS_DL_METRIC],
 			}
 			ueNeighbors = append(ueNeighbors, ueCell)
 		}

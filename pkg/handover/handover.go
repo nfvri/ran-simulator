@@ -63,7 +63,7 @@ func (h *hoController) Start() {
 }
 
 func (h *hoController) startA3HandoverHandler() {
-	logHoCtrl.Info("Handover controller starting with A3HandoveHandler")
+	logHoCtrl.Info("Handover controller starting with A3HandoverHandler")
 	go h.HoHandler.Start()
 	// for input
 	go h.forwardReportToA3HandoverHandler(h.HoHandler)

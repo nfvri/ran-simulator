@@ -33,6 +33,9 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	cellGroupIncache := err == nil
 
 	for _, cell := range cellGroup {
+		for i, carrier := range cell.GetCellConfig().Carriers {
+			log.Infof("%v --> before cache cell.cellConfig.Carrier[%v].TxPowerDB: %v", cell.NCGI, i, carrier.TxPowerDB)
+		}
 		if !cellGroupIncache {
 			updateCell(cell, nil)
 			continue
@@ -45,10 +48,6 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			continue
 		}
 
-		for i, carrier := range cell.GetCellConfig().Carriers {
-			log.Infof("%v --> cell.cellConfig.Carrier[%v].TxPowerDB: %v", cell.NCGI, i, carrier.TxPowerDB)
-		}
-
 		_, curCellConfigInCache := cachedCell.CachedStates[cell.GetHashedConfig()]
 		if !curCellConfigInCache {
 			updateCell(cell, &cachedCell)
@@ -57,6 +56,8 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 
 		cell.CachedStates = cachedCell.CachedStates
 		cell.Bwps = cachedCell.Bwps
+		cell.InterferingBeams = cachedCell.InterferingBeams
+		cell.Grid = cachedCell.Grid
 		cell.CurrentStateHash = cell.GetHashedConfig()
 		cachedCells[cell.NCGI] = struct{}{}
 

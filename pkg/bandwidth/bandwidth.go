@@ -11,28 +11,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type FrequencyRange struct {
-	ARFCNStart   uint32
-	ARFCNEnd     uint32
-	FreqStartMHz float64
-	StepHz       float64
-}
-
-// Frequency ranges for 5G NR as per 3GPP TS 38.104.
-var frequencyRanges = []FrequencyRange{
-	{0, 599999, 0, 50000},          // Frequency Range 1 (FR1)
-	{600000, 2016666, 3000, 15000}, // Frequency Range 2 (FR2)
-}
-
 func CalculateFrequencyMHz(arfcn uint32) float64 {
-	for _, rangeInfo := range frequencyRanges {
-		if arfcn >= rangeInfo.ARFCNStart && arfcn <= rangeInfo.ARFCNEnd {
-			offsetARFCN := float64(arfcn - rangeInfo.ARFCNStart)
-			frequency := rangeInfo.FreqStartMHz + (offsetARFCN * rangeInfo.StepHz / 1e6)
-			return frequency
-		}
+
+	var deltaFGlobal float64
+	var fRefOffs float64
+	var nRefOffs uint32
+
+	switch {
+	case arfcn < 600000:
+		deltaFGlobal = 5
+		fRefOffs = 0
+		nRefOffs = 0
+	case arfcn < 2016667:
+		deltaFGlobal = 15
+		fRefOffs = 3000
+		nRefOffs = 600000
+	default:
+		deltaFGlobal = 60
+		fRefOffs = 24250.08
+		nRefOffs = 2016667
 	}
-	return 0
+
+	frequency := fRefOffs + float64(arfcn-nRefOffs)*deltaFGlobal/1000
+	return frequency
 }
 
 func InitBWPs(sCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {

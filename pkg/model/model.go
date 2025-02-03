@@ -11,10 +11,12 @@ import (
 	"strconv"
 	"sync"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Model simulation model
@@ -46,36 +48,38 @@ type Model struct {
 func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, targetCellINcgis []types.NCGI) {
 
 	// TODO: handle len(targetCellINcgis) == 0
+
+	logrus.Infof("[UpdateServiceMappings] sourceCellNcgis: %v, targetCellINcgis: %v", sourceCellNcgis, targetCellINcgis)
+
 	// delete ue from sourceCells & sourceCells from ue
 	ue := m.UEs[strconv.FormatUint(uint64(ueIMSI), 10)]
-	for _, sourceCellNcgi := range sourceCellNcgis {
-		for index, imsi := range m.CellToUEs[sourceCellNcgi] {
+	for _, scNcgi := range sourceCellNcgis {
+
+		for i, imsi := range m.CellToUEs[scNcgi] {
 			if imsi == ueIMSI {
-				m.CellToUEs[sourceCellNcgi] = append(m.CellToUEs[sourceCellNcgi][:index], m.CellToUEs[sourceCellNcgi][index+1:]...)
+				m.CellToUEs[scNcgi] = append(m.CellToUEs[scNcgi][:i], m.CellToUEs[scNcgi][i+1:]...)
 				break
 			}
 		}
 
 		for index, ncgi := range m.UEToServingCells[ueIMSI] {
-			if ncgi == sourceCellNcgi {
+			if ncgi == scNcgi {
 				m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI][:index], m.UEToServingCells[ueIMSI][index+1:]...)
 				break
 			}
 		}
+
 	}
 
 	// append ue to targetCells &  targetCell to ue
-	ueTargetServCells := []*UECell{}
-	for _, targetCellNcgi := range targetCellINcgis {
-		if targetCellNcgi != 0 {
-			m.CellToUEs[targetCellNcgi] = append(m.CellToUEs[targetCellNcgi], ueIMSI)
-			m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], targetCellNcgi)
-
-			ueTargetServCells = append(ueTargetServCells)
-		}
+	for _, tcNcgi := range targetCellINcgis {
+		m.CellToUEs[tcNcgi] = append(m.CellToUEs[tcNcgi], ueIMSI)
+		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], tcNcgi)
 	}
 
+	logrus.Infof("[UpdateServiceMappings] ue.ServingCells:%+v ue.NeighborCells:%+v before update", ue.ServingCells, ue.NeighborCells)
 	m.UpdateUECells(sourceCellNcgis, targetCellINcgis, ue)
+	logrus.Infof("[UpdateServiceMappings] ue.ServingCells:%+v ue.NeighborCells:%+v after update", ue.ServingCells, ue.NeighborCells)
 
 }
 
@@ -353,19 +357,21 @@ type Bwp struct {
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI             types.IMSI         `mapstructure:"imsi"`
-	AmfUeNgapID      types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
-	Type             UEType             `mapstructure:"type"`
-	RrcState         e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
-	Location         Coordinate         `mapstructure:"location"`
-	Heading          uint32             `mapstructure:"heading"`
-	FiveQi           int                `mapstructure:"fiveQi"`
-	ServingCells     []*UECell          `mapstructure:"servingCells"`
-	CRNTI            types.CRNTI        `mapstructure:"CRNTI"`
-	NeighborCells    []*UECell          `mapstructure:"neighborCells"`
-	Height           float64            `mapstructure:"height"`
-	IsAdmitted       bool               `mapstructure:"isAdmitted"`
-	SupportedBWClass string             `mapstructure:"supportedBWClass"`
+	IMSI                types.IMSI         `mapstructure:"imsi"`
+	AmfUeNgapID         types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
+	Type                UEType             `mapstructure:"type"`
+	RrcState            e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
+	Location            Coordinate         `mapstructure:"location"`
+	Heading             uint32             `mapstructure:"heading"`
+	FiveQi              int                `mapstructure:"fiveQi"`
+	ServingCells        []*UECell          `mapstructure:"servingCells"`
+	CRNTI               types.CRNTI        `mapstructure:"CRNTI"`
+	NeighborCells       []*UECell          `mapstructure:"neighborCells"`
+	Height              float64            `mapstructure:"height"`
+	IsAdmitted          bool               `mapstructure:"isAdmitted"`
+	SupportedBWClass    string             `mapstructure:"supportedBWClass"`
+	SupportedBandsNR    mapset.Set[string] `mapstructure:"supportedBandsNR"`
+	SupportedBandsEutra mapset.Set[string] `mapstructure:"supportedBandsEutra"`
 }
 
 func (ue *UE) GetServingCell(ncgi types.NCGI) (*UECell, bool) {
@@ -387,7 +393,12 @@ func (ue *UE) DeleteServingCell(ncgi types.NCGI) *UECell {
 			break
 		}
 	}
+	log.Infof("len(ue.ServingCells) == %v", len(ue.ServingCells))
 	ue.ServingCells = append(ue.ServingCells[:deletedCellIndex], ue.ServingCells[deletedCellIndex+1:]...)
+	// if len(ue.ServingCells) <= 1 {
+	// 	ue.ServingCells = make([]*UECell, 0)
+	// } else {
+	// }
 	return deletedCell
 }
 

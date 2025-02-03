@@ -53,6 +53,7 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			continue
 		}
 
+		// TODO: add CA support CrossCarrierSchedulingConfig
 		cell.CachedStates = cachedCell.CachedStates
 		cell.Bwps = cachedCell.Bwps
 		cell.Grid = cachedCell.Grid
@@ -95,6 +96,7 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 		snapShotCell.CachedStates = make(map[string]*model.CellCoverageInfo)
 	}
 
+	// TODO: snapshotCell add CA support CrossCarrierSchedulingConfig
 	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, snapShotCell, refSignalStrength)
 	if len(rpBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
 		log.Errorf("failed to update cell's: %v rpBoundaryPoints", snapShotCell.NCGI)

@@ -6,6 +6,7 @@ import (
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -64,7 +65,10 @@ type ProportionalFair struct {
 func (s *ProportionalFair) apply() {
 
 	if len(s.ScsOptionsHz) == 0 {
-		s.ScsOptionsHz = SupportedSCSByFR[GetFR(float64(s.Cell.Channel.ArfcnDL))]
+		arfcn := utils.If(s.Cell.Channel.ArfcnDL > 0, s.Cell.Channel.ArfcnDL, s.Cell.Channel.ArfcnUL)
+		fr := GetFR(float64(arfcn))
+		s.ScsOptionsHz = SupportedSCSByFR[fr]
+		log.Infof("fr: %s, arfcnDL:%v, arfcnUL:%v, scs:%v", fr, s.Cell.Channel.ArfcnDL, s.Cell.Channel.ArfcnUL, s.ScsOptionsHz)
 	}
 
 	totalBWDL := MHzToHz(float64(s.Cell.Channel.BsChannelBwDL))

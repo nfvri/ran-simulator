@@ -56,9 +56,9 @@ func get3dEuclideanDistanceFromGPS(coord model.Coordinate, height float64, cell 
 // Breakpoint distance function
 func getBreakpointDistance(cell *model.Cell) float64 {
 	c := 3.0 * math.Pow(10, 8)
-	hBS := float64(cell.Sector.Height)              // base station height
-	hUT := float64(1.5)                             // average height of user terminal 1m <= hUT <= 10m
-	fc := float64(cell.Channel.SSBFrequency) * 1000 // frequency in Hz
+	hBS := float64(cell.Sector.Height)                 // base station height
+	hUT := float64(1.5)                                // average height of user terminal 1m <= hUT <= 10m
+	fc := float64(cell.Channel.SSBFrequency) * 1000000 // frequency in Hz
 
 	dBP := 2 * math.Pi * hBS * hUT * fc / c
 

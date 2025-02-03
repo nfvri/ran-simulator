@@ -1,6 +1,7 @@
 package bandwidth
 
 import (
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	art "github.com/plar/go-adaptive-radix-tree/v2"
+	"github.com/sirupsen/logrus"
 )
 
 type CAConfigNR struct {
@@ -602,20 +604,13 @@ func (ca *CarrierAggregatorNR) GetValidCACombinations(targetCells []*model.Cell)
 	cellsByBand = make(map[string][]*model.Cell)
 	for cellIndex := range targetCells {
 		cell := targetCells[cellIndex]
-
-		// FIXME: For cells on different nodes
-		// we should consult DUAL CONNECTIVITY combinations in:
-		// https://www.etsi.org/deliver/etsi_ts/138100_138199/13810103/15.02.00_60/ts_13810103v150200p.pdf
-		// https://www.sqimway.com/nr_nrdc.php
-		// https://www.sqimway.com/nr_endc.php
-		// https://www.sqimway.com/nr_nedc.php
 		arfcn := utils.If(cell.ArfcnDL > 0, cell.ArfcnDL, cell.ArfcnUL)
-		cellBand, found := GetBand(arfcn, DL)
+		direction := utils.If(cell.ArfcnDL > 0, DL, UL)
+		cellBand, found := GetBand(arfcn, direction)
 		if !found {
 			continue
 		}
 		cellsByBand[cellBand.Name] = append(cellsByBand[cellBand.Name], cell)
-
 	}
 
 	targetCellBands := []string{}
@@ -623,6 +618,13 @@ func (ca *CarrierAggregatorNR) GetValidCACombinations(targetCells []*model.Cell)
 		targetCellBands = append(targetCellBands, b)
 	}
 
+	// TODO: also add intra-band CA combinations
+	// FIXME: For cells on different nodes
+	// we should consult DUAL CONNECTIVITY combinations in:
+	// https://www.etsi.org/deliver/etsi_ts/138100_138199/13810103/15.02.00_60/ts_13810103v150200p.pdf
+	// https://www.sqimway.com/nr_nrdc.php
+	// https://www.sqimway.com/nr_endc.php
+	// https://www.sqimway.com/nr_nedc.php
 	caBandCombos := GetCABandCombinations(SortNRBands(targetCellBands))
 
 	for _, caBandCombo := range caBandCombos {
@@ -648,6 +650,7 @@ func SortNRBands(bands []string) []string {
 }
 
 func GetCABandCombinations(sortedBandsNR []string) []string {
+	logrus.Info("[GetCABandCombinations]...")
 	var combinations []string
 	queue := []string{}
 
@@ -682,18 +685,24 @@ type prbInfo struct {
 	prbsDL int
 }
 type CAScheme struct {
-	Bands          []string
-	NumPRBsPerCell map[types.NCGI]prbInfo
-	Cells          []*model.Cell
+	Bands            []string
+	AvailPRBsPerCell map[types.NCGI]prbInfo
+	FixedAllocCells  []*model.Cell
+	ReallocCells     []*model.Cell
+	CanBeImplemented bool
 }
 
+// GetFeasibleCASchemes searches for cells operating at
+// valid band combinations for CA and provide sufficient bandwidth
+// for the UE.
 func GetFeasibleCASchemes(
 	validCABandCombos [][]string,
 	cellsByBand map[string][]*model.Cell,
 	ranModel *model.Model,
 	ue *model.UE) []CAScheme {
 
-	requiredPRBsDL, requiredPRBsUL := CurrPRBsUsed(ue)
+	logrus.Info("[GetFeasibleCASchemes]...")
+	ueRequiredPRBsDL, ueRequiredPRBsUL := CurrPRBsUsed(ue)
 
 	maxPRBsDL := 0
 	var maxBWCAScheme CAScheme
@@ -709,73 +718,156 @@ func GetFeasibleCASchemes(
 			}
 		}
 
-		totalAvailPRBsDL := 0
-		totalAvailPRBsUL := 0
-		numPRBsPerCell := map[types.NCGI]prbInfo{}
+		comboAvailPRBsDL, comboAvailPRBsUL, availPRBsPerCell := GetCAComboAvailPRBs(bandComboCells, ranModel, ue)
 
-		for _, cell := range bandComboCells {
-			servedUEs := ranModel.GetServedUEs(cell.NCGI)
-
-			usedBWDL := 0.0
-			usedBWUL := 0.0
-			for _, servedUE := range servedUEs {
-				ueServCell, _ := servedUE.GetServingCell(cell.NCGI)
-				for _, bwp := range ueServCell.BwpRefs {
-					if bwp.Downlink {
-						usedBWDL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
-					} else {
-						usedBWUL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
-					}
-				}
-			}
-
-			arfcn := utils.If(cell.Channel.ArfcnDL > 0, float64(cell.Channel.ArfcnDL), float64(cell.Channel.ArfcnUL))
-			fr := GetFR(arfcn)
-			cellAvailBwDL := float64(cell.Channel.BsChannelBwDL) - usedBWDL
-			cellAvailBwUL := float64(cell.Channel.BsChannelBwUL) - usedBWUL
-			minSCS := SupportedSCSByFR[fr][0]
-
-			cellAvailPrbsUL, err := GetPRBs(cellAvailBwUL, minSCS, fr)
-			if err != nil {
-				continue
-			}
-			cellAvailPrbsDL, err := GetPRBs(cellAvailBwDL, minSCS, fr)
-			if err != nil {
-				continue
-			}
-
-			totalAvailPRBsUL += cellAvailPrbsUL
-			totalAvailPRBsDL += cellAvailPrbsDL
-
-			cellPrbInfo := numPRBsPerCell[cell.NCGI]
-			cellPrbInfo.prbsUL = cellAvailPrbsUL
-			cellPrbInfo.prbsDL = cellAvailPrbsDL
-			numPRBsPerCell[cell.NCGI] = cellPrbInfo
-
-		}
-
-		if totalAvailPRBsDL > requiredPRBsUL && totalAvailPRBsUL > requiredPRBsDL {
-			// Add to the combinations with sucfficient BW
+		if comboAvailPRBsDL > ueRequiredPRBsUL && comboAvailPRBsUL > ueRequiredPRBsDL {
 			feasibleCASchemes = append(feasibleCASchemes, CAScheme{
-				Bands: bandCombo,
-				Cells: bandComboCells,
+				Bands:            bandCombo,
+				FixedAllocCells:  bandComboCells,
+				AvailPRBsPerCell: availPRBsPerCell,
+				CanBeImplemented: true,
 			})
 		}
 
-		if totalAvailPRBsDL > maxPRBsDL {
-			maxPRBsDL = totalAvailPRBsDL
+		if comboAvailPRBsDL > maxPRBsDL {
+			maxPRBsDL = comboAvailPRBsDL
 			maxBWCAScheme = CAScheme{
-				Bands: bandCombo,
-				Cells: bandComboCells,
+				Bands:            bandCombo,
+				FixedAllocCells:  bandComboCells[:3],
+				ReallocCells:     bandComboCells[3:],
+				AvailPRBsPerCell: availPRBsPerCell,
+				CanBeImplemented: true,
 			}
 		}
 	}
 
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 	if !anyFeasibleCAScheme && len(maxBWCAScheme.Bands) > 0 {
-		// Best-ranked combo selected as no combinations with sufficient BW found
 		feasibleCASchemes = append(feasibleCASchemes, maxBWCAScheme)
 	}
 
 	return feasibleCASchemes
+}
+
+func calculateMeanPRBs(prbMap map[types.NCGI]prbInfo) float64 {
+	totalPRBs := 0
+	numCells := len(prbMap)
+	for _, prb := range prbMap {
+		totalPRBs += (prb.prbsUL + prb.prbsDL)
+	}
+	return float64(totalPRBs) / float64(numCells)
+}
+
+func calculatePRBVariance(prbMap map[types.NCGI]prbInfo, meanPRBs float64) map[types.NCGI]float64 {
+	varianceMap := make(map[types.NCGI]float64)
+	for ncgi, prb := range prbMap {
+		totalPRBs := float64(prb.prbsUL + prb.prbsDL)
+		varianceMap[ncgi] = math.Abs(totalPRBs - meanPRBs)
+	}
+	return varianceMap
+}
+
+func ChooseReallocCells(bandComboCells []*model.Cell, availPRBsPerCell map[types.NCGI]prbInfo) (fixedAllocationSet, dynamicReallocationSet []*model.Cell) {
+
+	// allocate available in descending order of avail PRBS
+	// and for the rest reallocate
+	// use threshold %
+	// and maybe TDD/FDD mode of operating band
+	// e.g. reallocate for TDD to be in sync or time share
+
+	// Calculate Mean PRB Availability
+	meanPRBs := calculateMeanPRBs(availPRBsPerCell)
+	prbVariance := calculatePRBVariance(availPRBsPerCell, meanPRBs)
+
+	fixedAllocationSet = make([]*model.Cell, 0)
+	dynamicReallocationSet = make([]*model.Cell, 0)
+
+	for _, cell := range bandComboCells {
+		arfcn := utils.If(cell.Channel.ArfcnDL > 0, cell.Channel.ArfcnDL, cell.Channel.ArfcnUL)
+		direction := utils.If(cell.Channel.ArfcnDL > 0, DL, UL)
+		band, found := GetBand(arfcn, direction)
+		if !found {
+			continue // Skip if band info is not found
+		}
+
+		prb := availPRBsPerCell[cell.NCGI]
+		totalPRBs := prb.prbsUL + prb.prbsDL
+		variance := prbVariance[cell.NCGI]
+
+		if band.DuplexingMode == "FDD" && totalPRBs >= int(meanPRBs) {
+			fixedAllocationSet = append(fixedAllocationSet, cell)
+		} else if band.DuplexingMode == "TDD" && variance > meanPRBs*0.2 {
+			// If variance is high, prioritize dynamic allocation for TDD
+			dynamicReallocationSet = append(dynamicReallocationSet, cell)
+		} else {
+			fixedAllocationSet = append(fixedAllocationSet, cell)
+		}
+	}
+
+	return
+}
+
+// GetCAComboAvailPRBs returns the total number of available PRBs in DL and UL
+// for the cell CA combination and also the per cell available PRBs.
+func GetCAComboAvailPRBs(bandComboCells []*model.Cell, ranModel *model.Model, ue *model.UE) (int, int, map[types.NCGI]prbInfo) {
+	comboAvailPRBsDL := 0
+	comboAvailPRBsUL := 0
+	availPRBsPerCell := map[types.NCGI]prbInfo{}
+
+	for _, cell := range bandComboCells {
+
+		servedUEs := ranModel.GetServedUEs(cell.NCGI)
+		cellAvailPrbsUL, cellAvailPrbsDL, err := GetCellAvailPRBs(cell, servedUEs, ue)
+		if err != nil {
+			continue
+		}
+
+		availPRBsPerCell[cell.NCGI] = prbInfo{
+			prbsUL: cellAvailPrbsUL,
+			prbsDL: cellAvailPrbsDL,
+		}
+		comboAvailPRBsUL += cellAvailPrbsUL
+		comboAvailPRBsDL += cellAvailPrbsDL
+
+	}
+	return comboAvailPRBsDL, comboAvailPRBsUL, availPRBsPerCell
+}
+
+// GetCellAvailPRBs returns the available PRBs for the provided cell
+// given its served UEs.
+func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (int, int, error) {
+
+	usedBWDL := 0.0
+	usedBWUL := 0.0
+
+	for _, servedUE := range servedUEs {
+		// dont count already reserved bwps by ue
+		if ue.IMSI == servedUE.IMSI {
+			continue
+		}
+		ueServCell, _ := servedUE.GetServingCell(cell.NCGI)
+		for _, bwp := range ueServCell.BwpRefs {
+			if bwp.Downlink {
+				usedBWDL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+			} else {
+				usedBWUL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+			}
+		}
+	}
+
+	arfcn := utils.If(cell.Channel.ArfcnDL > 0, float64(cell.Channel.ArfcnDL), float64(cell.Channel.ArfcnUL))
+	fr := GetFR(arfcn)
+	scs := NrSCSByCQIPerFR[fr][ue.FiveQi]
+	cellAvailBwDL := float64(cell.Channel.BsChannelBwDL) - usedBWDL
+	cellAvailBwUL := float64(cell.Channel.BsChannelBwUL) - usedBWUL
+
+	cellAvailPrbsUL, err := GetPRBs(cellAvailBwUL, scs, fr)
+	if err != nil {
+		return -1, -1, err
+	}
+	cellAvailPrbsDL, err := GetPRBs(cellAvailBwDL, scs, fr)
+	if err != nil {
+		return -1, -1, err
+	}
+	return cellAvailPrbsUL, cellAvailPrbsDL, nil
 }

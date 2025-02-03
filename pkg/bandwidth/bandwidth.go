@@ -8,6 +8,7 @@ import (
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -56,54 +57,54 @@ func CurrPRBsUsed(ue *model.UE) (UsedPRBsDL, UsedPRBsUL int) {
 	return
 }
 
-func ReleaseBW(servCells []*model.Cell, ue *model.UE) map[types.NCGI][]*model.Bwp {
-	bwpsPerNCGI := map[types.NCGI][]*model.Bwp{}
+func ReleaseBW(servCells []*model.Cell, ue *model.UE) []*model.Bwp {
+	releasedBwps := []*model.Bwp{}
 	for cIndex := range servCells {
 		servCell := servCells[cIndex]
 		ueServCell, isServingCell := ue.GetServingCell(servCell.NCGI)
 		if isServingCell {
 			for bwpIndex := range ueServCell.BwpRefs {
 				bwp := *ueServCell.BwpRefs[bwpIndex]
-				bwpsPerNCGI[servCell.NCGI] = append(bwpsPerNCGI[servCell.NCGI], &bwp)
+				releasedBwps = append(releasedBwps, &bwp)
 				delete(servCell.Bwps, bwp.ID)
 			}
 			ueServCell.BwpRefs = []*model.Bwp{}
 		}
 	}
-	return bwpsPerNCGI
+	return releasedBwps
 }
 
-func ReallocateBW(ue *model.UE, prevAlloc map[types.NCGI][]*model.Bwp, tCells []*model.Cell, getServedUEs func(ncgi types.NCGI) []*model.UE) {
+func AllocateBandwidth(
+	ue *model.UE,
+	releasedBwps []*model.Bwp,
+	stoppedServingCells []*model.Cell,
+	targetCells []*model.Cell,
+	targetCAScheme CAScheme,
+	getServedUEs func(ncgi types.NCGI) []*model.UE) {
 
-	// TODO: give less PRBs on lower freq and more on higher
-	for tCellIndex := range tCells {
-		tCell := tCells[tCellIndex]
-		_, ueTargetServCell := ue.GetNeighborCell(tCell.NCGI)
-		// TODO: map prevAlloc PRBs -> new cells
+	if targetCAScheme.CanBeImplemented {
+		// allocate available bandwidth to ue
+		allocateRemainingAvailableBW(targetCAScheme.FixedAllocCells, ue, getServedUEs)
 
-		servedUEs := getServedUEs(tCell.NCGI)
-		scaledBwps := getScaledBwps(servedUEs, ue.FiveQi, ue.FiveQi, prevAlloc[tCell.NCGI])
+		// reallocate total bw to all served ues
+		reallocateBandwidth(targetCAScheme.ReallocCells, getServedUEs, ue)
+		return
+	}
 
-		if isEnough, reqBwps := enoughBW(tCell, prevAlloc[tCell.NCGI], scaledBwps); isEnough {
-			ueTargetServCell.BwpRefs = []*model.Bwp{}
-			bwpId := len(tCell.Bwps)
-			for index := range reqBwps {
-				bwp := reqBwps[index]
-				bwp.ID = uint64(bwpId)
-				ueTargetServCell.BwpRefs = append(ueTargetServCell.BwpRefs, bwp)
-				tCell.Bwps[bwp.ID] = bwp
-				bwpId++
-			}
-			return
-		}
+	reallocateBandwidth(targetCells, getServedUEs, ue)
+}
 
-		ueTargetServCell.BwpRefs = prevAlloc[tCell.NCGI]
+func reallocateBandwidth(reallocationCells []*model.Cell, getServedUEs func(ncgi types.NCGI) []*model.UE, ue *model.UE) {
+	for c := range reallocationCells {
+
+		targetCell := reallocationCells[c]
+		servedUEs := getServedUEs(targetCell.NCGI)
 		// augment allocation with new ue
 		servedUEs = append(servedUEs, ue)
 		reqAlloc := BwAllocationOf(servedUEs)
 
-		// delete current allocation
-		tCell.Bwps = map[uint64]*model.Bwp{}
+		// delete current cell allocation
+		targetCell.Bwps = map[uint64]*model.Bwp{}
 		for index := range servedUEs {
 			servedUE := servedUEs[index]
 			servedUEpCell := servedUE.ServingCells[0]
@@ -111,17 +112,55 @@ func ReallocateBW(ue *model.UE, prevAlloc map[types.NCGI][]*model.Bwp, tCells []
 		}
 
 		// reallocate using selected scheme
-		switch tCell.ResourceAllocScheme {
+		switch targetCell.ResourceAllocScheme {
 		case PROPORTIONAL_FAIR:
 		default:
 			pf := ProportionalFair{
-				Cell:            tCell,
+				Cell:            targetCell,
 				ServedUEs:       servedUEs,
 				IsReallocation:  true,
 				ReqBwAllocation: reqAlloc,
 			}
 			pf.apply()
 		}
+	}
+}
+
+func allocateRemainingAvailableBW(fixedAllocCells []*model.Cell, ue *model.UE, getServedUEs func(ncgi types.NCGI) []*model.UE) {
+
+	for c := range fixedAllocCells {
+		targetCell := fixedAllocCells[c]
+		_, ueTargetServCell := ue.GetNeighborCell(targetCell.NCGI)
+
+		servedUEs := getServedUEs(targetCell.NCGI)
+		arfcn := utils.If(targetCell.Channel.ArfcnDL > 0, float64(targetCell.Channel.ArfcnDL), float64(targetCell.Channel.ArfcnUL))
+		fr := GetFR(arfcn)
+		scs := NrSCSByCQIPerFR[fr][ue.FiveQi]
+
+		availPRBsUL, availPRBsDL, err := GetCellAvailPRBs(targetCell, servedUEs, ue)
+		if err != nil {
+			continue
+		}
+
+		newBwpULId := uint64(len(targetCell.Bwps) + 1)
+		newBwpDLId := uint64(len(targetCell.Bwps) + 2)
+		newBwpUL := &model.Bwp{
+			ID:          newBwpULId,
+			NumberOfRBs: availPRBsUL,
+			Scs:         scs,
+			Downlink:    false,
+		}
+
+		newBwpDL := &model.Bwp{
+			ID:          newBwpDLId,
+			NumberOfRBs: availPRBsDL,
+			Scs:         scs,
+			Downlink:    true,
+		}
+
+		ueTargetServCell.BwpRefs = append(ueTargetServCell.BwpRefs, newBwpUL, newBwpDL)
+		targetCell.Bwps[newBwpULId] = newBwpUL
+		targetCell.Bwps[newBwpDLId] = newBwpDL
 	}
 }
 
@@ -147,7 +186,7 @@ func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, av
 
 }
 
-func enoughBW(tCell *model.Cell, requestedBwps, scaledBwps []*model.Bwp) (bool, []*model.Bwp) {
+func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
 	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
 
 	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
@@ -167,10 +206,17 @@ func enoughBW(tCell *model.Cell, requestedBwps, scaledBwps []*model.Bwp) (bool, 
 	}
 	sufficientBWDL := requestedBWDLUe+usedBWDLCell <= availBWDL
 	sufficientBWUL := requestedBWULUe+usedBWULCell <= availBWUL
-	if sufficientBWDL && sufficientBWUL {
-		return sufficientBWDL && sufficientBWUL, requestedBwps
-	}
 
+	return sufficientBWDL && sufficientBWUL
+}
+
+func enoughBWScaled(tCell *model.Cell, scaledBwps []*model.Bwp) bool {
+	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
+	totalBWDL := MHzToHz(float64(tCell.Channel.BsChannelBwDL))
+	totalBWUL := MHzToHz(float64(tCell.Channel.BsChannelBwUL))
+
+	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
+	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
 	scaledBWDLUe, scaledBWULUe := 0, 0
 	for index := range scaledBwps {
 		bwp := scaledBwps[index]
@@ -180,10 +226,10 @@ func enoughBW(tCell *model.Cell, requestedBwps, scaledBwps []*model.Bwp) (bool, 
 			scaledBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
 		}
 	}
-	sufficientBWDL = scaledBWDLUe+usedBWDLCell <= availBWDL
-	sufficientBWUL = scaledBWULUe+usedBWULCell <= availBWUL
+	sufficientBWDL := scaledBWDLUe+usedBWDLCell <= availBWDL
+	sufficientBWUL := scaledBWULUe+usedBWULCell <= availBWUL
 
-	return sufficientBWDL && sufficientBWUL, scaledBwps
+	return sufficientBWDL && sufficientBWUL
 }
 
 func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
@@ -214,72 +260,72 @@ func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
 }
 
 // TODO: refactor
-func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*model.Bwp {
-	cqiBWDL := 0
-	cqiBWUL := 0
-	cqiNumUEs := 0
-	for _, ue := range ues {
-		if cqi == ue.FiveQi {
-			cqiNumUEs++
-			for _, bwp := range ue.ServingCells[0].BwpRefs {
-				if bwp.Downlink {
-					cqiBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
-				} else {
-					cqiBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
-				}
-			}
-		}
-	}
-	if cqiNumUEs == 0 {
-		if cqi-1 == 0 {
-			if ueCQI+1 > 15 {
-				return reqBwps
-			}
-			return getScaledBwps(ues, ueCQI, ueCQI+1, reqBwps)
-		}
-		if cqi > ueCQI {
-			if cqi+1 > 15 {
-				return reqBwps
-			}
-			return getScaledBwps(ues, ueCQI, cqi+1, reqBwps)
-		}
-		return getScaledBwps(ues, ueCQI, cqi-1, reqBwps)
-	}
+// func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*model.Bwp {
+// 	cqiBWDL := 0
+// 	cqiBWUL := 0
+// 	cqiNumUEs := 0
+// 	for _, ue := range ues {
+// 		if cqi == ue.FiveQi {
+// 			cqiNumUEs++
+// 			for _, bwp := range ue.ServingCells[0].BwpRefs {
+// 				if bwp.Downlink {
+// 					cqiBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
+// 				} else {
+// 					cqiBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
+// 				}
+// 			}
+// 		}
+// 	}
+// 	if cqiNumUEs == 0 {
+// 		if cqi-1 == 0 {
+// 			if ueCQI+1 > 15 {
+// 				return reqBwps
+// 			}
+// 			return getScaledBwps(ues, ueCQI, ueCQI+1, reqBwps)
+// 		}
+// 		if cqi > ueCQI {
+// 			if cqi+1 > 15 {
+// 				return reqBwps
+// 			}
+// 			return getScaledBwps(ues, ueCQI, cqi+1, reqBwps)
+// 		}
+// 		return getScaledBwps(ues, ueCQI, cqi-1, reqBwps)
+// 	}
 
-	avgCqiBWDL := cqiBWDL / cqiNumUEs
-	avgCqiBWUL := cqiBWUL / cqiNumUEs
+// 	avgCqiBWDL := cqiBWDL / cqiNumUEs
+// 	avgCqiBWUL := cqiBWUL / cqiNumUEs
 
-	reqPRBsDL := 0
-	reqBWDL := 0
-	reqPRBsUL := 0
-	reqBWUL := 0
-	reqBWPsDL := []*model.Bwp{}
-	reqBWPsUL := []*model.Bwp{}
-	for index := range reqBwps {
-		bwp := *reqBwps[index]
-		if bwp.Downlink {
-			reqPRBsDL++
-			reqBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
-			reqBWPsDL = append(reqBWPsDL, &bwp)
-		} else {
-			reqPRBsUL++
-			reqBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
-			reqBWPsUL = append(reqBWPsUL, &bwp)
-		}
-	}
-	scaledBwpsDL := reqBWPsDL
-	if reqBWDL > avgCqiBWDL {
-		// TODO: see how to obtain scsOptions
-		scaledBwpsDL, _ = generateBWPs(avgCqiBWDL, reqPRBsDL, true)
-	}
-	scaledBwpsUL := reqBWPsUL
-	if reqBWUL > avgCqiBWUL {
-		// TODO: see how to obtain scsOptions
-		scaledBwpsUL, _ = generateBWPs(avgCqiBWUL, reqPRBsUL, false)
-	}
+// 	reqPRBsDL := 0
+// 	reqBWDL := 0
+// 	reqPRBsUL := 0
+// 	reqBWUL := 0
+// 	reqBWPsDL := []*model.Bwp{}
+// 	reqBWPsUL := []*model.Bwp{}
+// 	for index := range reqBwps {
+// 		bwp := *reqBwps[index]
+// 		if bwp.Downlink {
+// 			reqPRBsDL++
+// 			reqBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
+// 			reqBWPsDL = append(reqBWPsDL, &bwp)
+// 		} else {
+// 			reqPRBsUL++
+// 			reqBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
+// 			reqBWPsUL = append(reqBWPsUL, &bwp)
+// 		}
+// 	}
+// 	scaledBwpsDL := reqBWPsDL
+// 	if reqBWDL > avgCqiBWDL {
+// 		// TODO: see how to obtain scsOptions
+// 		scaledBwpsDL, _ = generateBWPs(avgCqiBWDL, reqPRBsDL, true)
+// 	}
+// 	scaledBwpsUL := reqBWPsUL
+// 	if reqBWUL > avgCqiBWUL {
+// 		// TODO: see how to obtain scsOptions
+// 		scaledBwpsUL, _ = generateBWPs(avgCqiBWUL, reqPRBsUL, false)
+// 	}
 
-	return append(scaledBwpsDL, scaledBwpsUL...)
-}
+// 	return append(scaledBwpsDL, scaledBwpsUL...)
+// }
 
 func MHzToHz(MHz float64) float64 {
 	return MHz * 1e6
@@ -357,21 +403,27 @@ func UtilizationInfoByCell(cellMeasurements []*metrics.Metric) (map[uint64]map[s
 		case MatchesPattern(metric.Key, ACTIVE_UES_DL_PATTERN):
 			numUEsByCell[metric.EntityID][metric.Key] = value
 
+		// TODO: multiply by NUM_SUBFRAMES
 		case metric.Key == AVAIL_PRBS_DL_METRIC:
 			prbMeasPerCell[metric.EntityID][AVAIL_PRBS_DL_METRIC] = value
 
+		// TODO: multiply by NUM_SUBFRAMES
 		case metric.Key == AVAIL_PRBS_UL_METRIC:
 			prbMeasPerCell[metric.EntityID][AVAIL_PRBS_UL_METRIC] = value
 
+		// TODO: multiply by NUM_SUBFRAMES
 		case metric.Key == USED_PRBS_DL_METRIC:
 			prbMeasPerCell[metric.EntityID][USED_PRBS_DL_METRIC] = value
 
+		// TODO: multiply by NUM_SUBFRAMES
 		case MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN):
 			prbMeasPerCell[metric.EntityID][metric.Key] = value
 
+		// TODO: multiply by NUM_SUBFRAMES
 		case metric.Key == USED_PRBS_UL_METRIC:
 			prbMeasPerCell[metric.EntityID][USED_PRBS_UL_METRIC] = value
 
+		// TODO: multiply by NUM_SUBFRAMES
 		case MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN):
 			prbMeasPerCell[metric.EntityID][metric.Key] = value
 		}

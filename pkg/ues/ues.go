@@ -176,6 +176,7 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, si
 		IsAdmitted:    false,
 		Height:        ueHeight,
 		RrcState:      rrcState,
+		// TODO: SupportedNRBands, SupportedBWClass, SupportedEutraBands
 	}
 
 	return ue, ueIMSI

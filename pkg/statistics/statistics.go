@@ -62,3 +62,17 @@ func PrbUsedUlQOS(prbs map[int]int, cqi int) int {
 	}
 	return prb
 }
+
+// CalculateThroughputMbps calculates the maximum data rate based on 3GPP TS 38.306
+func CalculateThroughputMbps(J int, N []int, Qm []int, v []int, f []float64, SCS []float64) float64 {
+	Rmax := 948.0 / 1024.0
+	throughput := 0.0
+
+	for j := 0; j < J; j++ {
+		Ts := 1.0 / (SCS[j] * 1000.0) // Symbol duration in seconds
+		Tslot := 14.0 * Ts            // Slot duration
+		throughput += float64(N[j]) * 12.0 * Rmax * float64(Qm[j]) * float64(v[j]) * f[j] / Tslot
+	}
+
+	return throughput * 1e-6 // Convert to Mbps
+}

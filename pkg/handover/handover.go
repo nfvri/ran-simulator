@@ -5,6 +5,7 @@
 package handover
 
 import (
+	"os"
 	"reflect"
 	"strconv"
 
@@ -45,6 +46,7 @@ type HOController interface {
 // HandoverDecision struct has handover decision information
 type HandoverDecision struct {
 	UE              model.UE
+	TargetCAScheme  bw.CAScheme
 	TargetCellNcgis []types.NCGI
 }
 
@@ -110,12 +112,12 @@ type DefaultHOExecutor struct {
 
 func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
-	log.Debug("---------------------------------- ")
-	log.Debugf("handover:  ue: %v tcells: %v",
+	log.Info("---------------------------------- ")
+	log.Infof("handover:  ue: %v tcells: %v",
 		hoDecision.UE.IMSI,
 		hoDecision.TargetCellNcgis,
 	)
-	log.Debug("---------------------------------- ")
+	log.Info("---------------------------------- ")
 
 	isHandover := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED
 	if !isHandover {
@@ -125,24 +127,10 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 	imsiStr := strconv.FormatUint(uint64(hoDecision.UE.IMSI), 10)
 	ue := e.Model.UEs[imsiStr]
 
-	// lock on all serving cells not in target cells
 	servCells := e.Model.GetServingCells(ue.IMSI)
 	servCellNCGIs := []types.NCGI{}
-	for servCellIndex := range servCells {
-		servCell := servCells[servCellIndex]
-		servCellNCGIs = append(servCellNCGIs, servCell.NCGI)
-		targetCellsContainServing := false
-		for _, tCellNCGI := range hoDecision.TargetCellNcgis {
-			if tCellNCGI == servCell.NCGI {
-				targetCellsContainServing = true
-				break
-			}
-		}
-		if targetCellsContainServing {
-			continue
-		}
-		servCell.Lock()
-		defer servCell.Unlock()
+	for c := range servCells {
+		servCellNCGIs = append(servCellNCGIs, servCells[c].NCGI)
 	}
 
 	noTargetCells := len(hoDecision.TargetCellNcgis) == 0
@@ -158,11 +146,39 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 		return
 	}
 
+	// lock on all serving cells that will stop serving the ue
+	// so as to release bandwidth
+	stoppedServingCells := e.getStoppedServingCells(servCells, hoDecision)
+	for c := range stoppedServingCells {
+		stoppedServingCell := stoppedServingCells[c]
+		servCellNCGIs = append(servCellNCGIs, stoppedServingCell.NCGI)
+		stoppedServingCell.Lock()
+		defer stoppedServingCell.Unlock()
+	}
+	// lock on all target cells not already serving
+	targetCells := e.getTargetCells(hoDecision, ue)
+	for c := range targetCells {
+		targetCell := targetCells[c]
+		targetCell.Lock()
+		defer targetCell.Unlock()
+	}
 	// lock service mappings
 	e.Model.ServiceMappings.Lock()
 	defer e.Model.ServiceMappings.Unlock()
 
-	// lock on all target cells not already serving
+	if len(servCellNCGIs) == 0 {
+		log.Error("DIE!")
+		os.Exit(1)
+	}
+	releasedBwps := bw.ReleaseBW(stoppedServingCells, ue)
+	e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
+	e.ComputeCellMetricsFor(ue)
+	bw.AllocateBandwidth(ue, releasedBwps, stoppedServingCells, targetCells, hoDecision.TargetCAScheme, e.Model.GetServedUEs)
+	logHO(hoDecision, servCellNCGIs)
+
+}
+
+func (e *DefaultHOExecutor) getTargetCells(hoDecision HandoverDecision, ue *model.UE) []*model.Cell {
 	targetCells := []*model.Cell{}
 	for _, ncgi := range hoDecision.TargetCellNcgis {
 		targetCellAlreadyServing := false
@@ -178,25 +194,27 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 		targetCellNcgiStr := strconv.FormatUint(uint64(ncgi), 10)
 		targetCell := e.Model.Cells[targetCellNcgiStr]
 		targetCells = append(targetCells, targetCell)
-		targetCell.Lock()
-		defer targetCell.Unlock()
 	}
+	return targetCells
+}
 
-	// TODO: Check if target contains existing serving cells
-	// if so exclude them from reallocation
-	if len(hoDecision.TargetCellNcgis) != 0 {
-		prevAlloc := bw.ReleaseBW(servCells, ue)
-		e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
-		e.ComputeCellMetricsFor(ue)
-		bw.ReallocateBW(ue, prevAlloc, targetCells, e.Model.GetServedUEs)
-		logHO(hoDecision, servCellNCGIs)
-	} else {
-		ue.ServingCells[0].BwpRefs = []*model.Bwp{}
-		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
-		e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
-		return
+func (*DefaultHOExecutor) getStoppedServingCells(servCells []*model.Cell, hoDecision HandoverDecision) []*model.Cell {
+	stoppedServingCells := []*model.Cell{}
+	for servCellIndex := range servCells {
+		servCell := servCells[servCellIndex]
+		targetCellsContainServing := false
+		for _, tCellNCGI := range hoDecision.TargetCellNcgis {
+			if tCellNCGI == servCell.NCGI {
+				targetCellsContainServing = true
+				break
+			}
+		}
+		if targetCellsContainServing {
+			continue
+		}
+		stoppedServingCells = append(stoppedServingCells, servCell)
 	}
-
+	return stoppedServingCells
 }
 
 func logHO(hoDecision HandoverDecision, sourceCellNCGIs []types.NCGI) {

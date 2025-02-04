@@ -8,7 +8,7 @@ require (
 	github.com/davidkleiven/gononlin v0.3.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.6.0
-	github.com/nfvri/onos-api/go v0.0.0-20241126143626-4f6bff53a249
+	github.com/nfvri/onos-api/go v0.0.0-20250204134928-b39facec30dc
 	github.com/onosproject/helmit v0.6.19
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go v0.8.43
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go v0.8.43
@@ -214,5 +214,3 @@ require (
 replace github.com/docker/docker => github.com/docker/engine v1.4.2-0.20200229013735-71373c6105e3
 
 replace github.com/pmcxs/hexgrid v0.0.0-20190126214921-42796ac894ab => github.com/SeanCondon/hexgrid v0.0.0-20200424141352-c3819a378a18
-
-replace github.com/nfvri/onos-api/go => /home/konkots/git/onos-api/go

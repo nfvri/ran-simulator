@@ -2,10 +2,14 @@ package ues
 
 import (
 	"context"
+	"strings"
+
 	"math"
+	"math/rand"
 	"strconv"
 	"sync"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
@@ -101,6 +105,8 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		usedPRBsUL := usedPRBsULPerCQIByCell[sCellNCGI]
 		availPRBsDL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_UL_METRIC]
+		log.Info("[InitUEs]... -> bw.InitBWPs")
+		log.Infof("[InitUEs] cell:%v , cellServedUEs: %+v", sCell.NCGI, cellServedUEs)
 
 		bw.InitBWPs(sCell, numUEsPerCQI, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, cellServedUEs)
 	}
@@ -164,19 +170,29 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, si
 	}
 
 	ue := &model.UE{
-		IMSI:          imsi,
-		AmfUeNgapID:   types.AmfUENgapID(1000 + counter),
-		Type:          "phone",
-		Location:      location,
-		Heading:       0,
-		ServingCells:  []*model.UECell{servingCell},
-		FiveQi:        cqi,
-		CRNTI:         types.CRNTI(90125 + counter),
-		NeighborCells: neighborCells,
-		IsAdmitted:    false,
-		Height:        ueHeight,
-		RrcState:      rrcState,
-		// TODO: SupportedNRBands, SupportedBWClass, SupportedEutraBands
+		IMSI:                      imsi,
+		AmfUeNgapID:               types.AmfUENgapID(1000 + counter),
+		Type:                      "phone",
+		Location:                  location,
+		Heading:                   0,
+		ServingCells:              []*model.UECell{servingCell},
+		FiveQi:                    cqi,
+		CRNTI:                     types.CRNTI(90125 + counter),
+		NeighborCells:             neighborCells,
+		IsAdmitted:                false,
+		Height:                    ueHeight,
+		RrcState:                  rrcState,
+		SupportedBandCombinations: pickRandomBandCombos(),
+		SupportedBandsNR:          make([]string, 0),
+		SupportedBandsEutra:       make([]string, 0),
+	}
+
+	for _, c := range ue.SupportedBandCombinations[model.NR] {
+		ue.SupportedBandsNR = append(ue.SupportedBandsNR, c.Band)
+	}
+
+	for _, c := range ue.SupportedBandCombinations[model.EUTRA] {
+		ue.SupportedBandsEutra = append(ue.SupportedBandsEutra, c.Band)
 	}
 
 	return ue, ueIMSI
@@ -206,4 +222,39 @@ func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, cells map[string
 		}
 	}
 	return ueNeighbors
+}
+
+func pickRandomlyFromSlice(slice []string) string {
+	return slice[rand.Intn(len(slice))]
+}
+
+func pickRandomBandCombos() map[model.ConnectivityType][]*model.BandSupportInfo {
+	// NR Combo
+	c := pickRandomlyFromSlice(bw.CABandCombinationsNR)
+	caBandCombosNR := mapset.NewSet[string]()
+	caBandCombosNR.Append(strings.Split(c, "_")...)
+	comboSupportInfo := map[model.ConnectivityType][]*model.BandSupportInfo{}
+
+	comboSupportInfo[model.NR] = make([]*model.BandSupportInfo, 0)
+	for band := range caBandCombosNR.Iter() {
+		comboSupportInfo[model.NR] = append(comboSupportInfo[model.NR], &model.BandSupportInfo{
+			Band:           band,
+			BandwidthClass: pickRandomlyFromSlice(bw.BandwidthClassesNR[:5]),
+		})
+	}
+
+	// Eutra combo
+	c = pickRandomlyFromSlice(bw.CABandCombinationsEutra)
+	caBandCombosEutra := mapset.NewSet[string]()
+	caBandCombosEutra.Append(strings.Split(c, "_")...)
+
+	comboSupportInfo[model.EUTRA] = make([]*model.BandSupportInfo, 0)
+	for band := range caBandCombosEutra.Iter() {
+		comboSupportInfo[model.EUTRA] = append(comboSupportInfo[model.EUTRA], &model.BandSupportInfo{
+			Band:           band,
+			BandwidthClass: pickRandomlyFromSlice(bw.BandwidthClassesNR[:5]),
+		})
+	}
+
+	return comboSupportInfo
 }

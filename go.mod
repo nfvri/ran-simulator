@@ -6,6 +6,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/davidkleiven/gononlin v0.3.0
+	github.com/deckarep/golang-set/v2 v2.7.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.6.0
 	github.com/nfvri/onos-api/go v0.0.0-20241209131911-6123bfc4f36d

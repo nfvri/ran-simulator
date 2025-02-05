@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"sync"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
@@ -357,21 +356,21 @@ type Bwp struct {
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI                types.IMSI         `mapstructure:"imsi"`
-	AmfUeNgapID         types.AmfUENgapID  `mapstructure:"amfUeNgapID"`
-	Type                UEType             `mapstructure:"type"`
-	RrcState            e2sm_mho.Rrcstatus `mapstructure:"rrcState"`
-	Location            Coordinate         `mapstructure:"location"`
-	Heading             uint32             `mapstructure:"heading"`
-	FiveQi              int                `mapstructure:"fiveQi"`
-	ServingCells        []*UECell          `mapstructure:"servingCells"`
-	CRNTI               types.CRNTI        `mapstructure:"CRNTI"`
-	NeighborCells       []*UECell          `mapstructure:"neighborCells"`
-	Height              float64            `mapstructure:"height"`
-	IsAdmitted          bool               `mapstructure:"isAdmitted"`
-	SupportedBWClass    string             `mapstructure:"supportedBWClass"`
-	SupportedBandsNR    mapset.Set[string] `mapstructure:"supportedBandsNR"`
-	SupportedBandsEutra mapset.Set[string] `mapstructure:"supportedBandsEutra"`
+	IMSI                      types.IMSI                              `mapstructure:"imsi"`
+	AmfUeNgapID               types.AmfUENgapID                       `mapstructure:"amfUeNgapID"`
+	Type                      UEType                                  `mapstructure:"type"`
+	RrcState                  e2sm_mho.Rrcstatus                      `mapstructure:"rrcState"`
+	Location                  Coordinate                              `mapstructure:"location"`
+	Heading                   uint32                                  `mapstructure:"heading"`
+	FiveQi                    int                                     `mapstructure:"fiveQi"`
+	ServingCells              []*UECell                               `mapstructure:"servingCells"`
+	CRNTI                     types.CRNTI                             `mapstructure:"CRNTI"`
+	NeighborCells             []*UECell                               `mapstructure:"neighborCells"`
+	Height                    float64                                 `mapstructure:"height"`
+	IsAdmitted                bool                                    `mapstructure:"isAdmitted"`
+	SupportedBandCombinations map[ConnectivityType][]*BandSupportInfo `mapstructure:"supportedBandCombinations"`
+	SupportedBandsNR          []string                                `mapstructure:"supportedBandsNR"`
+	SupportedBandsEutra       []string                                `mapstructure:"supportedBandsEutra"`
 }
 
 func (ue *UE) GetServingCell(ncgi types.NCGI) (*UECell, bool) {
@@ -409,6 +408,27 @@ func (ue *UE) GetNeighborCell(ncgi types.NCGI) (int, *UECell) {
 		}
 	}
 	return -1, nil
+}
+
+type ConnectivityType string
+
+const (
+	NR    ConnectivityType = "NR"
+	EUTRA ConnectivityType = "EUTRA"
+	EN_DC ConnectivityType = "EN-DC"
+	NR_DC ConnectivityType = "NR-DC"
+	NE_DC ConnectivityType = "NE-DC"
+)
+
+type BandSupportInfo struct {
+	Band           string
+	BandwidthClass string
+	MIMOLayers     string
+}
+
+type BandCombination struct {
+	Direction     string // UL/DL
+	CombinedBands []BandSupportInfo
 }
 
 // ServiceModel service model information

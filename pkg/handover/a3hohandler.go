@@ -14,7 +14,7 @@ import (
 const MIN_ACCEPTABLE_RSRP = -110.0
 
 type CarrierAggregator interface {
-	GetValidCACombinations(cells []*model.Cell) (validCABandCombos [][]string, cellsByBand map[string][]*model.Cell)
+	GetValidCACombinations(cells []*model.Cell, supportedBandsInfo map[model.ConnectivityType][]*model.BandSupportInfo) (validCABandCombos [][]string, cellsByBand map[string][]*model.Cell)
 }
 
 // NewA3HandoverHandler returns A3HandoverHandler object
@@ -109,12 +109,13 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 		}
 	}
 
-	ueBWC, bwcFound := bw.GetBandwidthClassNR(&ue, maxChannelBwDL)
-	ueSupportsCA := bwcFound && ueBWC.NumContiguousCC >= 2
+	ueSupportsCA := len(ue.SupportedBandCombinations) > 0
 	if !ueSupportsCA {
 		logrus.Infof("UE %v does not support CA", ue.IMSI)
 		return []types.NCGI{rankedNCGIs[0]}, bw.CAScheme{}
 	}
+
+	logrus.Infof("ue %v supports CA! ", ue.IMSI)
 
 	ccSchedulingCells := []*model.Cell{}
 	selfSchedulingCells := []*model.Cell{}
@@ -129,21 +130,38 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 		}
 	}
 
+	logrus.Infof("attempting selfSchedulingCells: %+v", selfSchedulingCells)
+
 	ueRequiredPRBsDL, ueRequiredPRBsUL := bw.CurrPRBsUsed(&ue)
 	for c := range selfSchedulingCells {
 		cell := selfSchedulingCells[c]
 		servedUEs := h.model.GetServedUEs(cell.NCGI)
 		cellAvailPrbsUL, cellAvailPrbsDL, err := bw.GetCellAvailPRBs(cell, servedUEs, &ue)
+		logrus.Infof(
+			`ue:%v, 
+			ueRequiredPRBsUL:%v vs cellAvailPrbsUL:%v, 
+			ueRequiredPRBsDL:%v vs cellAvailPrbsDL:%v`,
+			ue.IMSI,
+			ueRequiredPRBsUL, cellAvailPrbsUL,
+			ueRequiredPRBsDL, cellAvailPrbsDL,
+		)
+
 		if err != nil {
 			continue
 		}
-		if cellAvailPrbsUL > ueRequiredPRBsUL && cellAvailPrbsDL > ueRequiredPRBsDL {
+		if cellAvailPrbsUL >= ueRequiredPRBsUL && cellAvailPrbsDL >= ueRequiredPRBsDL {
+			logrus.Infof("found selfSchedulingCell: %v", cell.NCGI)
 			return []types.NCGI{cell.NCGI}, bw.CAScheme{}
 		}
 	}
 
-	validCACombinations, cellsByBand := h.ca.GetValidCACombinations(ccSchedulingCells)
+	logrus.Infof("attempting ccSchedulingCells: %+v", ccSchedulingCells)
+
+	validCACombinations, cellsByBand := h.ca.GetValidCACombinations(ccSchedulingCells, ue.SupportedBandCombinations)
+
+	logrus.Infof("validCACombinations: %+v", validCACombinations)
 	feasibleCASchemes := bw.GetFeasibleCASchemes(validCACombinations, cellsByBand, h.model, &ue)
+	logrus.Infof("feasibleCASchemes: %+v", feasibleCASchemes)
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 
 	if !anyFeasibleCAScheme {
@@ -154,6 +172,9 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	selectedCAScheme := feasibleCASchemes[0]
 	targetCellNcgis := []types.NCGI{}
 	for _, c := range selectedCAScheme.FixedAllocCells {
+		targetCellNcgis = append(targetCellNcgis, c.NCGI)
+	}
+	for _, c := range selectedCAScheme.ReallocCells {
 		targetCellNcgis = append(targetCellNcgis, c.NCGI)
 	}
 

@@ -331,6 +331,10 @@ func MHzToHz(MHz float64) float64 {
 	return MHz * 1e6
 }
 
+func HzToMHz(MHz float64) float64 {
+	return MHz * 1e-6
+}
+
 func CreateUsedPrbsMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]float64, map[uint64]map[int]float64) {
 	//cqiPRBsDlMap[NCGI][metricIndex]#PRBs
 	cqiPRBsDlMap := map[uint64]map[int]float64{}

@@ -15,6 +15,80 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TODO: determine if needed/how it will be used
+// BandwidthClassNR represents a single row of the table.
+type BandwidthClassNR struct {
+	Class             string `json:"class"`
+	AggregateBWMinMHz uint32 `json:"aggregate_bw_min_mhz"`
+	AggregateBWMaxMHz uint32 `json:"aggregate_bw_max_mhz"`
+	NumContiguousCC   int    `json:"num_contiguous_cc"`
+	FallbackGroup     []int  `json:"fallback_group"`
+}
+
+var BandwidthClassesNR = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"}
+
+func GetBandwidthClassNR(name string, channelBwMax uint32) (BandwidthClassNR, bool) {
+	var bwClassesNR = map[string]BandwidthClassNR{
+		"A": {"A", 0, channelBwMax, 1, []int{1, 2, 3}},
+		"B": {"B", 20, 100, 2, []int{2, 3}},
+		"C": {"C", 100, 2 * channelBwMax, 2, []int{1, 3}},
+		"D": {"D", 200, 3 * channelBwMax, 3, []int{1, 3}},
+		"E": {"E", 300, 4 * channelBwMax, 4, []int{1, 3}},
+		"G": {"G", 100, 150, 3, []int{2}},
+		"H": {"H", 150, 200, 4, []int{2}},
+		"I": {"I", 200, 250, 5, []int{2}},
+		"J": {"J", 250, 300, 6, []int{2}},
+		"K": {"K", 300, 350, 7, []int{2}},
+		"L": {"L", 350, 400, 8, []int{2}},
+		"M": {"M", 50, 200, 3, []int{3}},
+		"N": {"N", 80, 300, 4, []int{3}},
+		"O": {"O", 100, 400, 5, []int{3}},
+	}
+	if bwc, bwcFound := bwClassesNR[name]; bwcFound {
+		return bwc, true
+	}
+	return BandwidthClassNR{}, false
+}
+
+var CABandCombinationsEutra = []string{
+	"1_3_5",
+	"1_3_7",
+	"1_3_8",
+	"1_3_20",
+	"1_3_28",
+	"1_3_41",
+	"1_3_77",
+	"1_3_78",
+	"1_3_79",
+	"1_5_7",
+	"1_5_28",
+	"1_5_78",
+	"1_7_8",
+	"1_7_28",
+	"1_7_40",
+	"1_7_78",
+	"1_7_79",
+	"1_8_28",
+	"1_8_40",
+	"1_8_77",
+	"1_8_78",
+	"3_3_8",
+	"3_3_20",
+	"3_3_28",
+	"3_7_7",
+	"3_7_32",
+	"3_20_32",
+	"4_4_29",
+	"4_4_30",
+	"4_5_13",
+	"4_5_29",
+	"4_7_12",
+	"5_12_12",
+	"7_7_28",
+	"7_8_20",
+	"7_20_32",
+}
+
 type CAConfigNR struct {
 	Name           string
 	BWComboSet     int
@@ -22,7 +96,7 @@ type CAConfigNR struct {
 	AggregateBWMHz int
 }
 
-var caBandCombinationsNR = []string{
+var CABandCombinationsNR = []string{
 	"n1_n3",
 	"n1_n5",
 	"n1_n7",
@@ -587,7 +661,7 @@ func NewCarrierAggregatorNR() (ca *CarrierAggregatorNR) {
 	caNR := &CarrierAggregatorNR{
 		bandCombinationsNRTree: art.New(),
 	}
-	for _, combination := range caBandCombinationsNR {
+	for _, combination := range CABandCombinationsNR {
 		caNR.bandCombinationsNRTree.Insert(art.Key(combination), true)
 	}
 	return caNR
@@ -598,7 +672,9 @@ func (ca *CarrierAggregatorNR) IsValidBandCombination(bandCombo string) bool {
 	return found
 }
 
-func (ca *CarrierAggregatorNR) GetValidCACombinations(targetCells []*model.Cell) (validCABandCombos [][]string, cellsByBand map[string][]*model.Cell) {
+func (ca *CarrierAggregatorNR) GetValidCACombinations(
+	targetCells []*model.Cell,
+	supportedBandsInfo map[model.ConnectivityType][]*model.BandSupportInfo) (validCABandCombos [][]string, cellsByBand map[string][]*model.Cell) {
 
 	validCABandCombos = make([][]string, 0)
 	cellsByBand = make(map[string][]*model.Cell)
@@ -731,10 +807,10 @@ func GetFeasibleCASchemes(
 
 		if comboAvailPRBsDL > maxPRBsDL {
 			maxPRBsDL = comboAvailPRBsDL
+
 			maxBWCAScheme = CAScheme{
 				Bands:            bandCombo,
-				FixedAllocCells:  bandComboCells[:3],
-				ReallocCells:     bandComboCells[3:],
+				FixedAllocCells:  bandComboCells,
 				AvailPRBsPerCell: availPRBsPerCell,
 				CanBeImplemented: true,
 			}
@@ -743,6 +819,9 @@ func GetFeasibleCASchemes(
 
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 	if !anyFeasibleCAScheme && len(maxBWCAScheme.Bands) > 0 {
+		fixedAllocCells, reallocCells := ChooseReallocCells(maxBWCAScheme.FixedAllocCells, maxBWCAScheme.AvailPRBsPerCell)
+		maxBWCAScheme.FixedAllocCells = fixedAllocCells
+		maxBWCAScheme.ReallocCells = reallocCells
 		feasibleCASchemes = append(feasibleCASchemes, maxBWCAScheme)
 	}
 
@@ -858,16 +937,10 @@ func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (in
 	arfcn := utils.If(cell.Channel.ArfcnDL > 0, float64(cell.Channel.ArfcnDL), float64(cell.Channel.ArfcnUL))
 	fr := GetFR(arfcn)
 	scs := NrSCSByCQIPerFR[fr][ue.FiveQi]
-	cellAvailBwDL := float64(cell.Channel.BsChannelBwDL) - usedBWDL
-	cellAvailBwUL := float64(cell.Channel.BsChannelBwUL) - usedBWUL
+	cellAvailBwDL := MHzToHz(float64(cell.Channel.BsChannelBwDL)) - usedBWDL
+	cellAvailBwUL := MHzToHz(float64(cell.Channel.BsChannelBwUL)) - usedBWUL
 
-	cellAvailPrbsUL, err := GetPRBs(cellAvailBwUL, scs, fr)
-	if err != nil {
-		return -1, -1, err
-	}
-	cellAvailPrbsDL, err := GetPRBs(cellAvailBwDL, scs, fr)
-	if err != nil {
-		return -1, -1, err
-	}
+	cellAvailPrbsUL := GetPRBs(uint32(HzToMHz(cellAvailBwUL)), scs, fr)
+	cellAvailPrbsDL := GetPRBs(uint32(HzToMHz(cellAvailBwDL)), scs, fr)
 	return cellAvailPrbsUL, cellAvailPrbsDL, nil
 }

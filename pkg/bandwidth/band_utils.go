@@ -1,5 +1,7 @@
 package bandwidth
 
+import "math"
+
 const (
 	UL    = "Uplink"
 	DL    = "Downlink"
@@ -9,30 +11,38 @@ const (
 	FR2_2 = "FR2-2"
 )
 
+// Duplex modes
+const (
+	FDD = "FDD"
+	TDD = "TDD"
+	SUL = "SUL"
+	SDL = "SDL"
+)
+
 type BandEutra struct {
 	Name          string
 	ULlow         float64 // Uplink low frequency
 	ULhigh        float64 // Uplink high frequency
 	DLlow         float64 // Downlink low frequency
 	DLhigh        float64 // Downlink high frequency
-	DuplexingMode string  // FDD/TDD
+	DuplexingMode string  // FDD/TDD/SUL/SDL
 }
 
 var BandsEutra = map[string]BandEutra{
-	"1":  {"1", 1920, 1980, 2110, 2170, "FDD"},
-	"2":  {"2", 1850, 1910, 1930, 1990, "FDD"},
-	"3":  {"3", 1710, 1785, 1805, 1880, "FDD"},
-	"4":  {"4", 1710, 1755, 2110, 2155, "FDD"},
-	"5":  {"5", 824, 849, 869, 894, "FDD"},
-	"7":  {"7", 2500, 2570, 2620, 2690, "FDD"},
-	"8":  {"8", 880, 915, 925, 960, "FDD"},
-	"20": {"20", 832, 862, 791, 821, "FDD"},
-	"28": {"28", 703, 748, 758, 803, "FDD"},
-	"38": {"38", 2570, 2620, 2570, 2620, "TDD"},
-	"40": {"40", 2300, 2400, 2300, 2400, "TDD"},
-	"41": {"41", 2496, 2690, 2496, 2690, "TDD"},
-	"66": {"66", 1710, 1780, 2110, 2200, "FDD"},
-	"71": {"71", 663, 698, 617, 652, "FDD"},
+	"1":  {"1", 1920, 1980, 2110, 2170, FDD},
+	"2":  {"2", 1850, 1910, 1930, 1990, FDD},
+	"3":  {"3", 1710, 1785, 1805, 1880, FDD},
+	"4":  {"4", 1710, 1755, 2110, 2155, FDD},
+	"5":  {"5", 824, 849, 869, 894, FDD},
+	"7":  {"7", 2500, 2570, 2620, 2690, FDD},
+	"8":  {"8", 880, 915, 925, 960, FDD},
+	"20": {"20", 832, 862, 791, 821, FDD},
+	"28": {"28", 703, 748, 758, 803, FDD},
+	"38": {"38", 2570, 2620, 2570, 2620, TDD},
+	"40": {"40", 2300, 2400, 2300, 2400, TDD},
+	"41": {"41", 2496, 2690, 2496, 2690, TDD},
+	"66": {"66", 1710, 1780, 2110, 2200, FDD},
+	"71": {"71", 663, 698, 617, 652, FDD},
 }
 
 // func FrequencyToEARFCN(frequency float64, isUplink bool) (int, error) {
@@ -51,91 +61,1006 @@ var BandsEutra = map[string]BandEutra{
 // }
 
 type BandNR struct {
-	Name              string
-	ULlow             float64 // Uplink low frequency
-	ULhigh            float64 // Uplink high frequency
-	DLlow             float64 // Downlink low frequency
-	DLhigh            float64 // Downlink high frequency
-	DuplexingMode     string  // FDD/TDD
-	ArfcnULlow        float64
-	ArfcnULhigh       float64
-	ArfcnDLlow        float64
-	ArfcnDLhigh       float64
-	ChannelBandwidths []int
+	Name                   string
+	ULlow                  float64 // Uplink low frequency
+	ULhigh                 float64 // Uplink high frequency
+	DLlow                  float64 // Downlink low frequency
+	DLhigh                 float64 // Downlink high frequency
+	DuplexingMode          string  // FDD/TDD/SUL/SDL
+	ArfcnULlow             float64
+	ArfcnULhigh            float64
+	ArfcnDLlow             float64
+	ArfcnDLhigh            float64
+	ChannelBandwidthsBySCS map[int][]int
 }
 
+var ChannelBWByFR = map[string][]int{
+	FR1: {3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100},
+	FR2: {50, 100, 200, 400},
+}
 var BandsNR = map[string]BandNR{
+	// FR1
+	"n1": {
+		"n1",
+		1920,
+		1980,
+		2110,
+		2170,
+		FDD,
+		384000,
+		396000,
+		422000,
+		434000,
+		map[int][]int{
+			15: append(ChannelBWByFR[FR1][1:7], ChannelBWByFR[FR1][8:10]...),
+			30: append(ChannelBWByFR[FR1][1:6], ChannelBWByFR[FR1][8:10]...),
+			60: append(ChannelBWByFR[FR1][1:6], ChannelBWByFR[FR1][8:10]...),
+		},
+	},
+	"n2": {
+		"n2",
+		1850,
+		1910,
+		1930,
+		1990,
+		FDD,
+		370000,
+		382000,
+		386000,
+		398000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6], ChannelBWByFR[FR1][8:10]...)}},
 
-	"n1":   {"n1", 1920, 1980, 2110, 2170, "FDD", 384000, 396000, 422000, 434000, []int{}},
-	"n2":   {"n2", 1850, 1910, 1930, 1990, "FDD", 370000, 382000, 386000, 398000, []int{}},
-	"n3":   {"n3", 1710, 1785, 1805, 1880, "FDD", 342000, 357000, 361000, 376000, []int{}},
-	"n5":   {"n5", 824, 849, 869, 894, "FDD", 164800, 169800, 173800, 178800, []int{}},
-	"n7":   {"n7", 2500, 2570, 2620, 2690, "FDD", 500000, 514000, 524000, 538000, []int{}},
-	"n8":   {"n8", 880, 915, 925, 960, "FDD", 176000, 183000, 185000, 192000, []int{}},
-	"n12":  {"n12", 699, 716, 729, 746, "FDD", 139800, 143200, 145800, 149200, []int{}},
-	"n13":  {"n13", 777, 787, 746, 756, "FDD", 155400, 157400, 149200, 151200, []int{}},
-	"n14":  {"n14", 788, 798, 758, 768, "FDD", 157600, 159600, 151600, 153600, []int{}},
-	"n18":  {"n18", 815, 830, 860, 875, "FDD", 163000, 166000, 172000, 175000, []int{}},
-	"n20":  {"n20", 832, 862, 791, 821, "FDD", 166400, 172400, 158200, 164200, []int{}},
-	"n24":  {"n24", 1626.5, 1660.5, 1525, 1559, "FDD", 325300, 332100, 305000, 311800, []int{}},
-	"n25":  {"n25", 1850, 1915, 1930, 1995, "FDD", 370000, 383000, 386000, 399000, []int{}},
-	"n26":  {"n26", 814, 849, 859, 894, "FDD", 162800, 169800, 171800, 178800, []int{}},
-	"n28":  {"n28", 703, 748, 758, 803, "FDD", 140600, 149600, 151600, 160600, []int{}},
-	"n29":  {"n29", 0, 0, 717, 728, "SDL", 0, 0, 143400, 145600, []int{}},
-	"n30":  {"n30", 2305, 2315, 2350, 2360, "FDD", 461000, 463000, 470000, 472000, []int{}},
-	"n31":  {"n31", 452.5, 457.5, 462.5, 467.5, "TDD", 90500, 91500, 92500, 93500, []int{}},
-	"n34":  {"n34", 2010, 2025, 2010, 2025, "TDD", 402000, 405000, 402000, 405000, []int{}},
-	"n38":  {"n38", 2570, 2620, 2570, 2620, "TDD", 514000, 524000, 514000, 524000, []int{}},
-	"n39":  {"n39", 1880, 1920, 1880, 1920, "TDD", 376000, 384000, 376000, 384000, []int{}},
-	"n40":  {"n40", 2300, 2400, 2300, 2400, "TDD", 460000, 480000, 460000, 480000, []int{}},
-	"n41":  {"n41", 2496, 2690, 2496, 2690, "TDD", 499200, 537999, 499200, 537999, []int{}},
-	"n46":  {"n46", 5150, 5925, 5150, 5925, "TDD", 743334, 795000, 743334, 795000, []int{}},
-	"n47":  {"n47", 5855, 5925, 5855, 5925, "TDD", 790334, 795000, 790334, 795000, []int{}},
-	"n48":  {"n48", 3550, 3700, 3550, 3700, "TDD", 636667, 646666, 636667, 646666, []int{}},
-	"n50":  {"n50", 1432, 1517, 1432, 1517, "TDD", 286400, 303400, 286400, 303400, []int{}},
-	"n51":  {"n51", 1427, 1432, 1427, 1432, "TDD", 285400, 286400, 285400, 286400, []int{}},
-	"n53":  {"n53", 2483.5, 2495, 2483.5, 2495, "TDD", 496700, 499000, 496700, 499000, []int{}},
-	"n54":  {"n54", 1670, 1675, 1670, 1675, "TDD", 334000, 335000, 334000, 335000, []int{}},
-	"n65":  {"n65", 1920, 2010, 2110, 2200, "FDD", 384000, 402000, 422000, 440000, []int{}},
-	"n66":  {"n66", 1710, 1780, 2110, 2200, "FDD", 342000, 356000, 422000, 440000, []int{}},
-	"n67":  {"n67", 0, 0, 738, 758, "SDL", 0, 0, 147600, 151600, []int{}},
-	"n70":  {"n70", 1695, 1710, 1995, 2020, "FDD", 339000, 342000, 399000, 404000, []int{}},
-	"n71":  {"n71", 663, 698, 617, 652, "FDD", 132600, 139600, 123400, 130400, []int{}},
-	"n72":  {"n72", 451, 456, 461, 466, "FDD", 90200, 91200, 92200, 93200, []int{}},
-	"n74":  {"n74", 1427, 1470, 1475, 1518, "FDD", 285400, 294000, 295000, 303600, []int{}},
-	"n75":  {"n75", 0, 0, 1432, 1517, "SDL", 0, 0, 286400, 303400, []int{}},
-	"n76":  {"n76", 0, 0, 1427, 1432, "SDL", 0, 0, 285400, 286400, []int{}},
-	"n77":  {"n77", 3300, 4200, 3300, 4200, "TDD", 620000, 680000, 620000, 680000, []int{}},
-	"n78":  {"n78", 3300, 3800, 3300, 3800, "TDD", 620000, 653333, 620000, 653333, []int{}},
-	"n79":  {"n79", 4400, 5000, 4400, 5000, "TDD", 693334, 733333, 693334, 733333, []int{}},
-	"n80":  {"n80", 1710, 1785, 0, 0, "SUL", 342000, 357000, 0, 0, []int{}},
-	"n81":  {"n81", 880, 915, 0, 0, "SUL", 176000, 183000, 0, 0, []int{}},
-	"n82":  {"n82", 832, 862, 0, 0, "SUL", 166400, 172400, 0, 0, []int{}},
-	"n83":  {"n83", 703, 748, 0, 0, "SUL", 140600, 149600, 0, 0, []int{}},
-	"n84":  {"n84", 1920, 1980, 0, 0, "SUL", 384000, 396000, 0, 0, []int{}},
-	"n85":  {"n85", 698, 716, 728, 746, "FDD", 139600, 143200, 145600, 149200, []int{}},
-	"n86":  {"n86", 1710, 1780, 0, 0, "SUL", 342000, 356000, 0, 0, []int{}},
-	"n89":  {"n89", 824, 849, 0, 0, "SUL", 164800, 169800, 0, 0, []int{}},
-	"n90":  {"n90", 2496, 2690, 2496, 2690, "TDD", 499200, 537999, 499200, 537999, []int{}},
-	"n91":  {"n91", 832, 862, 1427, 1432, "FDD", 166400, 172400, 285400, 286400, []int{}},
-	"n92":  {"n92", 832, 862, 1432, 1517, "FDD", 166400, 172400, 286400, 303400, []int{}},
-	"n93":  {"n93", 880, 915, 1427, 1432, "FDD", 176000, 183000, 285400, 286400, []int{}},
-	"n94":  {"n94", 880, 915, 1432, 1517, "FDD", 176000, 183000, 286400, 303400, []int{}},
-	"n95":  {"n95", 2010, 2025, 0, 0, "SUL", 402000, 405000, 0, 0, []int{}},
-	"n96":  {"n96", 5925, 7125, 5925, 7125, "TDD", 795000, 875000, 795000, 875000, []int{}},
-	"n97":  {"n97", 2300, 2400, 0, 0, "SUL", 460000, 480000, 0, 0, []int{}},
-	"n98":  {"n98", 1880, 1920, 0, 0, "SUL", 376000, 384000, 0, 0, []int{}},
-	"n99":  {"n99", 1626.5, 1660.5, 0, 0, "SUL", 325300, 332100, 0, 0, []int{}},
-	"n100": {"n100", 874.4, 880, 919.4, 925, "FDD", 174880, 176000, 183880, 185000, []int{}},
-	"n101": {"n101", 1900, 1910, 1900, 1910, "TDD", 380000, 382000, 380000, 382000, []int{}},
-	"n102": {"n102", 5925, 6425, 5925, 6425, "TDD", 795000, 828333, 795000, 828333, []int{}},
-	"n104": {"n104", 6425, 7125, 6425, 7125, "TDD", 828334, 875000, 828334, 875000, []int{}},
-	"n105": {"n105", 663, 703, 612, 652, "FDD", 132600, 140600, 122400, 130400, []int{}},
-	"n106": {"n106", 896, 901, 935, 940, "FDD", 179200, 180200, 187000, 188000, []int{}},
-	"n109": {"n109", 703, 733, 1432, 1517, "FDD", 140600, 146600, 286400, 303400, []int{}},
-	"n256": {"n256", 1980, 2010, 2170, 2200, "FDD", 396000, 402000, 434000, 440000, []int{}},
-	"n255": {"n255", 1626.5, 1660.5, 1525, 1559, "FDD", 325300, 332100, 305000, 311800, []int{}},
-	"n254": {"n254", 1610, 1626.5, 2483.5, 2500, "FDD", 322000, 325300, 496700, 500000, []int{}},
+	"n3": {
+		"n3",
+		1710,
+		1785,
+		1805,
+		1880,
+		FDD,
+		342000,
+		357000,
+		361000,
+		376000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n5": {
+		"n5",
+		824,
+		849,
+		869,
+		894,
+		FDD,
+		164800,
+		169800,
+		173800,
+		178800,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n7": {
+		"n7",
+		2500,
+		2570,
+		2620,
+		2690,
+		FDD,
+		500000,
+		514000,
+		524000,
+		538000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n8": {
+		"n8",
+		880,
+		915,
+		925,
+		960,
+		FDD,
+		176000,
+		183000,
+		185000,
+		192000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n12": {
+		"n12",
+		699,
+		716,
+		729,
+		746,
+		FDD,
+		139800,
+		143200,
+		145800,
+		149200,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n13": {
+		"n13",
+		777,
+		787,
+		746,
+		756,
+		FDD,
+		155400,
+		157400,
+		149200,
+		151200,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n14": {
+		"n14",
+		788,
+		798,
+		758,
+		768,
+		FDD,
+		157600,
+		159600,
+		151600,
+		153600,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n18": {
+		"n18",
+		815,
+		830,
+		860,
+		875,
+		FDD,
+		163000,
+		166000,
+		172000,
+		175000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n20": {
+		"n20",
+		832,
+		862,
+		791,
+		821,
+		FDD,
+		166400,
+		172400,
+		158200,
+		164200,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n24": {
+		"n24",
+		1626.5,
+		1660.5,
+		1525,
+		1559,
+		FDD,
+		325300,
+		332100,
+		305000,
+		311800,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n25": {
+		"n25",
+		1850,
+		1915,
+		1930,
+		1995,
+		FDD,
+		370000,
+		383000,
+		386000,
+		399000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n26": {
+		"n26",
+		814,
+		849,
+		859,
+		894,
+		FDD,
+		162800,
+		169800,
+		171800,
+		178800,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n28": {
+		"n28",
+		703,
+		748,
+		758,
+		803,
+		FDD,
+		140600,
+		149600,
+		151600,
+		160600,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n29": {
+		"n29",
+		0,
+		0,
+		717,
+		728,
+		SDL,
+		0,
+		0,
+		143400,
+		145600,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n30": {
+		"n30",
+		2305,
+		2315,
+		2350,
+		2360,
+		FDD,
+		461000,
+		463000,
+		470000,
+		472000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n31": {
+		"n31",
+		452.5,
+		457.5,
+		462.5,
+		467.5,
+		TDD,
+		90500,
+		91500,
+		92500,
+		93500,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n34": {
+		"n34",
+		2010,
+		2025,
+		2010,
+		2025,
+		TDD,
+		402000,
+		405000,
+		402000,
+		405000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n38": {
+		"n38",
+		2570,
+		2620,
+		2570,
+		2620,
+		TDD,
+		514000,
+		524000,
+		514000,
+		524000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n39": {
+		"n39",
+		1880,
+		1920,
+		1880,
+		1920,
+		TDD,
+		376000,
+		384000,
+		376000,
+		384000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n40": {
+		"n40",
+		2300,
+		2400,
+		2300,
+		2400,
+		TDD,
+		460000,
+		480000,
+		460000,
+		480000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n41": {
+		"n41",
+		2496,
+		2690,
+		2496,
+		2690,
+		TDD,
+		499200,
+		537999,
+		499200,
+		537999,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n46": {
+		"n46",
+		5150,
+		5925,
+		5150,
+		5925,
+		TDD,
+		743334,
+		795000,
+		743334,
+		795000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n47": {
+		"n47",
+		5855,
+		5925,
+		5855,
+		5925,
+		TDD,
+		790334,
+		795000,
+		790334,
+		795000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n48": {
+		"n48",
+		3550,
+		3700,
+		3550,
+		3700,
+		TDD,
+		636667,
+		646666,
+		636667,
+		646666,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n50": {
+		"n50",
+		1432,
+		1517,
+		1432,
+		1517,
+		TDD,
+		286400,
+		303400,
+		286400,
+		303400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n51": {
+		"n51",
+		1427,
+		1432,
+		1427,
+		1432,
+		TDD,
+		285400,
+		286400,
+		285400,
+		286400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n53": {
+		"n53",
+		2483.5,
+		2495,
+		2483.5,
+		2495,
+		TDD,
+		496700,
+		499000,
+		496700,
+		499000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n54": {
+		"n54",
+		1670,
+		1675,
+		1670,
+		1675,
+		TDD,
+		334000,
+		335000,
+		334000,
+		335000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n65": {
+		"n65",
+		1920,
+		2010,
+		2110,
+		2200,
+		FDD,
+		384000,
+		402000,
+		422000,
+		440000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n66": {
+		"n66",
+		1710,
+		1780,
+		2110,
+		2200,
+		FDD,
+		342000,
+		356000,
+		422000,
+		440000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n67": {
+		"n67",
+		0,
+		0,
+		738,
+		758,
+		SDL,
+		0,
+		0,
+		147600,
+		151600,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n70": {
+		"n70",
+		1695,
+		1710,
+		1995,
+		2020,
+		FDD,
+		339000,
+		342000,
+		399000,
+		404000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n71": {
+		"n71",
+		663,
+		698,
+		617,
+		652,
+		FDD,
+		132600,
+		139600,
+		123400,
+		130400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n72": {
+		"n72",
+		451,
+		456,
+		461,
+		466,
+		FDD,
+		90200,
+		91200,
+		92200,
+		93200,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n74": {
+		"n74",
+		1427,
+		1470,
+		1475,
+		1518,
+		FDD,
+		285400,
+		294000,
+		295000,
+		303600,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n75": {
+		"n75",
+		0,
+		0,
+		1432,
+		1517,
+		SDL,
+		0,
+		0,
+		286400,
+		303400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n76": {
+		"n76",
+		0,
+		0,
+		1427,
+		1432,
+		SDL,
+		0,
+		0,
+		285400,
+		286400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n77": {
+		"n77",
+		3300,
+		4200,
+		3300,
+		4200,
+		TDD,
+		620000,
+		680000,
+		620000,
+		680000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n78": {
+		"n78",
+		3300,
+		3800,
+		3300,
+		3800,
+		TDD,
+		620000,
+		653333,
+		620000,
+		653333,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n79": {
+		"n79",
+		4400,
+		5000,
+		4400,
+		5000,
+		TDD,
+		693334,
+		733333,
+		693334,
+		733333,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n80": {
+		"n80",
+		1710,
+		1785,
+		0,
+		0,
+		SUL,
+		342000,
+		357000,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n81": {
+		"n81",
+		880,
+		915,
+		0,
+		0,
+		SUL,
+		176000,
+		183000,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n82": {
+		"n82",
+		832,
+		862,
+		0,
+		0,
+		SUL,
+		166400,
+		172400,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n83": {
+		"n83",
+		703,
+		748,
+		0,
+		0,
+		SUL,
+		140600,
+		149600,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n84": {
+		"n84",
+		1920,
+		1980,
+		0,
+		0,
+		SUL,
+		384000,
+		396000,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n85": {
+		"n85",
+		698,
+		716,
+		728,
+		746,
+		FDD,
+		139600,
+		143200,
+		145600,
+		149200,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n86": {
+		"n86",
+		1710,
+		1780,
+		0,
+		0,
+		SUL,
+		342000,
+		356000,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n89": {
+		"n89",
+		824,
+		849,
+		0,
+		0,
+		SUL,
+		164800,
+		169800,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n90": {
+		"n90",
+		2496,
+		2690,
+		2496,
+		2690,
+		TDD,
+		499200,
+		537999,
+		499200,
+		537999,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n91": {
+		"n91",
+		832,
+		862,
+		1427,
+		1432,
+		FDD,
+		166400,
+		172400,
+		285400,
+		286400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n92": {
+		"n92",
+		832,
+		862,
+		1432,
+		1517,
+		FDD,
+		166400,
+		172400,
+		286400,
+		303400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n93": {
+		"n93",
+		880,
+		915,
+		1427,
+		1432,
+		FDD,
+		176000,
+		183000,
+		285400,
+		286400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n94": {
+		"n94",
+		880,
+		915,
+		1432,
+		1517,
+		FDD,
+		176000,
+		183000,
+		286400,
+		303400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n95": {
+		"n95",
+		2010,
+		2025,
+		0,
+		0,
+		SUL,
+		402000,
+		405000,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n96": {
+		"n96",
+		5925,
+		7125,
+		5925,
+		7125,
+		TDD,
+		795000,
+		875000,
+		795000,
+		875000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n97": {
+		"n97",
+		2300,
+		2400,
+		0,
+		0,
+		SUL,
+		460000,
+		480000,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n98": {
+		"n98",
+		1880,
+		1920,
+		0,
+		0,
+		SUL,
+		376000,
+		384000,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n99": {
+		"n99",
+		1626.5,
+		1660.5,
+		0,
+		0,
+		SUL,
+		325300,
+		332100,
+		0,
+		0,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n100": {
+		"n100",
+		874.4,
+		880,
+		919.4,
+		925,
+		FDD,
+		174880,
+		176000,
+		183880,
+		185000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n101": {
+		"n101",
+		1900,
+		1910,
+		1900,
+		1910,
+		TDD,
+		380000,
+		382000,
+		380000,
+		382000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n102": {
+		"n102",
+		5925,
+		6425,
+		5925,
+		6425,
+		TDD,
+		795000,
+		828333,
+		795000,
+		828333,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n104": {
+		"n104",
+		6425,
+		7125,
+		6425,
+		7125,
+		TDD,
+		828334,
+		875000,
+		828334,
+		875000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n105": {
+		"n105",
+		663,
+		703,
+		612,
+		652,
+		FDD,
+		132600,
+		140600,
+		122400,
+		130400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n106": {
+		"n106",
+		896,
+		901,
+		935,
+		940,
+		FDD,
+		179200,
+		180200,
+		187000,
+		188000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n109": {
+		"n109",
+		703,
+		733,
+		1432,
+		1517,
+		FDD,
+		140600,
+		146600,
+		286400,
+		303400,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n256": {
+		"n256",
+		1980,
+		2010,
+		2170,
+		2200,
+		FDD,
+		396000,
+		402000,
+		434000,
+		440000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n255": {
+		"n255",
+		1626.5,
+		1660.5,
+		1525,
+		1559,
+		FDD,
+		325300,
+		332100,
+		305000,
+		311800,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
+
+	"n254": {
+		"n254",
+		1610,
+		1626.5,
+		2483.5,
+		2500,
+		FDD,
+		322000,
+		325300,
+		496700,
+		500000,
+		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
+			ChannelBWByFR[FR1][8:10]...)}},
 }
 
 // type SCSInfo struct {
@@ -198,11 +1123,30 @@ var NrSCSByCQIPerFR = map[string]map[int]int{
 // 	6: 960,
 // }
 
-// GetBand takes a frequency and direction and returns the operating band name.
-func GetBand(arfcn uint32, direction string) (nrBand BandNR, found bool) {
+// GetBandNR takes a frequency and direction and returns the operating nr band name.
+func GetBandNR(arfcn uint32, direction string) (nrBand BandNR, found bool) {
 	for b := range BandsNR {
 		band := BandsNR[b]
 		arfcnFloat := float64(arfcn)
+
+		found = direction == UL && band.ULlow <= arfcnFloat && arfcnFloat <= band.ULhigh
+		if found {
+			return band, found
+		}
+
+		found = direction == DL && band.DLlow <= arfcnFloat && arfcnFloat <= band.DLhigh
+		if found {
+			return band, found
+		}
+	}
+	return
+}
+
+// GetBandEUTRA takes a frequency and direction and returns the operating EUTRA band name.
+func GetBandEUTRA(earfcn uint32, direction string) (nrBand BandEutra, found bool) {
+	for b := range BandsEutra {
+		band := BandsEutra[b]
+		arfcnFloat := float64(earfcn)
 
 		found = direction == UL && band.ULlow <= arfcnFloat && arfcnFloat <= band.ULhigh
 		if found {
@@ -331,91 +1275,113 @@ func calculateFrequency(arfcn int) float64 {
 // }
 
 // ChannelSCSPRB defines the structure for Channel Bandwidth, SCS, and Max PRBs.
-type ChannelSCSPRB struct {
+type ChannelInfo struct {
+	FR           string
+	SCS          uint32
 	ChannelBWMHz uint32 // Channel Bandwidth in MHz
-	SCS          int    // Subcarrier Spacing in kHz
-	PRBs         int    // Maximum PRBs
 }
 
-// ChannelTable contains entries sorted by Channel Bandwidth for efficient selection.
-var ChannelInfoByFR = map[string][]ChannelSCSPRB{
-	FR1: {
-		{5, 15, 25},    // 5 MHz, SCS 15 kHz, 25 PRBs
-		{5, 30, 11},    //        SCS 15 kHz, 11 PRBs
-		{10, 15, 52},   // 10 MHz, SCS 15 kHz, 52 PRBs
-		{10, 30, 24},   //         SCS 30 kHz, 24 PRBs
-		{10, 60, 11},   //         SCS 60 kHz, 11 PRBs
-		{15, 15, 79},   // 15 MHz, SCS 15 kHz, 79 PRBs
-		{15, 30, 38},   //         SCS 30 kHz, 38 PRBs
-		{15, 60, 18},   //         SCS 60 kHz, 18 PRBs
-		{20, 15, 106},  // 20 MHz, SCS 15 kHz, 106 PRBs
-		{20, 30, 51},   //         SCS 30 kHz, 51 PRBs
-		{20, 60, 24},   //         SCS 30 kHz, 24 PRBs
-		{25, 15, 106},  // 25 MHz, SCS 15 kHz, 106 PRBs
-		{25, 30, 51},   //         SCS 30 kHz, 51 PRBs
-		{25, 60, 24},   //         SCS 30 kHz, 24 PRBs
-		{30, 15, 160},  // 30 MHz, SCS 15 kHz, 160 PRBs
-		{30, 30, 78},   //         SCS 30 kHz, 78 PRBs
-		{30, 60, 38},   //         SCS 30 kHz, 38 PRBs
-		{35, 15, 188},  // 35 MHz, SCS 15 kHz, 188 PRBs
-		{35, 30, 92},   //         SCS 30 kHz, 92 PRBs
-		{35, 60, 44},   //         SCS 30 kHz, 44 PRBs
-		{40, 15, 216},  // 40 MHz, SCS 15 kHz, 216 PRBs
-		{40, 30, 106},  //         SCS 30 kHz, 106 PRBs
-		{40, 60, 51},   //         SCS 60 kHz, 51 PRBs
-		{45, 15, 242},  // 45 MHz, SCS 15 kHz, 242 PRBs
-		{45, 30, 119},  //         SCS 30 kHz, 119 PRBs
-		{45, 60, 58},   //         SCS 60 kHz, 58 PRBs
-		{50, 15, 270},  // 50 MHz, SCS 15 kHz, 270 PRBs
-		{50, 30, 133},  //         SCS 30 kHz, 133 PRBs
-		{50, 60, 65},   //         SCS 30 kHz, 65 PRBs
-		{60, 30, 162},  // 60 MHz, SCS 30 kHz, 162 PRBs
-		{60, 60, 79},   //         SCS 60 kHz, 79 PRBs
-		{70, 30, 189},  // 70 MHz, SCS 30 kHz, 189 PRBs
-		{70, 60, 93},   //         SCS 60 kHz, 93 PRBs
-		{80, 30, 217},  // 80 MHz, SCS 30 kHz, 217 PRBs
-		{80, 60, 107},  //         SCS 60 kHz,107 PRBs
-		{90, 30, 245},  // 90 MHz, SCS 30 kHz, 245 PRBs
-		{90, 60, 121},  //         SCS 60 kHz, 121 PRBs
-		{100, 30, 273}, // 100 MHz, SCS 30 kHz, 273 PRBs
-		{100, 60, 136}, //          SCS 60 kHz, 136 PRBs
-	},
-	FR2: {
-		{50, 60, 66},
-		{50, 120, 32},
-		{100, 60, 132},
-		{100, 120, 66},
-		{200, 60, 264},
-		{200, 120, 132},
-		{400, 120, 264},
-		{400, 480, 66},
-		{400, 960, 33},
-		{800, 480, 124},
-		{800, 960, 61},
-		{1600, 480, 248},
-		{1600, 960, 124},
-		{2000, 960, 148},
-	},
+var ChannelInfoByFR = map[ChannelInfo]uint32{
+	{"FR1", 15, 5}:  25,
+	{"FR1", 15, 10}: 52,
+	{"FR1", 15, 15}: 79,
+	{"FR1", 15, 20}: 106,
+	{"FR1", 15, 25}: 106,
+	{"FR1", 15, 30}: 160,
+	{"FR1", 15, 35}: 188,
+	{"FR1", 15, 40}: 216,
+	{"FR1", 15, 45}: 242,
+	{"FR1", 15, 50}: 270,
+
+	{"FR1", 30, 5}:   11,
+	{"FR1", 30, 10}:  24,
+	{"FR1", 30, 15}:  38,
+	{"FR1", 30, 20}:  51,
+	{"FR1", 30, 25}:  51,
+	{"FR1", 30, 30}:  78,
+	{"FR1", 30, 35}:  92,
+	{"FR1", 30, 40}:  106,
+	{"FR1", 30, 45}:  119,
+	{"FR1", 30, 50}:  133,
+	{"FR1", 30, 60}:  162,
+	{"FR1", 30, 70}:  189,
+	{"FR1", 30, 80}:  217,
+	{"FR1", 30, 90}:  245,
+	{"FR1", 30, 100}: 273,
+
+	{"FR1", 60, 10}:  11,
+	{"FR1", 60, 15}:  18,
+	{"FR1", 60, 20}:  24,
+	{"FR1", 60, 25}:  24,
+	{"FR1", 60, 30}:  38,
+	{"FR1", 60, 35}:  44,
+	{"FR1", 60, 40}:  51,
+	{"FR1", 60, 45}:  58,
+	{"FR1", 60, 50}:  65,
+	{"FR1", 60, 60}:  79,
+	{"FR1", 60, 70}:  93,
+	{"FR1", 60, 80}:  107,
+	{"FR1", 60, 90}:  121,
+	{"FR1", 60, 100}: 136,
+
+	{"FR2", 60, 50}:  66,
+	{"FR2", 60, 100}: 132,
+	{"FR2", 60, 200}: 264,
+
+	{"FR2", 120, 50}:  32,
+	{"FR2", 120, 100}: 66,
+	{"FR2", 120, 200}: 132,
+	{"FR2", 120, 400}: 264,
+
+	{"FR2", 480, 400}:  66,
+	{"FR2", 480, 800}:  124,
+	{"FR2", 480, 1600}: 248,
+
+	{"FR2", 960, 400}:  33,
+	{"FR2", 960, 800}:  61,
+	{"FR2", 960, 1600}: 124,
+	{"FR2", 960, 2000}: 148,
 }
 
 // GetPRBs returns the PRBs for the available Channel Bandwidth and SCS.
-func GetPRBs(channelBWMHz uint32, scs int, fr string) (prbs int) {
-
-	additionalPRBsFound := false
-	for channelBWMHz > 0 {
-		for _, entry := range ChannelInfoByFR[fr] {
-			// Find the largest ChannelBW <= input BW and matching SCS
-			additionalPRBsFound = channelBWMHz <= entry.ChannelBWMHz && entry.SCS == scs
-			if additionalPRBsFound {
-				prbs += entry.PRBs
-				channelBWMHz -= 12 * uint32(entry.PRBs) * uint32(entry.SCS)
-			}
-		}
-
-		if !additionalPRBsFound {
-			break
-		}
+func GetPRBs(channelBW uint32, scs int, fr string) int {
+	if (fr == FR1 && channelBW < 5) || (fr == FR2 && channelBW < 50) {
+		return 0
 	}
 
-	return prbs
+	ci := ChannelInfo{
+		FR:           fr,
+		SCS:          uint32(scs),
+		ChannelBWMHz: uint32(roundToNearestChannelBW(fr, int(channelBW))),
+	}
+	return int(ChannelInfoByFR[ci])
+}
+
+func roundToNearestChannelBW(fr string, chBw int) int {
+	roundFactor := 0.0
+	switch fr {
+	case FR1:
+		{
+			switch {
+			case chBw >= 50:
+				roundFactor = 10.0
+			default:
+				roundFactor = 5.0
+			}
+		}
+	case FR2:
+		{
+			switch {
+			case chBw < 100:
+				roundFactor = 50.0
+			case chBw < 200:
+				roundFactor = 100.0
+			case chBw < 400:
+				roundFactor = 200.0
+			default:
+				roundFactor = 400.0
+			}
+		}
+	}
+	return int(math.Round(float64(chBw)/roundFactor) * roundFactor)
 }

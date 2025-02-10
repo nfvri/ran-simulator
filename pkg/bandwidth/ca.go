@@ -6,8 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
@@ -97,6 +99,7 @@ type CAConfigNR struct {
 }
 
 var CABandCombinationsNR = []string{
+	// START 2 BAND COMBOS
 	"n1_n3",
 	"n1_n5",
 	"n1_n7",
@@ -304,6 +307,40 @@ var CABandCombinationsNR = []string{
 	"n78_n92",
 	"n78_n94",
 	"n78_n102",
+	// START SUL Combinations
+	"n1_n80",
+	"n1_n81",
+	"n1_n89",
+	"n3_n84",
+	"n24_n99",
+	"n41_n80",
+	"n41_n81",
+	"n41_n83",
+	"n41_n95",
+	"n41_n97",
+	"n41_n98",
+	"n41_n99",
+	"n48_n99",
+	"n77_n80",
+	"n77_n84",
+	"n77_n99",
+	"n78_n80",
+	"n78_n81",
+	"n78_n82",
+	"n78_n83",
+	"n78_n84",
+	"n78_n86",
+	"n78_n89",
+	"n79_n80",
+	"n79_n81",
+	"n79_n83",
+	"n79_n84",
+	"n79_n95",
+	"n79_n97",
+	"n79_n98",
+	// END SUL COMBOS
+	// END 2 BAND COMBOS
+	// START 3 BAND COMBOS
 	"n1_n3_n5",
 	"n1_n3_n7",
 	"n1_n3_n8",
@@ -523,6 +560,8 @@ var CABandCombinationsNR = []string{
 	"n66_n71_n77",
 	"n66_n71_n78",
 	"n70_n71_n77",
+	// END 3 BAND COMBOS
+	// START 4 BAND COMBOS
 	"n1_n3_n5_n7",
 	"n1_n3_n5_n78",
 	"n1_n3_n7_n8",
@@ -629,6 +668,8 @@ var CABandCombinationsNR = []string{
 	"n48_n66_n71_n77",
 	"n48_n70_n71_n77",
 	"n66_n70_n71_n77",
+	// END 4 BAND COMBOS
+	// START 5 BAND COMBOS
 	"n1_n3_n5_n7_n78",
 	"n1_n3_n7_n8_n78",
 	"n1_n3_n7_n26_n78",
@@ -649,8 +690,38 @@ var CABandCombinationsNR = []string{
 	"n2_n29_n30_n66_n77",
 	"n3_n7_n28_n38_n78",
 	"n3_n28_n41_n77_n79",
+	// END 5 BAND COMBOS
+	// START 6 BAND COMBOS
 	"n25_n41_n66_n71_n77",
 	"n1_n3_n7_n28_n38_n78",
+	// END 6 BAND COMBOS
+}
+
+type CarrierAggregator interface {
+	IsValidBandCombination(bandCombo string) bool
+}
+
+type CarrierAggregatorEUTRA struct {
+	bandCombinationsEUTRATree art.Tree
+}
+
+func NewCarrierAggregatorEUTRA() (ca *CarrierAggregatorEUTRA) {
+	caEUTRA := &CarrierAggregatorEUTRA{
+		bandCombinationsEUTRATree: art.New(),
+	}
+	for _, combination := range CABandCombinationsNR {
+		caEUTRA.bandCombinationsEUTRATree.Insert(art.Key(combination), true)
+	}
+	return caEUTRA
+}
+
+func (ca *CarrierAggregatorEUTRA) IsValidBandCombination(bandCombo string) bool {
+	_, found := ca.bandCombinationsEUTRATree.Search(art.Key(bandCombo))
+	return found
+}
+
+func (ca *CarrierAggregatorEUTRA) GetValidCACombinations() {
+
 }
 
 type CarrierAggregatorNR struct {
@@ -672,52 +743,113 @@ func (ca *CarrierAggregatorNR) IsValidBandCombination(bandCombo string) bool {
 	return found
 }
 
-func (ca *CarrierAggregatorNR) GetValidCACombinations(
+// TODO: also add intra-band CA combinations
+// FIXME: For cells on different nodes
+// we should consult DUAL CONNECTIVITY combinations in:
+// https://www.etsi.org/deliver/etsi_ts/138100_138199/13810103/15.02.00_60/ts_13810103v150200p.pdf
+// https://www.sqimway.com/nr_nrdc.php
+// https://www.sqimway.com/nr_endc.php
+// https://www.sqimway.com/nr_nedc.php
+func GetValidCABandCombinations(
+	carrAggregators map[model.ConnectivityType]CarrierAggregator,
 	targetCells []*model.Cell,
-	supportedBandsInfo map[model.ConnectivityType][]*model.BandSupportInfo) (validCABandCombos [][]string, cellsByBand map[string][]*model.Cell) {
+	connectionSupportInfo map[model.ConnectivityType]*model.ConnTypeSupportInfo) (validCABandCombos map[model.ConnectivityType][][]string, cellsByEUTRABand, cellsByNRBand map[string][]*model.Cell) {
 
-	validCABandCombos = make([][]string, 0)
-	cellsByBand = make(map[string][]*model.Cell)
-	for cellIndex := range targetCells {
-		cell := targetCells[cellIndex]
-		arfcn := utils.If(cell.ArfcnDL > 0, cell.ArfcnDL, cell.ArfcnUL)
-		direction := utils.If(cell.ArfcnDL > 0, DL, UL)
-		cellBand, found := GetBand(arfcn, direction)
-		if !found {
-			continue
+	supportedCACombosByConnType := map[model.ConnectivityType][]string{}
+	for ct := range connectionSupportInfo {
+		ctsi := connectionSupportInfo[ct]
+		for _, bandCombo := range ctsi.SupportedBandCombinations {
+			bcEnc := ""
+			comboBands := []string{}
+			logrus.Infof("bandCombo.CombinedBandsInfo: %+v", bandCombo.CombinedBandsInfo)
+			for bi := range bandCombo.CombinedBandsInfo {
+				comboBands = append(comboBands, bandCombo.CombinedBandsInfo[bi].Band)
+			}
+			comboBands = SortBands(ct, comboBands)
+			logrus.Infof("comboBands: %+v", comboBands)
+			for _, band := range comboBands {
+				bcEnc += band + "_"
+			}
+			logrus.Infof("bcEnc: %v", bcEnc)
+			if len(bcEnc) == 0 {
+				continue
+			}
+			bcEnc = bcEnc[:len(bcEnc)-1]
+			supportedCACombosByConnType[ct] = append(supportedCACombosByConnType[ct], bcEnc)
 		}
-		cellsByBand[cellBand.Name] = append(cellsByBand[cellBand.Name], cell)
 	}
 
-	targetCellBands := []string{}
-	for b := range cellsByBand {
-		targetCellBands = append(targetCellBands, b)
+	logrus.Infof("supportedCACombosByConnType: %+v", supportedCACombosByConnType)
+
+	validCABandCombos = map[model.ConnectivityType][][]string{}
+	cellsByNRBand = make(map[string][]*model.Cell)
+	cellsByEUTRABand = make(map[string][]*model.Cell)
+
+	for cellIndex := range targetCells {
+
+		cell := targetCells[cellIndex]
+		logrus.Infof("=========\n[RAT TYPE]:%v \n", cell.RATType)
+		if _, ok := validCABandCombos[model.ConnectivityType(cell.RATType)]; !ok {
+			validCABandCombos[model.ConnectivityType(cell.RATType)] = [][]string{}
+		}
+
+		logrus.Infof("=========\n[RAT TYPE]:%v \n", cell.RATType)
+		switch cell.RATType {
+		case model.RAT_EUTRA:
+			earfcn := utils.If(cell.EarfcnDL > 0, cell.EarfcnDL, cell.EarfcnUL)
+			direction := utils.If(cell.EarfcnDL > 0, DL, UL)
+			cellBand, found := GetBandEUTRA(earfcn, direction)
+			if !found {
+				continue
+			}
+			cellsByEUTRABand[cellBand.Name] = append(cellsByEUTRABand[cellBand.Name], cell)
+		case model.RAT_NR:
+			arfcn := utils.If(cell.ArfcnDL > 0, cell.ArfcnDL, cell.ArfcnUL)
+			direction := utils.If(cell.ArfcnDL > 0, DL, UL)
+			cellBand, found := GetBandNR(arfcn, direction)
+			if !found {
+				continue
+			}
+			cellsByNRBand[cellBand.Name] = append(cellsByNRBand[cellBand.Name], cell)
+		}
+
 	}
 
-	// TODO: also add intra-band CA combinations
-	// FIXME: For cells on different nodes
-	// we should consult DUAL CONNECTIVITY combinations in:
-	// https://www.etsi.org/deliver/etsi_ts/138100_138199/13810103/15.02.00_60/ts_13810103v150200p.pdf
-	// https://www.sqimway.com/nr_nrdc.php
-	// https://www.sqimway.com/nr_endc.php
-	// https://www.sqimway.com/nr_nedc.php
-	caBandCombos := GetCABandCombinations(SortNRBands(targetCellBands))
+	logrus.Infof("cellsByNRBand: %+v", cellsByNRBand)
+	logrus.Infof("cellsByEUTRABand: %+v", cellsByEUTRABand)
 
-	for _, caBandCombo := range caBandCombos {
-		if ca.IsValidBandCombination(caBandCombo) {
-			validCABandCombos = append(validCABandCombos, strings.Split(caBandCombo, "_"))
+	targetBands := map[model.ConnectivityType][]string{
+		model.EUTRA: mapset.NewSet(maps.Keys(cellsByNRBand)...).ToSlice(),
+		model.NR:    mapset.NewSet(maps.Keys(cellsByEUTRABand)...).ToSlice(),
+	}
+
+	logrus.Infof("targetBands: %+v", targetBands)
+
+	for ct := range connectionSupportInfo {
+		allBandCombos := allBandCombinations(SortBands(ct, targetBands[ct]))
+		for _, caBandCombo := range allBandCombos {
+			isSupported := mapset.NewSet(supportedCACombosByConnType[ct]...).Contains(caBandCombo)
+			if isSupported && carrAggregators[ct].IsValidBandCombination(caBandCombo) {
+				validCABandCombos[ct] = append(validCABandCombos[ct], strings.Split(caBandCombo, "_"))
+			}
 		}
 	}
 
 	return
-
 }
 
 // Function to sort NR bands based on their names
-func SortNRBands(bands []string) []string {
+func SortBands(connType model.ConnectivityType, bands []string) []string {
 	bandNumber := func(s string) int {
-		num, _ := strconv.Atoi(s[1:])
-		return num
+		switch connType {
+		case model.EUTRA:
+			num, _ := strconv.Atoi(s)
+			return num
+		case model.NR:
+			num, _ := strconv.Atoi(s[1:])
+			return num
+		}
+		return 0
 	}
 	sort.Slice(bands, func(i, j int) bool {
 		return bandNumber(bands[i]) < bandNumber(bands[j])
@@ -725,7 +857,7 @@ func SortNRBands(bands []string) []string {
 	return bands
 }
 
-func GetCABandCombinations(sortedBandsNR []string) []string {
+func allBandCombinations(sortedBandsNR []string) []string {
 	logrus.Info("[GetCABandCombinations]...")
 	var combinations []string
 	queue := []string{}
@@ -772,8 +904,9 @@ type CAScheme struct {
 // valid band combinations for CA and provide sufficient bandwidth
 // for the UE.
 func GetFeasibleCASchemes(
-	validCABandCombos [][]string,
-	cellsByBand map[string][]*model.Cell,
+	validCABandCombos map[model.ConnectivityType][][]string,
+	cellsByEUTRABand map[string][]*model.Cell,
+	cellsByNRBand map[string][]*model.Cell,
 	ranModel *model.Model,
 	ue *model.UE) []CAScheme {
 
@@ -784,35 +917,37 @@ func GetFeasibleCASchemes(
 	var maxBWCAScheme CAScheme
 	feasibleCASchemes := []CAScheme{}
 
-	for _, bandCombo := range validCABandCombos {
-		var bandComboCells []*model.Cell
-		for _, band := range bandCombo {
-			if cells, exists := cellsByBand[band]; exists {
-				bandComboCells = append(bandComboCells, cells...)
-			} else {
-				continue
+	for ct := range validCABandCombos {
+		for _, bandCombo := range validCABandCombos[ct] {
+			var bandComboCells []*model.Cell
+			for _, band := range bandCombo {
+				if cells, exists := cellsByNRBand[band]; exists {
+					bandComboCells = append(bandComboCells, cells...)
+				} else {
+					continue
+				}
 			}
-		}
 
-		comboAvailPRBsDL, comboAvailPRBsUL, availPRBsPerCell := GetCAComboAvailPRBs(bandComboCells, ranModel, ue)
+			comboAvailPRBsDL, comboAvailPRBsUL, availPRBsPerCell := GetCAComboAvailPRBs(bandComboCells, ranModel, ue)
 
-		if comboAvailPRBsDL > ueRequiredPRBsUL && comboAvailPRBsUL > ueRequiredPRBsDL {
-			feasibleCASchemes = append(feasibleCASchemes, CAScheme{
-				Bands:            bandCombo,
-				FixedAllocCells:  bandComboCells,
-				AvailPRBsPerCell: availPRBsPerCell,
-				CanBeImplemented: true,
-			})
-		}
+			if comboAvailPRBsDL > ueRequiredPRBsUL && comboAvailPRBsUL > ueRequiredPRBsDL {
+				feasibleCASchemes = append(feasibleCASchemes, CAScheme{
+					Bands:            bandCombo,
+					FixedAllocCells:  bandComboCells,
+					AvailPRBsPerCell: availPRBsPerCell,
+					CanBeImplemented: true,
+				})
+			}
 
-		if comboAvailPRBsDL > maxPRBsDL {
-			maxPRBsDL = comboAvailPRBsDL
+			if comboAvailPRBsDL > maxPRBsDL {
+				maxPRBsDL = comboAvailPRBsDL
 
-			maxBWCAScheme = CAScheme{
-				Bands:            bandCombo,
-				FixedAllocCells:  bandComboCells,
-				AvailPRBsPerCell: availPRBsPerCell,
-				CanBeImplemented: true,
+				maxBWCAScheme = CAScheme{
+					Bands:            bandCombo,
+					FixedAllocCells:  bandComboCells,
+					AvailPRBsPerCell: availPRBsPerCell,
+					CanBeImplemented: true,
+				}
 			}
 		}
 	}
@@ -864,7 +999,7 @@ func ChooseReallocCells(bandComboCells []*model.Cell, availPRBsPerCell map[types
 	for _, cell := range bandComboCells {
 		arfcn := utils.If(cell.Channel.ArfcnDL > 0, cell.Channel.ArfcnDL, cell.Channel.ArfcnUL)
 		direction := utils.If(cell.Channel.ArfcnDL > 0, DL, UL)
-		band, found := GetBand(arfcn, direction)
+		band, found := GetBandNR(arfcn, direction)
 		if !found {
 			continue // Skip if band info is not found
 		}
@@ -873,9 +1008,9 @@ func ChooseReallocCells(bandComboCells []*model.Cell, availPRBsPerCell map[types
 		totalPRBs := prb.prbsUL + prb.prbsDL
 		variance := prbVariance[cell.NCGI]
 
-		if band.DuplexingMode == "FDD" && totalPRBs >= int(meanPRBs) {
+		if band.DuplexingMode == FDD && totalPRBs >= int(meanPRBs) {
 			fixedAllocationSet = append(fixedAllocationSet, cell)
-		} else if band.DuplexingMode == "TDD" && variance > meanPRBs*0.2 {
+		} else if band.DuplexingMode == TDD && variance > meanPRBs*0.2 {
 			// If variance is high, prioritize dynamic allocation for TDD
 			dynamicReallocationSet = append(dynamicReallocationSet, cell)
 		} else {

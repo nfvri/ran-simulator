@@ -187,13 +187,31 @@ func CreateSimulationUE(ncgi uint64, counter, cqi, totalPrbsDl int, ueHeight, si
 		SupportedBandsEutra:       make([]string, 0),
 	}
 
-	for _, c := range ue.SupportedBandCombinations[model.NR] {
-		ue.SupportedBandsNR = append(ue.SupportedBandsNR, c.Band)
+	bandsNRSet := mapset.NewSet[string]()
+	bandsEUTRASet := mapset.NewSet[string]()
+	for conType, csi := range ue.SupportedBandCombinations {
+		switch conType {
+		case model.NR:
+			{
+				for _, bandCombo := range csi.SupportedBandCombinations {
+					for _, bandInfo := range bandCombo.CombinedBandsInfo {
+						bandsNRSet.Add(bandInfo.Band)
+					}
+				}
+			}
+		case model.EUTRA:
+			{
+				for _, bandCombo := range csi.SupportedBandCombinations {
+					for _, bandInfo := range bandCombo.CombinedBandsInfo {
+						bandsEUTRASet.Add(bandInfo.Band)
+					}
+				}
+			}
+		}
 	}
 
-	for _, c := range ue.SupportedBandCombinations[model.EUTRA] {
-		ue.SupportedBandsEutra = append(ue.SupportedBandsEutra, c.Band)
-	}
+	ue.SupportedBandsNR = bandsNRSet.ToSlice()
+	ue.SupportedBandsEutra = bandsEUTRASet.ToSlice()
 
 	return ue, ueIMSI
 }
@@ -228,33 +246,91 @@ func pickRandomlyFromSlice(slice []string) string {
 	return slice[rand.Intn(len(slice))]
 }
 
-func pickRandomBandCombos() map[model.ConnectivityType][]*model.BandSupportInfo {
+func pickRandomBandCombos() map[model.ConnectivityType]*model.ConnTypeSupportInfo {
 	// NR Combo
 	c := pickRandomlyFromSlice(bw.CABandCombinationsNR)
 	caBandCombosNR := mapset.NewSet[string]()
 	caBandCombosNR.Append(strings.Split(c, "_")...)
-	comboSupportInfo := map[model.ConnectivityType][]*model.BandSupportInfo{}
+	supportedBandCombinations := map[model.ConnectivityType]*model.ConnTypeSupportInfo{}
 
-	comboSupportInfo[model.NR] = make([]*model.BandSupportInfo, 0)
-	for band := range caBandCombosNR.Iter() {
-		comboSupportInfo[model.NR] = append(comboSupportInfo[model.NR], &model.BandSupportInfo{
-			Band:           band,
-			BandwidthClass: pickRandomlyFromSlice(bw.BandwidthClassesNR[:5]),
-		})
+	comboSupportInfoNR := &model.ConnTypeSupportInfo{
+		SupportedBandCombinations: []*model.BandCombination{
+			{Direction: bw.UL, CombinedBandsInfo: []*model.BandSupportInfo{}},
+			{Direction: bw.DL, CombinedBandsInfo: []*model.BandSupportInfo{}},
+		},
 	}
+
+	for band := range caBandCombosNR.Iter() {
+		bwClass := pickRandomlyFromSlice(bw.BandwidthClassesNR[:3])
+		switch bw.BandsNR[band].DuplexingMode {
+		case bw.FDD, bw.TDD:
+			{
+				comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo = append(
+					comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo,
+					&model.BandSupportInfo{
+						Band:           band,
+						BandwidthClass: bwClass,
+					},
+				)
+				comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo = append(
+					comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo,
+					&model.BandSupportInfo{
+						Band:           band,
+						BandwidthClass: bwClass,
+					},
+				)
+			}
+
+		case bw.SDL:
+			{
+				comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo = append(
+					comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo,
+					&model.BandSupportInfo{
+						Band:           band,
+						BandwidthClass: bwClass,
+					},
+				)
+			}
+		case bw.SUL:
+			{
+				comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo = append(
+					comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo,
+					&model.BandSupportInfo{
+						Band:           band,
+						BandwidthClass: bwClass,
+					},
+				)
+			}
+
+		}
+
+	}
+
+	supportedBandCombinations[model.NR] = comboSupportInfoNR
 
 	// Eutra combo
 	c = pickRandomlyFromSlice(bw.CABandCombinationsEutra)
 	caBandCombosEutra := mapset.NewSet[string]()
 	caBandCombosEutra.Append(strings.Split(c, "_")...)
 
-	comboSupportInfo[model.EUTRA] = make([]*model.BandSupportInfo, 0)
-	for band := range caBandCombosEutra.Iter() {
-		comboSupportInfo[model.EUTRA] = append(comboSupportInfo[model.EUTRA], &model.BandSupportInfo{
-			Band:           band,
-			BandwidthClass: pickRandomlyFromSlice(bw.BandwidthClassesNR[:5]),
-		})
+	comboSupportInfoEUTRA := &model.ConnTypeSupportInfo{
+		SupportedBandCombinations: []*model.BandCombination{
+			{Direction: bw.UL, CombinedBandsInfo: []*model.BandSupportInfo{}},
+			{Direction: bw.DL, CombinedBandsInfo: []*model.BandSupportInfo{}},
+		},
 	}
 
-	return comboSupportInfo
+	for band := range caBandCombosEutra.Iter() {
+		comboSupportInfoEUTRA.SupportedBandCombinations[0].CombinedBandsInfo = append(
+			comboSupportInfoEUTRA.SupportedBandCombinations[0].CombinedBandsInfo,
+			&model.BandSupportInfo{
+				Band:           band,
+				BandwidthClass: pickRandomlyFromSlice(bw.BandwidthClassesNR[:3]),
+			},
+		)
+	}
+
+	supportedBandCombinations[model.EUTRA] = comboSupportInfoEUTRA
+
+	return supportedBandCombinations
 }

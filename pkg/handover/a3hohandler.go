@@ -13,18 +13,17 @@ import (
 
 const MIN_ACCEPTABLE_RSRP = -110.0
 
-type CarrierAggregator interface {
-	GetValidCACombinations(cells []*model.Cell, supportedBandsInfo map[model.ConnectivityType][]*model.BandSupportInfo) (validCABandCombos [][]string, cellsByBand map[string][]*model.Cell)
-}
-
 // NewA3HandoverHandler returns A3HandoverHandler object
-func NewA3HandoverHandler(ca CarrierAggregator, m *model.Model) *A3HandoverHandler {
+func NewA3HandoverHandler(m *model.Model) *A3HandoverHandler {
 	return &A3HandoverHandler{
 		Chans: A3HandoverChannel{
 			InputChan:  make(chan model.UE),
 			OutputChan: make(chan HandoverDecision),
 		},
-		ca:    ca,
+		cas: map[model.ConnectivityType]bw.CarrierAggregator{
+			model.EUTRA: bw.NewCarrierAggregatorEUTRA(),
+			model.NR:    bw.NewCarrierAggregatorNR(),
+		},
 		model: m,
 	}
 }
@@ -32,7 +31,7 @@ func NewA3HandoverHandler(ca CarrierAggregator, m *model.Model) *A3HandoverHandl
 // A3HandoverHandler is A3 handover handler
 type A3HandoverHandler struct {
 	Chans A3HandoverChannel
-	ca    CarrierAggregator
+	cas   map[model.ConnectivityType]bw.CarrierAggregator
 	model *model.Model
 }
 
@@ -122,7 +121,8 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	for _, ncgi := range rankedNCGIs {
 		ncgiStr := strconv.FormatUint(uint64(ncgi), 10)
 		cell := h.model.Cells[ncgiStr]
-		crossCarrierSchedulingSupported := cell.SchedulingCellInfo == model.SCHEDULING_CELL_INFO_OTHER
+		// crossCarrierSchedulingSupported := cell.SchedulingCellInfo == model.SCHEDULING_CELL_INFO_OTHER
+		crossCarrierSchedulingSupported := true
 		if crossCarrierSchedulingSupported {
 			ccSchedulingCells = append(ccSchedulingCells, cell)
 		} else {
@@ -130,37 +130,37 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 		}
 	}
 
-	logrus.Infof("attempting selfSchedulingCells: %+v", selfSchedulingCells)
+	// logrus.Infof("attempting selfSchedulingCells: %+v", selfSchedulingCells)
 
-	ueRequiredPRBsDL, ueRequiredPRBsUL := bw.CurrPRBsUsed(&ue)
-	for c := range selfSchedulingCells {
-		cell := selfSchedulingCells[c]
-		servedUEs := h.model.GetServedUEs(cell.NCGI)
-		cellAvailPrbsUL, cellAvailPrbsDL, err := bw.GetCellAvailPRBs(cell, servedUEs, &ue)
-		logrus.Infof(
-			`ue:%v, 
-			ueRequiredPRBsUL:%v vs cellAvailPrbsUL:%v, 
-			ueRequiredPRBsDL:%v vs cellAvailPrbsDL:%v`,
-			ue.IMSI,
-			ueRequiredPRBsUL, cellAvailPrbsUL,
-			ueRequiredPRBsDL, cellAvailPrbsDL,
-		)
+	// ueRequiredPRBsDL, ueRequiredPRBsUL := bw.CurrPRBsUsed(&ue)
+	// for c := range selfSchedulingCells {
+	// 	cell := selfSchedulingCells[c]
+	// 	servedUEs := h.model.GetServedUEs(cell.NCGI)
+	// 	cellAvailPrbsUL, cellAvailPrbsDL, err := bw.GetCellAvailPRBs(cell, servedUEs, &ue)
+	// 	logrus.Infof(
+	// 		`ue:%v,
+	// 		ueRequiredPRBsUL:%v vs cellAvailPrbsUL:%v,
+	// 		ueRequiredPRBsDL:%v vs cellAvailPrbsDL:%v`,
+	// 		ue.IMSI,
+	// 		ueRequiredPRBsUL, cellAvailPrbsUL,
+	// 		ueRequiredPRBsDL, cellAvailPrbsDL,
+	// 	)
 
-		if err != nil {
-			continue
-		}
-		if cellAvailPrbsUL >= ueRequiredPRBsUL && cellAvailPrbsDL >= ueRequiredPRBsDL {
-			logrus.Infof("found selfSchedulingCell: %v", cell.NCGI)
-			return []types.NCGI{cell.NCGI}, bw.CAScheme{}
-		}
-	}
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	if cellAvailPrbsUL >= ueRequiredPRBsUL && cellAvailPrbsDL >= ueRequiredPRBsDL {
+	// 		logrus.Infof("found selfSchedulingCell: %v", cell.NCGI)
+	// 		return []types.NCGI{cell.NCGI}, bw.CAScheme{}
+	// 	}
+	// }
 
 	logrus.Infof("attempting ccSchedulingCells: %+v", ccSchedulingCells)
 
-	validCACombinations, cellsByBand := h.ca.GetValidCACombinations(ccSchedulingCells, ue.SupportedBandCombinations)
+	validCACombinations, cellsByEUTRABand, cellsByNRBand := bw.GetValidCABandCombinations(h.cas, ccSchedulingCells, ue.SupportedBandCombinations)
 
 	logrus.Infof("validCACombinations: %+v", validCACombinations)
-	feasibleCASchemes := bw.GetFeasibleCASchemes(validCACombinations, cellsByBand, h.model, &ue)
+	feasibleCASchemes := bw.GetFeasibleCASchemes(validCACombinations, cellsByEUTRABand, cellsByNRBand, h.model, &ue)
 	logrus.Infof("feasibleCASchemes: %+v", feasibleCASchemes)
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 

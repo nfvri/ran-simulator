@@ -59,7 +59,7 @@ func cellToAPI(cell *model.Cell) *types.Cell {
 		Color:               cell.Color,
 		MaxUEs:              cell.MaxUEs,
 		Neighbors:           cell.Neighbors,
-		Earfcn:              cell.Earfcn,
+		Earfcn:              cell.EarfcnDL,
 		MeasurementParams:   measurementParamsToAPI(cell.MeasurementParams),
 		RrcIdleCount:        cell.RrcIdleCount,
 		RrcConnectedCount:   cell.RrcConnectedCount,
@@ -222,7 +222,7 @@ func CellToModel(cell *types.Cell) *model.Cell {
 		Color:     cell.Color,
 		MaxUEs:    cell.MaxUEs,
 		Neighbors: cell.Neighbors,
-		Earfcn:    cell.Earfcn,
+		EarfcnDL:  cell.Earfcn,
 		MeasurementParams: model.MeasurementParams{
 			TimeToTrigger:          cell.MeasurementParams.TimeToTrigger,
 			FrequencyOffset:        cell.MeasurementParams.FrequencyOffset,

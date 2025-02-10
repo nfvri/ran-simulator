@@ -245,6 +245,7 @@ type CellConfig struct {
 	Sector    Sector  `mapstructure:"sector"`
 	Channel   Channel `mapstructure:"channel"`
 	SchedulingCellInfo
+	RATType
 	Beam Beam `mapstructure:"beam"`
 }
 
@@ -260,6 +261,13 @@ type CellCoverageInfo struct {
 	CoverageBoundaries   []CoverageBoundary `mapstructure:"coverageBoundaries"`
 }
 
+type RATType string
+
+const (
+	RAT_NR    RATType = "NR"
+	RAT_EUTRA RATType = "EUTRA"
+)
+
 // Cell represents a section of coverage
 type Cell struct {
 	sync.RWMutex
@@ -272,7 +280,8 @@ type Cell struct {
 	PCI                 uint32            `mapstructure:"pci"`
 	ArfcnDL             uint32            `mapstructure:"arfcndl"`
 	ArfcnUL             uint32            `mapstructure:"arfcnul"`
-	Earfcn              uint32            `mapstructure:"earfcn"`
+	EarfcnDL            uint32            `mapstructure:"earfcndl"`
+	EarfcnUL            uint32            `mapstructure:"earfcnul"`
 	CellType            types.CellType    `mapstructure:"cellType"`
 	Bwps                map[uint64]*Bwp   `mapstructure:"bwps"`
 	RrcIdleCount        uint32
@@ -356,21 +365,21 @@ type Bwp struct {
 
 // UE represents user-equipment, i.e. phone, IoT device, etc.
 type UE struct {
-	IMSI                      types.IMSI                              `mapstructure:"imsi"`
-	AmfUeNgapID               types.AmfUENgapID                       `mapstructure:"amfUeNgapID"`
-	Type                      UEType                                  `mapstructure:"type"`
-	RrcState                  e2sm_mho.Rrcstatus                      `mapstructure:"rrcState"`
-	Location                  Coordinate                              `mapstructure:"location"`
-	Heading                   uint32                                  `mapstructure:"heading"`
-	FiveQi                    int                                     `mapstructure:"fiveQi"`
-	ServingCells              []*UECell                               `mapstructure:"servingCells"`
-	CRNTI                     types.CRNTI                             `mapstructure:"CRNTI"`
-	NeighborCells             []*UECell                               `mapstructure:"neighborCells"`
-	Height                    float64                                 `mapstructure:"height"`
-	IsAdmitted                bool                                    `mapstructure:"isAdmitted"`
-	SupportedBandCombinations map[ConnectivityType][]*BandSupportInfo `mapstructure:"supportedBandCombinations"`
-	SupportedBandsNR          []string                                `mapstructure:"supportedBandsNR"`
-	SupportedBandsEutra       []string                                `mapstructure:"supportedBandsEutra"`
+	IMSI                      types.IMSI                                `mapstructure:"imsi"`
+	AmfUeNgapID               types.AmfUENgapID                         `mapstructure:"amfUeNgapID"`
+	Type                      UEType                                    `mapstructure:"type"`
+	RrcState                  e2sm_mho.Rrcstatus                        `mapstructure:"rrcState"`
+	Location                  Coordinate                                `mapstructure:"location"`
+	Heading                   uint32                                    `mapstructure:"heading"`
+	FiveQi                    int                                       `mapstructure:"fiveQi"`
+	ServingCells              []*UECell                                 `mapstructure:"servingCells"`
+	CRNTI                     types.CRNTI                               `mapstructure:"CRNTI"`
+	NeighborCells             []*UECell                                 `mapstructure:"neighborCells"`
+	Height                    float64                                   `mapstructure:"height"`
+	IsAdmitted                bool                                      `mapstructure:"isAdmitted"`
+	SupportedBandCombinations map[ConnectivityType]*ConnTypeSupportInfo `mapstructure:"supportedBandCombinations"`
+	SupportedBandsNR          []string                                  `mapstructure:"supportedBandsNR"`
+	SupportedBandsEutra       []string                                  `mapstructure:"supportedBandsEutra"`
 }
 
 func (ue *UE) GetServingCell(ncgi types.NCGI) (*UECell, bool) {
@@ -420,6 +429,10 @@ const (
 	NE_DC ConnectivityType = "NE-DC"
 )
 
+type ConnTypeSupportInfo struct {
+	SupportedBandCombinations []*BandCombination
+}
+
 type BandSupportInfo struct {
 	Band           string
 	BandwidthClass string
@@ -427,8 +440,8 @@ type BandSupportInfo struct {
 }
 
 type BandCombination struct {
-	Direction     string // UL/DL
-	CombinedBands []BandSupportInfo
+	Direction         string // UL/DL
+	CombinedBandsInfo []*BandSupportInfo
 }
 
 // ServiceModel service model information

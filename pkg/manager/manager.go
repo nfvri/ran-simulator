@@ -97,7 +97,7 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) initMobilityDriver() {
-	hoHandler := handover.NewA3HandoverHandler(bw.NewCarrierAggregatorNR(), m.model)
+	hoHandler := handover.NewA3HandoverHandler(m.model)
 	ho := handover.NewA3Handover(hoHandler)
 	hoCtrl := handover.NewHOController(handover.A3, ho)
 
@@ -273,6 +273,7 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 
 		m.setBWUtilization(ctx, cell, sumUsedPRBsDL, sumUsedPRBsUL, availPRBsDL, availPRBsUL)
 
+		logrus.Infof("[computeUEAttributes] cell:%v , cellServedUEs: %+v", cell.NCGI, servedUEs)
 		bw.AllocateBW(cell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
 		if len(cell.Bwps) == 0 && sumUsedPRBsDL+sumUsedPRBsUL != 0 {
 			log.Error("failed to initialize BWPs for cell: %v", cell.NCGI)

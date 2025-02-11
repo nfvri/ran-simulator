@@ -155,13 +155,13 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	// 	}
 	// }
 
-	logrus.Infof("attempting ccSchedulingCells: %+v", ccSchedulingCells)
+	logrus.Infof("ue:%v, attempting ccSchedulingCells: %+v", ue.IMSI, ccSchedulingCells)
 
-	validCACombinations, cellsByEUTRABand, cellsByNRBand := bw.GetValidCABandCombinations(h.cas, ccSchedulingCells, ue.SupportedBandCombinations)
+	validCACombinations, cellsByEUTRABand, cellsByNRBand := bw.GetValidCABandCombinations(ue, h.cas, ccSchedulingCells, ue.SupportedBandCombinations)
 
-	logrus.Infof("validCACombinations: %+v", validCACombinations)
+	logrus.Infof("ue:%v, validCACombinations: %+v", ue.IMSI, validCACombinations)
 	feasibleCASchemes := bw.GetFeasibleCASchemes(validCACombinations, cellsByEUTRABand, cellsByNRBand, h.model, &ue)
-	logrus.Infof("feasibleCASchemes: %+v", feasibleCASchemes)
+	logrus.Infof("ue:%v, feasibleCASchemes: %+v", ue.IMSI, feasibleCASchemes)
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 
 	if !anyFeasibleCAScheme {

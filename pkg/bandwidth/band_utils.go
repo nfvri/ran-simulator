@@ -1,6 +1,8 @@
 package bandwidth
 
-import "math"
+import (
+	"math"
+)
 
 const (
 	UL    = "Uplink"
@@ -25,24 +27,28 @@ type BandEutra struct {
 	ULhigh        float64 // Uplink high frequency
 	DLlow         float64 // Downlink low frequency
 	DLhigh        float64 // Downlink high frequency
-	DuplexingMode string  // FDD/TDD/SUL/SDL
+	EarfcnULlow   float64
+	EarfcnULhigh  float64
+	EarfcnDLlow   float64
+	EarfcnDLhigh  float64
+	DuplexingMode string // FDD/TDD/SUL/SDL
 }
 
 var BandsEutra = map[string]BandEutra{
-	"1":  {"1", 1920, 1980, 2110, 2170, FDD},
-	"2":  {"2", 1850, 1910, 1930, 1990, FDD},
-	"3":  {"3", 1710, 1785, 1805, 1880, FDD},
-	"4":  {"4", 1710, 1755, 2110, 2155, FDD},
-	"5":  {"5", 824, 849, 869, 894, FDD},
-	"7":  {"7", 2500, 2570, 2620, 2690, FDD},
-	"8":  {"8", 880, 915, 925, 960, FDD},
-	"20": {"20", 832, 862, 791, 821, FDD},
-	"28": {"28", 703, 748, 758, 803, FDD},
-	"38": {"38", 2570, 2620, 2570, 2620, TDD},
-	"40": {"40", 2300, 2400, 2300, 2400, TDD},
-	"41": {"41", 2496, 2690, 2496, 2690, TDD},
-	"66": {"66", 1710, 1780, 2110, 2200, FDD},
-	"71": {"71", 663, 698, 617, 652, FDD},
+	"1":  {"1", 1920, 1980, 2110, 2170, 19200, 19949, 0, 599, "FDD"},
+	"2":  {"2", 1850, 1910, 1930, 1990, 18600, 19199, 600, 1199, "FDD"},
+	"3":  {"3", 1710, 1785, 1805, 1880, 19200, 19949, 1200, 1949, "FDD"},
+	"4":  {"4", 1710, 1755, 2110, 2155, 17100, 17549, 1950, 2399, "FDD"},
+	"5":  {"5", 824, 849, 869, 894, 20400, 20649, 2400, 2649, "FDD"},
+	"7":  {"7", 2500, 2570, 2620, 2690, 20700, 21449, 2750, 3449, "FDD"},
+	"8":  {"8", 880, 915, 925, 960, 21450, 21799, 3450, 3799, "FDD"},
+	"20": {"20", 832, 862, 791, 821, 22100, 22349, 6150, 6449, "FDD"},
+	"28": {"28", 703, 748, 758, 803, 27000, 27449, 9210, 9659, "FDD"},
+	"38": {"38", 2570, 2620, 2570, 2620, 25700, 26199, 25700, 26199, "TDD"},
+	"40": {"40", 2300, 2400, 2300, 2400, 23000, 23999, 23000, 23999, "TDD"},
+	"41": {"41", 2496, 2690, 2496, 2690, 24960, 26899, 24960, 26899, "TDD"},
+	"66": {"66", 1710, 1780, 2110, 2200, 17100, 17849, 66436, 67335, "FDD"},
+	"71": {"71", 663, 698, 617, 652, 68586, 68935, 68586, 68935, "FDD"},
 }
 
 // func FrequencyToEARFCN(frequency float64, isUplink bool) (int, error) {
@@ -1125,16 +1131,16 @@ var NrSCSByCQIPerFR = map[string]map[int]int{
 
 // GetBandNR takes a frequency and direction and returns the operating nr band name.
 func GetBandNR(arfcn uint32, direction string) (nrBand BandNR, found bool) {
+	arfcnFloat := float64(arfcn)
 	for b := range BandsNR {
 		band := BandsNR[b]
-		arfcnFloat := float64(arfcn)
 
-		found = direction == UL && band.ULlow <= arfcnFloat && arfcnFloat <= band.ULhigh
+		found = direction == UL && band.ArfcnULlow <= arfcnFloat && arfcnFloat <= band.ArfcnULhigh
 		if found {
 			return band, found
 		}
 
-		found = direction == DL && band.DLlow <= arfcnFloat && arfcnFloat <= band.DLhigh
+		found = direction == DL && band.ArfcnDLlow <= arfcnFloat && arfcnFloat <= band.ArfcnDLhigh
 		if found {
 			return band, found
 		}
@@ -1144,16 +1150,16 @@ func GetBandNR(arfcn uint32, direction string) (nrBand BandNR, found bool) {
 
 // GetBandEUTRA takes a frequency and direction and returns the operating EUTRA band name.
 func GetBandEUTRA(earfcn uint32, direction string) (nrBand BandEutra, found bool) {
+	arfcnFloat := float64(earfcn)
 	for b := range BandsEutra {
 		band := BandsEutra[b]
-		arfcnFloat := float64(earfcn)
 
-		found = direction == UL && band.ULlow <= arfcnFloat && arfcnFloat <= band.ULhigh
+		found = direction == UL && band.EarfcnULlow <= arfcnFloat && arfcnFloat <= band.EarfcnULhigh
 		if found {
 			return band, found
 		}
 
-		found = direction == DL && band.DLlow <= arfcnFloat && arfcnFloat <= band.DLhigh
+		found = direction == DL && band.EarfcnDLlow <= arfcnFloat && arfcnFloat <= band.EarfcnDLhigh
 		if found {
 			return band, found
 		}
@@ -1163,7 +1169,7 @@ func GetBandEUTRA(earfcn uint32, direction string) (nrBand BandEutra, found bool
 
 // GetFR takes a frequency and returns the frequency range designation.
 func GetFR(arfcn float64) string {
-	freq := calculateFrequency(int(arfcn))
+	freq := CalculateFrequency(int(arfcn))
 	switch {
 	case freq >= 410 && freq <= 7125:
 		return "FR1"
@@ -1229,7 +1235,7 @@ func CalculateARFCN(frequency float64) int {
 	return nRef
 }
 
-func calculateFrequency(arfcn int) float64 {
+func CalculateFrequency(arfcn int) float64 {
 	var deltaFGlobal float64
 	var fRefOffs float64
 	var nRefOffs int

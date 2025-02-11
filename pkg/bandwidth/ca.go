@@ -751,6 +751,7 @@ func (ca *CarrierAggregatorNR) IsValidBandCombination(bandCombo string) bool {
 // https://www.sqimway.com/nr_endc.php
 // https://www.sqimway.com/nr_nedc.php
 func GetValidCABandCombinations(
+	ue model.UE,
 	carrAggregators map[model.ConnectivityType]CarrierAggregator,
 	targetCells []*model.Cell,
 	connectionSupportInfo map[model.ConnectivityType]*model.ConnTypeSupportInfo) (validCABandCombos map[model.ConnectivityType][][]string, cellsByEUTRABand, cellsByNRBand map[string][]*model.Cell) {
@@ -761,25 +762,25 @@ func GetValidCABandCombinations(
 		for _, bandCombo := range ctsi.SupportedBandCombinations {
 			bcEnc := ""
 			comboBands := []string{}
-			logrus.Infof("bandCombo.CombinedBandsInfo: %+v", bandCombo.CombinedBandsInfo)
+			logrus.Infof("ue: %v, bandCombo.CombinedBandsInfo: %+v", ue.IMSI, bandCombo.CombinedBandsInfo)
 			for bi := range bandCombo.CombinedBandsInfo {
 				comboBands = append(comboBands, bandCombo.CombinedBandsInfo[bi].Band)
 			}
 			comboBands = SortBands(ct, comboBands)
-			logrus.Infof("comboBands: %+v", comboBands)
+			logrus.Infof("ue: %v, comboBands: %+v", ue.IMSI, comboBands)
 			for _, band := range comboBands {
 				bcEnc += band + "_"
 			}
-			logrus.Infof("bcEnc: %v", bcEnc)
 			if len(bcEnc) == 0 {
 				continue
 			}
 			bcEnc = bcEnc[:len(bcEnc)-1]
+			logrus.Infof("ue: %v, bcEnc: %v", ue.IMSI, bcEnc)
 			supportedCACombosByConnType[ct] = append(supportedCACombosByConnType[ct], bcEnc)
 		}
 	}
 
-	logrus.Infof("supportedCACombosByConnType: %+v", supportedCACombosByConnType)
+	logrus.Infof("ue: %v, supportedCACombosByConnType: %+v", ue.IMSI, supportedCACombosByConnType)
 
 	validCABandCombos = map[model.ConnectivityType][][]string{}
 	cellsByNRBand = make(map[string][]*model.Cell)
@@ -788,12 +789,10 @@ func GetValidCABandCombinations(
 	for cellIndex := range targetCells {
 
 		cell := targetCells[cellIndex]
-		logrus.Infof("=========\n[RAT TYPE]:%v \n", cell.RATType)
 		if _, ok := validCABandCombos[model.ConnectivityType(cell.RATType)]; !ok {
 			validCABandCombos[model.ConnectivityType(cell.RATType)] = [][]string{}
 		}
 
-		logrus.Infof("=========\n[RAT TYPE]:%v \n", cell.RATType)
 		switch cell.RATType {
 		case model.RAT_EUTRA:
 			earfcn := utils.If(cell.EarfcnDL > 0, cell.EarfcnDL, cell.EarfcnUL)
@@ -815,16 +814,16 @@ func GetValidCABandCombinations(
 
 	}
 
-	logrus.Infof("cellsByNRBand: %+v", cellsByNRBand)
-	logrus.Infof("cellsByEUTRABand: %+v", cellsByEUTRABand)
+	logrus.Infof("ue: %v, cellsByNRBand: %+v", ue.IMSI, cellsByNRBand)
+	logrus.Infof("ue: %v, cellsByEUTRABand: %+v", ue.IMSI, cellsByEUTRABand)
 
 	targetBands := map[model.ConnectivityType][]string{
 		model.EUTRA: mapset.NewSet(maps.Keys(cellsByNRBand)...).ToSlice(),
 		model.NR:    mapset.NewSet(maps.Keys(cellsByEUTRABand)...).ToSlice(),
 	}
 
-	logrus.Infof("targetBands: %+v", targetBands)
-
+	logrus.Infof("ue: %v, targetBands: %+v", ue.IMSI, targetBands)
+	logrus.Info("\n========================================================================\n")
 	for ct := range connectionSupportInfo {
 		allBandCombos := allBandCombinations(SortBands(ct, targetBands[ct]))
 		for _, caBandCombo := range allBandCombos {

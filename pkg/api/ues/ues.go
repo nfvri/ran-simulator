@@ -83,8 +83,10 @@ func ueCellsToAPI(modelUeCells []*model.UECell) []*types.UECell {
 	ueCells := make([]*types.UECell, len(modelUeCells))
 
 	for key, ueCell := range modelUeCells {
+		beamID := &types.BeamID{Ncgi: ueCell.BeamID.NCGI, CarrierIndex: int32(ueCell.BeamID.CarrierIndex), BeamIndex: int32(ueCell.BeamID.BeamIndex)}
 		ueCells[key] = &types.UECell{
 			Ncgi:        ueCell.NCGI,
+			BeamId:      beamID,
 			Rsrp:        ueCell.Rsrp,
 			Rsrq:        ueCell.Rsrq,
 			Sinr:        ueCell.Sinr,

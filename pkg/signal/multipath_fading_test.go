@@ -14,11 +14,11 @@ import (
 )
 
 // PlotReceivedPower plots the received power values and saves it as a PNG file
-func PlotReceivedPower(pathlossDb float64, realizations int, cell *model.Cell) {
+func PlotReceivedPower(pathlossDb float64, realizations int, carrier *model.Carrier) {
 	receivedPowerDb := make(plotter.XYs, realizations)
 
 	for i := 0; i < realizations; i++ {
-		f := RiceanFading(GetRiceanK(cell))
+		f := RiceanFading(GetRiceanK(carrier))
 		if math.IsNaN(f) {
 			logrus.Warnf("NAN fading for realization:%d", i)
 			continue
@@ -28,7 +28,7 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell *model.Cell) {
 	}
 
 	p := plot.New()
-	p.Title.Text = fmt.Sprintf("LOS: %v", cell.Channel.LOS)
+	p.Title.Text = fmt.Sprintf("LOS: %v", carrier.LOS)
 	p.X.Label.Text = "Realization"
 	p.Y.Label.Text = "Received Power (dB)"
 
@@ -45,7 +45,7 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell *model.Cell) {
 	// 	panic(err)
 	// }
 
-	receivedPowerFilename := filepath.Join("./multipath_test_results/graphs/", fmt.Sprintf("%sLOS_%v.png", "multipath_db", cell.Channel.LOS))
+	receivedPowerFilename := filepath.Join("./multipath_test_results/graphs/", fmt.Sprintf("%sLOS_%v.png", "multipath_db", carrier.LOS))
 	if err := p.Save(15*vg.Inch, 10*vg.Inch, receivedPowerFilename); err != nil {
 		panic(err)
 	}
@@ -57,7 +57,7 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell *model.Cell) {
 	// }
 
 	// Plot the distribution separately
-	distributionFilename := filepath.Join("./multipath_test_results/distributions/", fmt.Sprintf("%s_distribution_LOS_%v.png", "multipath_db_", cell.Channel.LOS))
+	distributionFilename := filepath.Join("./multipath_test_results/distributions/", fmt.Sprintf("%s_distribution_LOS_%v.png", "multipath_db_", carrier.LOS))
 
 	distribution := make(plotter.Values, len(receivedPowerDb))
 	for i, pt := range receivedPowerDb {
@@ -85,38 +85,35 @@ func PlotReceivedPower(pathlossDb float64, realizations int, cell *model.Cell) {
 }
 
 func TestRayleighFading(t *testing.T) {
-	cell := &model.Cell{
-		CellConfig: model.CellConfig{
-			TxPowerDB: 45,
-			Sector: model.Sector{
-				Azimuth: 90,
-				Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
-				Height:  30,
-			},
-			Channel: model.Channel{
-				SSBFrequency: 3600,
-				LOS:          true,
-				Environment:  "urban",
-			},
-			Beam: model.Beam{
-				H3dBAngle:              65,
-				V3dBAngle:              65,
-				MaxGain:                8,
-				MaxAttenuationDB:       30,
-				VSideLobeAttenuationDB: 30,
+	carrier := &model.Carrier{
+		TxPowerDB:              45,
+		VSideLobeAttenuationDB: 30,
+
+		Center:      model.Coordinate{Lat: 37.979207, Lng: 23.716702},
+		Height:      30,
+		ArfcnDL:     640000,
+		LOS:         true,
+		Environment: "urban",
+		Beams: []*model.Beam{
+			{
+				Azimuth:   90,
+				H3dBAngle: 65,
+				V3dBAngle: 65,
+				MaxGain:   8,
 			},
 		},
 	}
-	pathloss := GetPathLoss(model.Coordinate{Lat: 37.979207, Lng: 23.720989}, 1.5, cell)
+
+	pathloss := GetPathLoss(model.Coordinate{Lat: 37.979207, Lng: 23.720989}, 1.5, carrier)
 	fmt.Printf("pathloss: %v", pathloss)
 	// TxPowerDB := 40.0
 	realizations := 1000
 
 	//LOS
-	PlotReceivedPower(pathloss, realizations, cell)
+	PlotReceivedPower(pathloss, realizations, carrier)
 
 	//NLOS
-	cell.Channel.LOS = false
-	PlotReceivedPower(pathloss, realizations, cell)
+	carrier.LOS = false
+	PlotReceivedPower(pathloss, realizations, carrier)
 
 }

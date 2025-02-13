@@ -14,33 +14,36 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 	cell := &model.Cell{
 		CellType: types.CellType_MACRO,
 		CellConfig: model.CellConfig{
-			TxPowerDB: 40,
-			Sector: model.Sector{
-				Azimuth: 0,
-				Center:  model.Coordinate{Lat: 37.979207, Lng: 23.716702},
-				Height:  30,
-				Arc:     90,
-				Tilt:    0,
-			},
-			Channel: model.Channel{
-				Environment:  "urban",
-				LOS:          true,
-				SSBFrequency: 900,
-			},
-			Beam: model.Beam{
-				H3dBAngle:              65,
-				V3dBAngle:              65,
-				MaxGain:                8,
-				MaxAttenuationDB:       30,
-				VSideLobeAttenuationDB: 30,
+			Carriers: []*model.Carrier{
+				{
+					Beams: []*model.Beam{
+						{
+							H3dBAngle: 65,
+							V3dBAngle: 65,
+							MaxGain:   8,
+							Azimuth:   0,
+							Tilt:      0,
+						},
+					},
+					TxPowerDB:              40,
+					Center:                 model.Coordinate{Lat: 37.979207, Lng: 23.716702},
+					Height:                 30,
+					VSideLobeAttenuationDB: 30,
+					ArfcnDL:                180000,
+					Environment:            "urban",
+					LOS:                    true,
+				},
 			},
 		},
 	}
 
 	ueHeight := 1.5
-	const refSignalStrength = -87
+	refSignalStrength := -87.0
+
+	carrier := cell.Carriers[0]
+	beam := carrier.Beams[0]
 	rpFp := func(x0 []float64) (f func(out, x []float64)) {
-		return RadiationPatternF(ueHeight, cell, refSignalStrength)
+		return RadiationPatternF(cell, carrier, beam, ueHeight, refSignalStrength)
 	}
 	newtonKrylovSolver := nonlin.NewtonKrylov{
 		// Maximum number of Newton iterations
@@ -56,7 +59,7 @@ func TestStrengthAtLocationNewtonKrylov(t *testing.T) {
 		// Stencil: 8,
 	}
 	stop := false
-	rpBoundaryPointsCh := ComputePoints(rpFp, GetRandGuessesChanCells(cell, 3000, 10, 200, 1000), newtonKrylovSolver, &stop)
+	rpBoundaryPointsCh := ComputePoints(rpFp, GetRandGuessesChanCells(carrier, 3000, 10, 200, 1000), newtonKrylovSolver, &stop)
 
 	for rpBoundaryPoint := range rpBoundaryPointsCh {
 		t.Logf("[%f, %f], \n", rpBoundaryPoint.Lat, rpBoundaryPoint.Lng)
@@ -71,31 +74,32 @@ func TestStrength(t *testing.T) {
 	cell := &model.Cell{
 		CellType: types.CellType_MACRO,
 		CellConfig: model.CellConfig{
-			TxPowerDB: 40,
-			Sector: model.Sector{
-				Azimuth: 90,
-				Center:  model.Coordinate{Lat: 37.981629, Lng: 23.743353},
-				Height:  0,
-				Arc:     90,
-				Tilt:    20,
-			},
-			Channel: model.Channel{
-				Environment:  "urban",
-				LOS:          false,
-				SSBFrequency: 900,
-			},
-			Beam: model.Beam{
-				H3dBAngle:              90,
-				V3dBAngle:              65,
-				MaxGain:                8,
-				MaxAttenuationDB:       40,
-				VSideLobeAttenuationDB: 40,
+			Carriers: []*model.Carrier{
+				{
+					Beams: []*model.Beam{
+						{
+							H3dBAngle: 90,
+							V3dBAngle: 65,
+							MaxGain:   8,
+							Azimuth:   90,
+							Tilt:      20,
+						},
+					},
+					TxPowerDB:              40,
+					Center:                 model.Coordinate{Lat: 37.981629, Lng: 23.743353},
+					Height:                 30,
+					VSideLobeAttenuationDB: 30,
+					ArfcnDL:                180000,
+					Environment:            "urban",
+					LOS:                    false,
+				},
 			},
 		},
 	}
 
 	coord := model.Coordinate{Lat: 87.63223356680056, Lng: 73.40325326694467}
 	mpf := 0.3638433520844825
-	s := Strength(coord, 1.5, mpf, cell)
+	beamID := model.BeamID{NCGI: cell.NCGI, CarrierIndex: 1, BeamIndex: 1}
+	s := Strength(coord, 1.5, mpf, cell, beamID)
 	fmt.Printf("s: %v", s)
 }

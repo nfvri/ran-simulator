@@ -138,6 +138,15 @@ func (d *driver) GetHoCtrl() handover.HOController {
 
 func (d *driver) processHandoverDecision(ctx context.Context) {
 	log.Info("Handover decision process starting")
+
+	d.hoCounter.Lock()
+	if d.hoCounter.hosRemaining == 0 {
+		d.hoCounter.Unlock()
+		d.finishHOsChan <- true
+		return
+	}
+	d.hoCounter.Unlock()
+
 	for {
 		select {
 		case hoDecision := <-d.hoCtrl.GetOutputChan():
@@ -167,18 +176,19 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 // UpdateUESignalStrength updates UE signal strength.
 func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 	ue, ok := d.m.UEs[strconv.FormatUint(uint64(imsi), 10)]
-	uePCell := ue.ServingCells[0]
 	if !ok {
 		log.Warnf("Unable to find UE %d", imsi)
 		return
 	}
 
-	sCell := d.m.Cells[strconv.FormatUint(uint64(uePCell.NCGI), 10)]
-	uePCell.Rsrp = signal.RSRP(ue, sCell)
+	for index := range ue.ServingCells {
+		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.ServingCells[index].NCGI), 10)]
+		ue.ServingCells[index].Rsrp = signal.RSRP(ue, nCell, ue.ServingCells[index].BeamID)
+	}
 
 	for index := range ue.NeighborCells {
 		nCell := d.m.Cells[strconv.FormatUint(uint64(ue.NeighborCells[index].NCGI), 10)]
-		ue.NeighborCells[index].Rsrp = signal.RSRP(ue, nCell)
+		ue.NeighborCells[index].Rsrp = signal.RSRP(ue, nCell, ue.NeighborCells[index].BeamID)
 	}
 }
 

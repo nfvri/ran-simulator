@@ -188,17 +188,23 @@ func If[T any](cond bool, vtrue, vfalse T) T {
 	return vfalse
 }
 
-func GetNeighborCells(cell *model.Cell, cells map[string]*model.Cell) []*model.Cell {
+// TODO: Determine if it's necessary to track which specific cell carrier is a neighbor.
+func GetNeighborCells(cell *model.Cell, cells map[string]*model.Cell) map[types.NCGI]*model.Cell {
 
-	neighborCells := []*model.Cell{}
+	neighborCells := map[types.NCGI]*model.Cell{}
 	for _, ncgi := range cell.Neighbors {
 		nCell, ok := cells[strconv.FormatUint(uint64(ncgi), 10)]
 		if !ok {
 			continue
 		}
-		if nCell.Channel.SSBFrequency == cell.Channel.SSBFrequency {
-			neighborCells = append(neighborCells, nCell)
+		for nCellcarriedIndex := range nCell.Carriers {
+			for carriedIndex := range cell.Carriers {
+				if nCell.Carriers[nCellcarriedIndex].ArfcnDL == cell.Carriers[carriedIndex].ArfcnDL {
+					neighborCells[ncgi] = nCell
+				}
+			}
 		}
+
 	}
 	return neighborCells
 }

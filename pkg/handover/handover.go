@@ -13,7 +13,6 @@ import (
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/signal"
-	"github.com/nfvri/ran-simulator/pkg/utils"
 	e2sm_mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	log "github.com/sirupsen/logrus"
@@ -228,20 +227,26 @@ func logHO(hoDecision HandoverDecision, sourceCellNCGIs []types.NCGI) {
 // ComputeCellMetricsFor recomputes the signal metrics for the serving and neighbor cells of the ue.
 func (e *DefaultHOExecutor) ComputeCellMetricsFor(ue *model.UE) {
 
-	uePCell := ue.ServingCells[0]
-	sCell := e.Model.Cells[strconv.FormatUint(uint64(uePCell.NCGI), 10)]
-	uePCell.Rsrp = signal.RSRP(ue, sCell)
-	uePCell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, utils.GetNeighborCells(sCell, e.Model.Cells))
-	uePCell.Rsrq = signal.RSRQ(uePCell.Sinr, uePCell.AvailPrbsDl)
-	// TODO: define how to update when CA
-	ue.FiveQi = signal.GetCQI(uePCell.Sinr)
-
-	for index := range ue.NeighborCells {
-		nCell := e.Model.Cells[strconv.FormatUint(uint64(ue.NeighborCells[index].NCGI), 10)]
-		ue.NeighborCells[index].Rsrp = signal.RSRP(ue, nCell)
-		ue.NeighborCells[index].Sinr = signal.Sinr(ue.Location, ue.Height, nCell, utils.GetNeighborCells(nCell, e.Model.Cells))
-		ue.NeighborCells[index].Rsrq = signal.RSRQ(ue.NeighborCells[index].Sinr, ue.NeighborCells[index].AvailPrbsDl)
+	for c := range ue.ServingCells {
+		sCell := e.Model.Cells[strconv.FormatUint(uint64(ue.ServingCells[c].NCGI), 10)]
+		servCell := ue.ServingCells[c]
+		servCell.Rsrp = signal.RSRP(ue, sCell, servCell.BeamID)
+		iBeamIDs, nCells := signal.GetInterferingBeams(ue.Location, sCell, servCell.BeamID, e.Model.Cells)
+		servCell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, servCell.BeamID, iBeamIDs, nCells)
+		servCell.Rsrq = signal.RSRQ(servCell.Sinr, servCell.AvailPrbsDl)
 	}
+
+	ue.FiveQi = signal.GetCQI(ue.ServingCells[0].Sinr)
+
+	for c := range ue.NeighborCells {
+		neighCell := ue.NeighborCells[c]
+		nCell := e.Model.Cells[strconv.FormatUint(uint64(neighCell.NCGI), 10)]
+		neighCell.Rsrp = signal.RSRP(ue, nCell, neighCell.BeamID)
+		interfBeamIDs, interfCells := signal.GetInterferingBeams(ue.Location, nCell, neighCell.BeamID, e.Model.Cells)
+		neighCell.Sinr = signal.Sinr(ue.Location, ue.Height, nCell, neighCell.BeamID, interfBeamIDs, interfCells)
+		neighCell.Rsrq = signal.RSRQ(neighCell.Sinr, neighCell.AvailPrbsDl)
+	}
+
 	ueCopy := *ue
 	e.Model.UEs[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ueCopy
 }

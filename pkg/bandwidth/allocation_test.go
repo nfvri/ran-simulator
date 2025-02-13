@@ -21,8 +21,12 @@ func Test_allocateBW_cqiProportionally(t *testing.T) {
 		ServedUEs:  servedUEs,
 	}
 
-	totalBWDL := MHzToHz(float64(cell.Channel.BsChannelBwDL))
-	totalBWUL := MHzToHz(float64(cell.Channel.BsChannelBwUL))
+	totalBWDL := 0.0
+	totalBWUL := 0.0
+	for _, carrier := range cell.Carriers {
+		totalBWDL += MHzToHz(float64(carrier.BsChannelBwDL))
+		totalBWUL += MHzToHz(float64(carrier.BsChannelBwUL))
+	}
 
 	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
@@ -51,8 +55,11 @@ func Test_ProportionalFair_apply_allocation(t *testing.T) {
 
 func Test_ProportionalFair_apply_reallocation(t *testing.T) {
 	cell, servedUEs := setup()
-	cell.Channel.BsChannelBwDL = 2
-	cell.Channel.BsChannelBwUL = 1
+
+	for _, carrier := range cell.Carriers {
+		carrier.BsChannelBwDL = 2
+		carrier.BsChannelBwUL = 1
+	}
 
 	existingAlloc := createCurrAlloc(cell, servedUEs)
 
@@ -115,15 +122,20 @@ func setup() (*model.Cell, []*model.UE) {
 		NCGI: 1234,
 		Bwps: make(map[uint64]*model.Bwp),
 		CellConfig: model.CellConfig{
-			Channel: model.Channel{
-				SSBFrequency:   3400,
-				ArfcnDL:        180000,
-				ArfcnUL:        180000,
-				Environment:    "urban",
-				BsChannelBwDL:  40,
-				BsChannelBwUL:  35,
-				BsChannelBwSUL: 0,
-				LOS:            false,
+			Carriers: []*model.Carrier{
+				{
+					Beams: []*model.Beam{
+						{
+							BeamIndex: 1,
+						},
+					},
+					ArfcnDL:       640000,
+					ArfcnUL:       640000,
+					Environment:   "urban",
+					BsChannelBwDL: 40,
+					BsChannelBwUL: 35,
+					LOS:           false,
+				},
 			},
 		},
 	}
@@ -275,8 +287,8 @@ func verifyBwNotExceeded(t *testing.T, cell *model.Cell, servedUEs []*model.UE) 
 		usedBWUL += ueUsedBWUL
 		t.Logf("ue:%v usedBWDL: %v, usedBWUL: %v", ue.FiveQi, float64(ueUsedBWDL)/1e6, float64(ueUsedBWUL)/1e6)
 	}
-	assert.LessOrEqual(t, float64(usedBWDL)/1e6, float64(cell.Channel.BsChannelBwDL)*DEFAULT_MAX_BW_UTILIZATION)
-	assert.LessOrEqual(t, float64(usedBWUL)/1e6, float64(cell.Channel.BsChannelBwUL)*DEFAULT_MAX_BW_UTILIZATION)
+	assert.LessOrEqual(t, float64(usedBWDL)/1e6, float64(cell.Carriers[0].BsChannelBwDL)*DEFAULT_MAX_BW_UTILIZATION)
+	assert.LessOrEqual(t, float64(usedBWUL)/1e6, float64(cell.Carriers[0].BsChannelBwUL)*DEFAULT_MAX_BW_UTILIZATION)
 }
 
 func verifyBwIncreasesWithCQI(t *testing.T, servedUEs []*model.UE) {

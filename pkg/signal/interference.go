@@ -3,8 +3,11 @@ package signal
 import (
 	"math"
 	"math/rand"
+	"strconv"
 
 	"github.com/davidkleiven/gononlin/nonlin"
+
+	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/utils"
 
@@ -77,54 +80,60 @@ func calculateSinr(rsrpServingDbm, rsrpNeighSumDbm, noiseDbm float64) float64 {
 	return sinrDbm
 }
 
-func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, neighborCells []*model.Cell) float64 {
+func Sinr(coord model.Coordinate, ueHeight float64, sCell *model.Cell, beamID model.BeamID, interferingBeams []model.BeamID, neighborCells map[types.NCGI]*model.Cell) float64 {
 	if math.IsNaN(coord.Lat) || math.IsNaN(coord.Lng) {
 		return math.Inf(-1)
 	}
 
-	bandwidthHz := float64(sCell.Channel.BsChannelBwDL) * 1e6
+	carrier := sCell.GetCarrier(beamID)
+	bandwidthHz := bw.MHzToHz(float64(carrier.BsChannelBwDL))
 	utils.If(bandwidthHz == 0, 50e6, bandwidthHz)
 
 	noise := calculateNoisePower(bandwidthHz, types.CellType_MACRO)
 
-	mpf := RiceanFading(GetRiceanK(sCell))
-	rsrpServing := Strength(coord, ueHeight, mpf, sCell)
+	mpf := RiceanFading(GetRiceanK(carrier))
+	rsrpServing := Strength(coord, ueHeight, mpf, sCell, beamID)
 	if rsrpServing == math.Inf(-1) {
 		return math.Inf(-1)
 	}
 
 	rsrpNeighSum := 0.0
-	for _, n := range neighborCells {
+	for _, beamID := range interferingBeams {
+		nCell := neighborCells[beamID.NCGI]
+		nCarrier := nCell.GetCarrier(beamID)
 
-		mpf := RiceanFading(GetRiceanK(n))
-
-		nRsrp := Strength(coord, ueHeight, mpf, n)
+		mpf := RiceanFading(GetRiceanK(nCarrier))
+		nRsrp := Strength(coord, ueHeight, mpf, nCell, beamID)
 		if nRsrp == math.Inf(-1) {
 			continue
 		}
 		rsrpNeighSum += nRsrp
+
 	}
 
 	return calculateSinr(rsrpServing, rsrpNeighSum, noise)
 }
 
-func SinrF(ueHeight float64, cell *model.Cell, refSinr float64, neighborCells []*model.Cell) (f func(out, x []float64)) {
+func SinrF(ueHeight float64, cell *model.Cell, beamID model.BeamID, refSinr float64, neighborBeams []model.BeamID, neighborCells map[types.NCGI]*model.Cell) (f func(out, x []float64)) {
 
 	return func(out, x []float64) {
 		coord := model.Coordinate{Lat: x[0], Lng: x[1]}
-		fValue := Sinr(coord, ueHeight, cell, neighborCells) - refSinr
+		fValue := Sinr(coord, ueHeight, cell, beamID, neighborBeams, neighborCells) - refSinr
 		out[0] = fValue
 		out[1] = fValue
 	}
 }
 
-func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Cell, refSinr, dc float64, numUes, cqi int) []model.Coordinate {
-
-	cfp := func(x0 []float64) (f func(out, x []float64)) {
-		return SinrF(ueHeight, cell, refSinr, neighborCells)
+func GetSinrPoints(cell *model.Cell, beamID model.BeamID, nCells map[types.NCGI]*model.Cell, nBeamIDs []model.BeamID, ueHeight, refSinr, dc float64, numUes, cqi int) []model.Coordinate {
+	sinrPoints := []model.Coordinate{}
+	if numUes <= 0 {
+		return sinrPoints
 	}
 
-	sinrPoints := []model.Coordinate{}
+	cfp := func(x0 []float64) (f func(out, x []float64)) {
+		return SinrF(ueHeight, cell, beamID, refSinr, nBeamIDs, nCells)
+	}
+
 	stepSizeMeters := 10.0
 	overSampling := 100
 	maxIter := 300
@@ -139,9 +148,9 @@ func GetSinrPoints(ueHeight float64, cell *model.Cell, neighborCells []*model.Ce
 SINR_POINTS_LOOP:
 	for {
 
-		sinrPointsCh := ComputePoints(cfp, GetRandGuessesChanUEs(cell, numUes*overSampling, cqi, 25), newtonKrylovSolver, &stop)
+		sinrPointsCh := ComputePoints(cfp, GetRandGuessesChanUEs(cell, beamID, numUes*overSampling, cqi, 25), newtonKrylovSolver, &stop)
 		for sp := range sinrPointsCh {
-			if IsPointInsideBoundingBox(sp, cell.BoundingBox) {
+			if IsPointInsideBoundingBox(sp, cell.BoundingBoxes[beamID]) {
 				sinrPoints = append(sinrPoints, sp)
 				if len(sinrPoints) >= numUes {
 					stop = true
@@ -152,6 +161,51 @@ SINR_POINTS_LOOP:
 	}
 
 	return sinrPoints
+}
+
+func GetNeighborBeamIDs(neighborCells map[types.NCGI]*model.Cell) []model.BeamID {
+	nBeamIDs := []model.BeamID{}
+	for nNCGI, nCell := range neighborCells {
+		for nCarrierIndex, nCarrier := range nCell.Carriers {
+			nCarIndex := nCarrierIndex + 1
+			for nBeamIndex := range nCarrier.Beams {
+				nBmIndex := nBeamIndex + 1
+				nBeamID := model.BeamID{NCGI: nNCGI, CarrierIndex: nCarIndex, BeamIndex: nBmIndex}
+				nBeamIDs = append(nBeamIDs, nBeamID)
+			}
+		}
+	}
+	return nBeamIDs
+}
+
+func GetInterferingBeams(point model.Coordinate, sCell *model.Cell, beamID model.BeamID, cells map[string]*model.Cell) ([]model.BeamID, map[types.NCGI]*model.Cell) {
+
+	interferingBeamIDs := []model.BeamID{}
+	neighborCells := map[types.NCGI]*model.Cell{}
+
+	for _, nNCGI := range sCell.Neighbors {
+		nCell, exists := cells[strconv.FormatUint(uint64(nNCGI), 10)]
+		if !exists {
+			continue
+		}
+
+		for nCarrierIndex, nCarrier := range nCell.Carriers {
+			if nCarrier.ArfcnDL != sCell.GetCarrier(beamID).ArfcnDL {
+				continue
+			}
+			nCarIndex := nCarrierIndex + 1
+			for nBeamIndex := range nCarrier.Beams {
+				nBmIndex := nBeamIndex + 1
+				interferingBeamID := model.BeamID{NCGI: nNCGI, CarrierIndex: nCarIndex, BeamIndex: nBmIndex}
+				if IsPointInsideBoundingBox(point, nCell.BoundingBoxes[interferingBeamID]) {
+					neighborCells[nNCGI] = nCell
+					interferingBeamIDs = append(interferingBeamIDs, interferingBeamID)
+				}
+			}
+		}
+	}
+
+	return interferingBeamIDs, neighborCells
 }
 
 func calculateNoisePower(bandwidthHz float64, cellType types.CellType) float64 {

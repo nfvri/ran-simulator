@@ -75,52 +75,89 @@ func cellToAPI(cell *model.Cell) *types.Cell {
 
 func cellConfigToAPI(cellConfig model.CellConfig) *types.CellConfig {
 	return &types.CellConfig{
-		TxPowerdB: cellConfig.TxPowerDB,
-		Sector:    sectorToAPI(cellConfig.Sector),
-		Channel:   channelToAPI(cellConfig.Channel),
-		Beam:      beamToAPI(cellConfig.Beam),
+		Carriers: carriersToAPI(cellConfig.Carriers),
 	}
 }
 
-func sectorToAPI(sector model.Sector) *types.Sector {
-	return &types.Sector{
-		Azimuth: float64(sector.Azimuth),
-		Arc:     sector.Arc,
-		Center:  (*types.Coordinate)(&sector.Center),
-		Tilt:    float64(sector.Tilt),
-		Height:  sector.Height,
+func carriersToAPI(modelCarriers []*model.Carrier) []*types.Carrier {
+	carriers := []*types.Carrier{}
+	for _, carrier := range modelCarriers {
+		carriers = append(carriers, &types.Carrier{
+			Beams:                  beamsToAPI(carrier.Beams),
+			Center:                 (*types.Coordinate)(&carrier.Center),
+			Height:                 carrier.Height,
+			ArfcnDl:                carrier.ArfcnDL,
+			ArfcnUl:                carrier.ArfcnUL,
+			BsChannelBwDl:          carrier.BsChannelBwDL,
+			BsChannelBwUl:          carrier.BsChannelBwUL,
+			TxPowerdB:              carrier.TxPowerDB,
+			VSideLobeAttenuationDb: carrier.VSideLobeAttenuationDB,
+			Environment:            carrier.Environment,
+			Los:                    carrier.LOS,
+		})
 	}
+
+	return carriers
 }
 
-func channelToAPI(channel model.Channel) *types.Channel {
-	return &types.Channel{
-		SsbFrequency:   channel.SSBFrequency,
-		ArfcnDl:        channel.ArfcnDL,
-		ArfcnUl:        channel.ArfcnUL,
-		Environment:    channel.Environment,
-		BsChannelBwDl:  channel.BsChannelBwDL,
-		BsChannelBwUl:  channel.BsChannelBwUL,
-		BsChannelBwSul: channel.BsChannelBwSUL,
-		Los:            channel.LOS,
+func beamsToAPI(modelBeams []*model.Beam) []*types.Beam {
+	beams := []*types.Beam{}
+	for _, beam := range modelBeams {
+		beams = append(beams, &types.Beam{
+			BeamIndex: int32(beam.BeamIndex),
+			Azimuth:   beam.Azimuth,
+			Tilt:      beam.Tilt,
+			H3DbAngle: beam.H3dBAngle,
+			V3DbAngle: beam.V3dBAngle,
+			MaxGain:   beam.MaxGain,
+		})
 	}
-}
 
-func beamToAPI(beam model.Beam) *types.Beam {
-	return &types.Beam{
-		H3DbAngle:              beam.H3dBAngle,
-		V3DbAngle:              beam.V3dBAngle,
-		MaxGain:                beam.MaxGain,
-		MaxAttenuationDb:       beam.MaxAttenuationDB,
-		VSideLobeAttenuationDb: beam.VSideLobeAttenuationDB,
-	}
+	return beams
 }
 
 func gridToAPI(grid model.Grid) *types.Grid {
 	return &types.Grid{
-		ShadowingMap: grid.ShadowingMap,
-		GridPoints:   sliceCoordToAPI(grid.GridPoints),
-		BoundingBox:  (*types.BoundingBox)(grid.BoundingBox),
+		ShadowingMaps:  shadowingMapsToAPI(grid.ShadowingMaps),
+		GridPointsMaps: gridPointsToAPI(grid.GridPoints),
+		BoundingBoxes:  boundingBoxesToAPI(grid.BoundingBoxes),
 	}
+}
+
+func shadowingMapsToAPI(modelShadowingMaps map[model.BeamID][]float64) []*types.ShadowingMapEntry {
+	shadowingMapEntries := make([]*types.ShadowingMapEntry, 0, len(modelShadowingMaps))
+	for modelBeamID, shadowingMap := range modelShadowingMaps {
+		beamID := types.BeamID{Ncgi: modelBeamID.NCGI, CarrierIndex: int32(modelBeamID.CarrierIndex), BeamIndex: int32(modelBeamID.BeamIndex)}
+		shadowingMapEntries = append(shadowingMapEntries, &types.ShadowingMapEntry{
+			BeamId:       (*types.BeamID)(&beamID),
+			ShadowingMap: shadowingMap,
+		})
+	}
+	return shadowingMapEntries
+}
+
+func gridPointsToAPI(modelGridPoints map[model.BeamID][]model.Coordinate) []*types.GridPointsEntry {
+	gridPointsEntries := make([]*types.GridPointsEntry, 0, len(modelGridPoints))
+	for modelBeamID, gridPoints := range modelGridPoints {
+		beamID := types.BeamID{Ncgi: modelBeamID.NCGI, CarrierIndex: int32(modelBeamID.CarrierIndex), BeamIndex: int32(modelBeamID.BeamIndex)}
+		gridPointsEntries = append(gridPointsEntries, &types.GridPointsEntry{
+			BeamId:     (*types.BeamID)(&beamID),
+			GridPoints: sliceCoordToAPI(gridPoints),
+		})
+	}
+	return gridPointsEntries
+}
+
+func boundingBoxesToAPI(modelBoundingBoxes map[model.BeamID]*model.BoundingBox) []*types.BoundingBoxEntry {
+	boundingBoxEntries := make([]*types.BoundingBoxEntry, 0, len(modelBoundingBoxes))
+	for modelBeamID, boundingBox := range modelBoundingBoxes {
+		beamID := types.BeamID{Ncgi: modelBeamID.NCGI, CarrierIndex: int32(modelBeamID.CarrierIndex), BeamIndex: int32(modelBeamID.BeamIndex)}
+		boundingBoxEntries = append(boundingBoxEntries, &types.BoundingBoxEntry{
+			BeamId:      (*types.BeamID)(&beamID),
+			BoundingBox: (*types.BoundingBox)(boundingBox),
+		})
+	}
+	return boundingBoxEntries
 }
 
 func sliceCoordToAPI(modelGridPoints []model.Coordinate) []*types.Coordinate {
@@ -144,15 +181,30 @@ func bwpsToAPI(modelBWPs map[uint64]*model.Bwp) map[uint64]*types.Bwp {
 	return bwps
 }
 
-func cachedStatesToAPI(modelCachedStates map[string]*model.CellCoverageInfo) map[string]*types.CellSignalInfo {
-	cachedStates := make(map[string]*types.CellSignalInfo, len(modelCachedStates))
-	for key, modelCellSignalInfo := range modelCachedStates {
-		cachedStates[key] = &types.CellSignalInfo{
-			RpCoverageBoundaries: coverageBoundariesToAPI(modelCellSignalInfo.RPCoverageBoundaries),
-			CoverageBoundaries:   coverageBoundariesToAPI(modelCellSignalInfo.CoverageBoundaries),
+func cachedStatesToAPI(modelCachedStates map[string]*model.CellCoverageInfo) map[string]*types.CellCoverageInfo {
+	cachedStates := make(map[string]*types.CellCoverageInfo, len(modelCachedStates))
+
+	for key, modelCellCoverageInfo := range modelCachedStates {
+		cachedStates[key] = &types.CellCoverageInfo{
+			RpCoverageBoundaries: beamCoverageEntriesToAPI(modelCellCoverageInfo.RPCoverageBoundaries),
+			CoverageBoundaries:   beamCoverageEntriesToAPI(modelCellCoverageInfo.CoverageBoundaries),
 		}
 	}
 	return cachedStates
+}
+
+func beamCoverageEntriesToAPI(modelBeamCoverageEntries map[model.BeamID][]model.CoverageBoundary) []*types.BeamCoverageEntry {
+	beamCoverageEntries := make([]*types.BeamCoverageEntry, 0, len(modelBeamCoverageEntries))
+
+	for modelBeamID, coverageBoundaries := range modelBeamCoverageEntries {
+		beamID := types.BeamID{Ncgi: modelBeamID.NCGI, CarrierIndex: int32(modelBeamID.CarrierIndex), BeamIndex: int32(modelBeamID.BeamIndex)}
+		beamCoverageEntries = append(beamCoverageEntries, &types.BeamCoverageEntry{
+			BeamId:             (*types.BeamID)(&beamID),
+			CoverageBoundaries: coverageBoundariesToAPI(coverageBoundaries),
+		})
+	}
+
+	return beamCoverageEntries
 }
 
 func coverageBoundariesToAPI(modelCoverageBoundaries []model.CoverageBoundary) []*types.CoverageBoundary {
@@ -163,6 +215,7 @@ func coverageBoundariesToAPI(modelCoverageBoundaries []model.CoverageBoundary) [
 			BoundaryPoints:    sliceCoordToAPI(covBoundary.BoundaryPoints),
 		}
 	}
+
 	return coverageBoundaries
 }
 
@@ -185,37 +238,9 @@ func eventA3ParamsToAPI(params model.EventA3Params) *types.EventA3Params {
 }
 
 func CellToModel(cell *types.Cell) *model.Cell {
-	cellConfig := cell.CellConfig
-	cellSector := cellConfig.Sector
-	cellBeam := cellConfig.Beam
-	cellChannel := cellConfig.Channel
 	return &model.Cell{
 		CellConfig: model.CellConfig{
-			TxPowerDB: cellConfig.TxPowerdB,
-			Sector: model.Sector{
-				Center:  model.Coordinate{Lat: cellSector.Center.Lat, Lng: cellSector.Center.Lng},
-				Arc:     cellSector.Arc,
-				Azimuth: float64(cellSector.Azimuth),
-				Tilt:    float64(cellSector.Tilt),
-				Height:  cellSector.Height,
-			},
-			Channel: model.Channel{
-				SSBFrequency:   cellChannel.SsbFrequency,
-				ArfcnDL:        cellChannel.ArfcnDl,
-				ArfcnUL:        cellChannel.ArfcnUl,
-				Environment:    cellChannel.Environment,
-				BsChannelBwDL:  cellChannel.BsChannelBwDl,
-				BsChannelBwUL:  cellChannel.BsChannelBwUl,
-				BsChannelBwSUL: cellChannel.BsChannelBwSul,
-				LOS:            cellChannel.Los,
-			},
-			Beam: model.Beam{
-				H3dBAngle:              cellBeam.H3DbAngle,
-				V3dBAngle:              cellBeam.V3DbAngle,
-				MaxGain:                cellBeam.MaxGain,
-				MaxAttenuationDB:       cellBeam.MaxAttenuationDb,
-				VSideLobeAttenuationDB: cellBeam.VSideLobeAttenuationDb,
-			},
+			Carriers: carriersToModel(cell.CellConfig.Carriers),
 		},
 		NCGI:      cell.NCGI,
 		CellType:  cell.CellType,
@@ -241,13 +266,48 @@ func CellToModel(cell *types.Cell) *model.Cell {
 		ResourceAllocScheme: cell.ResourceAllocScheme,
 		CurrentStateHash:    cell.CurrentStateHash,
 		Grid: model.Grid{
-			ShadowingMap: cell.Grid.ShadowingMap,
-			GridPoints:   sliceCoordToModel(cell.Grid.GridPoints),
-			BoundingBox:  (*model.BoundingBox)(cell.Grid.BoundingBox),
+			ShadowingMaps: shadowingMapsToModel(cell.Grid.ShadowingMaps),
+			GridPoints:    gridPointsToModel(cell.Grid.GridPointsMaps),
+			BoundingBoxes: boundingBoxesToModel(cell.Grid.BoundingBoxes),
 		},
 		Bwps:         bwpsToModel(cell.Bwps),
 		CachedStates: cachedStatesToModel(cell.CachedStates),
 	}
+}
+
+func carriersToModel(carriers []*types.Carrier) []*model.Carrier {
+	modelCarriers := make([]*model.Carrier, len(carriers))
+	for i, carrier := range carriers {
+		modelCarriers[i] = &model.Carrier{
+			Beams:                  beamsToModel(carrier.Beams),
+			Center:                 model.Coordinate(*carrier.Center),
+			Height:                 carrier.Height,
+			ArfcnDL:                carrier.ArfcnDl,
+			ArfcnUL:                carrier.ArfcnUl,
+			BsChannelBwDL:          carrier.BsChannelBwDl,
+			BsChannelBwUL:          carrier.BsChannelBwUl,
+			TxPowerDB:              carrier.TxPowerdB,
+			VSideLobeAttenuationDB: carrier.VSideLobeAttenuationDb,
+			Environment:            carrier.Environment,
+			LOS:                    carrier.Los,
+		}
+	}
+	return modelCarriers
+}
+
+func beamsToModel(beams []*types.Beam) []*model.Beam {
+	modelBeams := make([]*model.Beam, len(beams))
+	for i, beam := range beams {
+		modelBeams[i] = &model.Beam{
+			BeamIndex: int(beam.BeamIndex),
+			Azimuth:   beam.Azimuth,
+			Tilt:      beam.Tilt,
+			H3dBAngle: beam.H3DbAngle,
+			V3dBAngle: beam.V3DbAngle,
+			MaxGain:   beam.MaxGain,
+		}
+	}
+	return modelBeams
 }
 
 func sliceCoordToModel(gridPoints []*types.Coordinate) []model.Coordinate {
@@ -271,15 +331,69 @@ func bwpsToModel(bwps map[uint64]*types.Bwp) map[uint64]*model.Bwp {
 	return modelBWPs
 }
 
-func cachedStatesToModel(cachedStates map[string]*types.CellSignalInfo) map[string]*model.CellCoverageInfo {
+func shadowingMapsToModel(shadowingMaps []*types.ShadowingMapEntry) map[model.BeamID][]float64 {
+	modelShadowingMaps := make(map[model.BeamID][]float64, len(shadowingMaps))
+	for _, entry := range shadowingMaps {
+		beamID := model.BeamID{
+			NCGI:         entry.BeamId.Ncgi,
+			CarrierIndex: int(entry.BeamId.CarrierIndex),
+			BeamIndex:    int(entry.BeamId.BeamIndex),
+		}
+		modelShadowingMaps[beamID] = entry.ShadowingMap
+	}
+	return modelShadowingMaps
+}
+
+func gridPointsToModel(gridPoints []*types.GridPointsEntry) map[model.BeamID][]model.Coordinate {
+	modelGridPoints := make(map[model.BeamID][]model.Coordinate, len(gridPoints))
+	for _, entry := range gridPoints {
+		beamID := model.BeamID{
+			NCGI:         entry.BeamId.Ncgi,
+			CarrierIndex: int(entry.BeamId.CarrierIndex),
+			BeamIndex:    int(entry.BeamId.BeamIndex),
+		}
+		modelGridPoints[beamID] = sliceCoordToModel(entry.GridPoints)
+	}
+	return modelGridPoints
+}
+
+func boundingBoxesToModel(boundingBoxes []*types.BoundingBoxEntry) map[model.BeamID]*model.BoundingBox {
+	modelBoundingBoxes := make(map[model.BeamID]*model.BoundingBox, len(boundingBoxes))
+	for _, entry := range boundingBoxes {
+		beamID := model.BeamID{
+			NCGI:         entry.BeamId.Ncgi,
+			CarrierIndex: int(entry.BeamId.CarrierIndex),
+			BeamIndex:    int(entry.BeamId.BeamIndex),
+		}
+		modelBoundingBoxes[beamID] = (*model.BoundingBox)(entry.BoundingBox)
+	}
+	return modelBoundingBoxes
+}
+
+func cachedStatesToModel(cachedStates map[string]*types.CellCoverageInfo) map[string]*model.CellCoverageInfo {
 	modelCachedStates := make(map[string]*model.CellCoverageInfo, len(cachedStates))
-	for key, cellSignalInfo := range cachedStates {
+	for key, cellCoverageInfo := range cachedStates {
 		modelCachedStates[key] = &model.CellCoverageInfo{
-			RPCoverageBoundaries: coverageBoundariesToModel(cellSignalInfo.RpCoverageBoundaries),
-			CoverageBoundaries:   coverageBoundariesToModel(cellSignalInfo.CoverageBoundaries),
+			RPCoverageBoundaries: beamCoverageEntriesToModel(cellCoverageInfo.RpCoverageBoundaries),
+			CoverageBoundaries:   beamCoverageEntriesToModel(cellCoverageInfo.CoverageBoundaries),
 		}
 	}
 	return modelCachedStates
+}
+
+func beamCoverageEntriesToModel(beamCoverageEntries []*types.BeamCoverageEntry) map[model.BeamID][]model.CoverageBoundary {
+	modelCoverageBoundaries := make(map[model.BeamID][]model.CoverageBoundary, len(beamCoverageEntries))
+
+	for _, entry := range beamCoverageEntries {
+		beamID := model.BeamID{
+			NCGI:         entry.BeamId.Ncgi,
+			CarrierIndex: int(entry.BeamId.CarrierIndex),
+			BeamIndex:    int(entry.BeamId.BeamIndex),
+		}
+		modelCoverageBoundaries[beamID] = coverageBoundariesToModel(entry.CoverageBoundaries)
+	}
+
+	return modelCoverageBoundaries
 }
 
 func coverageBoundariesToModel(coverageBoundaries []*types.CoverageBoundary) []model.CoverageBoundary {

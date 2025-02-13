@@ -65,14 +65,19 @@ type ProportionalFair struct {
 func (s *ProportionalFair) apply() {
 
 	if len(s.ScsOptionsHz) == 0 {
-		arfcn := utils.If(s.Cell.Channel.ArfcnDL > 0, s.Cell.Channel.ArfcnDL, s.Cell.Channel.ArfcnUL)
+		pcc := s.Cell.Carriers[0]
+		arfcn := utils.If(pcc.ArfcnDL > 0, pcc.ArfcnDL, pcc.ArfcnUL)
 		fr := GetFR(float64(arfcn))
 		s.ScsOptionsHz = SupportedSCSByFR[fr]
-		log.Infof("fr: %s, arfcnDL:%v, arfcnUL:%v, scs:%v", fr, s.Cell.Channel.ArfcnDL, s.Cell.Channel.ArfcnUL, s.ScsOptionsHz)
+		log.Infof("fr: %s, arfcnDL:%v, arfcnUL:%v, scs:%v", fr, pcc.ArfcnDL, pcc.ArfcnUL, s.ScsOptionsHz)
 	}
 
-	totalBWDL := MHzToHz(float64(s.Cell.Channel.BsChannelBwDL))
-	totalBWUL := MHzToHz(float64(s.Cell.Channel.BsChannelBwUL))
+	totalBWDL := 0.0
+	totalBWUL := 0.0
+	for _, carrier := range s.Cell.Carriers {
+		totalBWDL += MHzToHz(float64(carrier.BsChannelBwDL))
+		totalBWUL += MHzToHz(float64(carrier.BsChannelBwUL))
+	}
 
 	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)

@@ -33,6 +33,9 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	cellGroupIncache := err == nil
 
 	for _, cell := range cellGroup {
+		for i, carrier := range cell.GetCellConfig().Carriers {
+			log.Infof("%v --> before cache cell.cellConfig.Carrier[%v].TxPowerDB: %v", cell.NCGI, i, carrier.TxPowerDB)
+		}
 		if !cellGroupIncache {
 			updateCell(cell, nil)
 			continue
@@ -45,8 +48,6 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			continue
 		}
 
-		log.Infof("%v --> cell.cellConfig.TxPowerDB: %v", cell.NCGI, cell.GetCellConfig().TxPowerDB)
-
 		_, curCellConfigInCache := cachedCell.CachedStates[cell.GetHashedConfig()]
 		if !curCellConfigInCache {
 			updateCell(cell, &cachedCell)
@@ -56,6 +57,7 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 		// TODO: add CA support CrossCarrierSchedulingConfig
 		cell.CachedStates = cachedCell.CachedStates
 		cell.Bwps = cachedCell.Bwps
+		cell.InterferingBeams = cachedCell.InterferingBeams
 		cell.Grid = cachedCell.Grid
 		cell.CurrentStateHash = cell.GetHashedConfig()
 		cachedCells[cell.NCGI] = struct{}{}
@@ -73,12 +75,32 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 	}
 
 	for i := 0; i < len(cellList); i++ {
-		_, isCachedcellI := cachedCells[cellList[i].NCGI]
-		for j := len(cellList) - 1; j > i; j-- {
-			_, isCachedcellJ := cachedCells[cellList[j].NCGI]
-			if !isCachedcellI || !isCachedcellJ {
-				replaceOverlappingShadowMapValues(cellList[i], cellList[j])
+		_, isCachedCellI := cachedCells[cellList[i].NCGI]
+		for j := i + 1; j < len(cellList); j++ {
+			_, isCachedCellJ := cachedCells[cellList[j].NCGI]
+
+			if isCachedCellI && isCachedCellJ {
+				continue
 			}
+
+			for carrierIndexI, carrierI := range cellList[i].Carriers {
+				carIndexI := carrierIndexI + 1
+				for beamIndexI := range carrierI.Beams {
+					bmIndexI := beamIndexI + 1
+					beamIDI := model.BeamID{NCGI: cellList[i].NCGI, CarrierIndex: carIndexI, BeamIndex: bmIndexI}
+
+					for carrierIndexJ, carrierJ := range cellList[j].Carriers {
+						carIndexJ := carrierIndexJ + 1
+						for beamIndexJ := range carrierJ.Beams {
+							bmIndexJ := beamIndexJ + 1
+							beamIDJ := model.BeamID{NCGI: cellList[j].NCGI, CarrierIndex: carIndexJ, BeamIndex: bmIndexJ}
+							replaceOverlappingShadowMapValues(cellList[i], cellList[j], beamIDI, beamIDJ)
+						}
+					}
+
+				}
+			}
+
 		}
 	}
 
@@ -91,42 +113,56 @@ func updateCellParams(snapShotCell, cachedCell *model.Cell, ueHeight, refSignalS
 	if cachedCell != nil {
 		snapShotCell.CachedStates = cachedCell.CachedStates
 		snapShotCell.Bwps = cachedCell.Bwps
+		snapShotCell.InterferingBeams = cachedCell.InterferingBeams
 		snapShotCell.Grid = cachedCell.Grid
 	} else {
 		snapShotCell.CachedStates = make(map[string]*model.CellCoverageInfo)
+		snapShotCell.Grid.BoundingBoxes = make(map[model.BeamID]*model.BoundingBox)
+		snapShotCell.Grid.GridPoints = make(map[model.BeamID][]model.Coordinate)
+		snapShotCell.Grid.ShadowingMaps = make(map[model.BeamID][]float64)
+		snapShotCell.InterferingBeams = make(map[model.BeamID][]model.BeamID)
 	}
 
-	// TODO: snapshotCell add CA support CrossCarrierSchedulingConfig
-	rpBoundaryPoints := GetRPBoundaryPoints(ueHeight, snapShotCell, refSignalStrength)
-	if len(rpBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
-		log.Errorf("failed to update cell's: %v rpBoundaryPoints", snapShotCell.NCGI)
-		return
-	}
-	rpBoundaryPoints = FilterBoundaryPoints(rpBoundaryPoints, snapShotCell.Sector.Center)
 	snapShotCell.CurrentStateHash = snapShotCell.GetHashedConfig()
 	snapShotCell.CachedStates[snapShotCell.CurrentStateHash] = &model.CellCoverageInfo{
-		RPCoverageBoundaries: []model.CoverageBoundary{
-			{
-				RefSignalStrength: refSignalStrength,
-				BoundaryPoints:    rpBoundaryPoints,
-			},
-		},
+		RPCoverageBoundaries: map[model.BeamID][]model.CoverageBoundary{},
+		CoverageBoundaries:   map[model.BeamID][]model.CoverageBoundary{},
 	}
 
-	InitShadowMap(snapShotCell, dc)
+	for carrierIndex, carrier := range snapShotCell.Carriers {
+		carIndex := carrierIndex + 1
+		for beamIndex := range carrier.Beams {
+			bmIndex := beamIndex + 1
+			beamID := model.BeamID{NCGI: snapShotCell.NCGI, CarrierIndex: carIndex, BeamIndex: bmIndex}
+			rpBoundaryPoints := GetRPBoundaryPoints(snapShotCell, beamID, refSignalStrength, ueHeight)
+			if len(rpBoundaryPoints) == 0 && carrier.TxPowerDB != 0 {
+				log.Errorf("failed to update cell's '%v' carrier's '%v'beam's '%v' beamrpBoundaryPoints", snapShotCell.NCGI, carIndex, bmIndex)
+				return
+			}
+			rpBoundaryPointsFiltered := FilterBoundaryPoints(rpBoundaryPoints, carrier.Center)
+			snapShotCell.CachedStates[snapShotCell.CurrentStateHash].RPCoverageBoundaries[beamID] = []model.CoverageBoundary{
+				{
+					RefSignalStrength: refSignalStrength,
+					BoundaryPoints:    rpBoundaryPointsFiltered,
+				},
+			}
 
-	covBoundaryPoints := GetCovBoundaryPoints(ueHeight, snapShotCell, refSignalStrength, rpBoundaryPoints)
-	if len(covBoundaryPoints) == 0 && snapShotCell.TxPowerDB != 0 {
-		log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
-		return
-	}
-	covBoundaryPoints = FilterBoundaryPoints(covBoundaryPoints, snapShotCell.Sector.Center)
-	log.Infof("NCGI: %v: len(covBoundaryPoints): %d", snapShotCell.NCGI, len(covBoundaryPoints))
-	snapShotCell.CachedStates[snapShotCell.CurrentStateHash].CoverageBoundaries = []model.CoverageBoundary{
-		{
-			RefSignalStrength: refSignalStrength,
-			BoundaryPoints:    covBoundaryPoints,
-		},
+			InitShadowMap(snapShotCell, beamID, dc)
+			carrier := snapShotCell.GetCarrier(beamID)
+			covBoundaryPoints := GetCovBoundaryPoints(snapShotCell, beamID, ueHeight, refSignalStrength, rpBoundaryPoints)
+			if len(covBoundaryPoints) == 0 && carrier.TxPowerDB != 0 {
+				log.Errorf("failed to update cell's: %v covBoundaryPoints", snapShotCell.NCGI)
+				return
+			}
+			covBoundaryPoints = FilterBoundaryPoints(covBoundaryPoints, carrier.Center)
+			log.Infof("NCGI: %v: len(covBoundaryPoints): %d", snapShotCell.NCGI, len(covBoundaryPoints))
+			snapShotCell.CachedStates[snapShotCell.CurrentStateHash].CoverageBoundaries[beamID] = []model.CoverageBoundary{
+				{
+					RefSignalStrength: refSignalStrength,
+					BoundaryPoints:    covBoundaryPoints,
+				},
+			}
+		}
 	}
 }
 

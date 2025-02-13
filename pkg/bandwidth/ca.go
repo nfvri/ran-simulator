@@ -996,8 +996,10 @@ func ChooseReallocCells(bandComboCells []*model.Cell, availPRBsPerCell map[types
 	dynamicReallocationSet = make([]*model.Cell, 0)
 
 	for _, cell := range bandComboCells {
-		arfcn := utils.If(cell.Channel.ArfcnDL > 0, cell.Channel.ArfcnDL, cell.Channel.ArfcnUL)
-		direction := utils.If(cell.Channel.ArfcnDL > 0, DL, UL)
+		// TODO: for loop on carriers
+		pcc := cell.Carriers[0]
+		arfcn := utils.If(pcc.ArfcnDL > 0, pcc.ArfcnDL, pcc.ArfcnUL)
+		direction := utils.If(pcc.ArfcnDL > 0, DL, UL)
 		band, found := GetBandNR(arfcn, direction)
 		if !found {
 			continue // Skip if band info is not found
@@ -1068,11 +1070,12 @@ func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (in
 		}
 	}
 
-	arfcn := utils.If(cell.Channel.ArfcnDL > 0, float64(cell.Channel.ArfcnDL), float64(cell.Channel.ArfcnUL))
+	pcc := cell.Carriers[0]
+	arfcn := utils.If(pcc.ArfcnDL > 0, float64(pcc.ArfcnDL), float64(pcc.ArfcnUL))
 	fr := GetFR(arfcn)
 	scs := NrSCSByCQIPerFR[fr][ue.FiveQi]
-	cellAvailBwDL := MHzToHz(float64(cell.Channel.BsChannelBwDL)) - usedBWDL
-	cellAvailBwUL := MHzToHz(float64(cell.Channel.BsChannelBwUL)) - usedBWUL
+	cellAvailBwDL := MHzToHz(float64(pcc.BsChannelBwDL)) - usedBWDL
+	cellAvailBwUL := MHzToHz(float64(pcc.BsChannelBwUL)) - usedBWUL
 
 	cellAvailPrbsUL := GetPRBs(uint32(HzToMHz(cellAvailBwUL)), scs, fr)
 	cellAvailPrbsDL := GetPRBs(uint32(HzToMHz(cellAvailBwDL)), scs, fr)

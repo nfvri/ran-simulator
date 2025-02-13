@@ -219,7 +219,7 @@ func (m *Manager) initMetricStore() {
 func (m *Manager) computeCellAttributes() error {
 
 	ueHeight := 1.5
-	refSignalStrength := -107.0
+	refSignalStrength := -87.0
 	// change model's cells key from designated name to ncgi
 	cellGroup := make(map[string]*model.Cell)
 	for _, cell := range m.model.Cells {
@@ -251,10 +251,6 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 	for ncgi := range m.model.Cells {
 		cell := m.model.Cells[ncgi]
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
-		if len(servedUEs) == 0 {
-			log.Warnf("number of ues for cell %v is 0", cell.NCGI)
-			continue
-		}
 
 		usedPRBsDL := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)]
 		usedPRBsUL := usedPRBsULPerCQIByCell[uint64(cell.NCGI)]
@@ -282,14 +278,23 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 }
 
 func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, sumUsedPRBsDL, sumUsedPRBsUL int, availPRBsDL, availPRBsUL int) {
-	totalBWDL := bw.MHzToHz(float64(cell.Channel.BsChannelBwDL))
-	totalBWUL := bw.MHzToHz(float64(cell.Channel.BsChannelBwUL))
-
+	totalBWDL := 0.0
+	totalBWUL := 0.0
+	for _, carrier := range cell.Carriers {
+		totalBWDL += bw.MHzToHz(float64(carrier.BsChannelBwDL))
+		totalBWUL += bw.MHzToHz(float64(carrier.BsChannelBwUL))
+	}
 	availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)
 
-	bwUtilizationDL := float64(sumUsedPRBsDL) / float64(availPRBsDL)
-	bwUtilizationUL := float64(sumUsedPRBsUL) / float64(availPRBsUL)
+	bwUtilizationDL := 0.0
+	if sumUsedPRBsDL != 0 || availPRBsDL != 0 {
+		bwUtilizationDL = float64(sumUsedPRBsDL) / float64(availPRBsDL)
+	}
+	bwUtilizationUL := 0.0
+	if sumUsedPRBsUL != 0 || availPRBsUL != 0 {
+		bwUtilizationUL = float64(sumUsedPRBsUL) / float64(availPRBsUL)
+	}
 
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationDL)
 	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC, 100*bwUtilizationUL)
@@ -388,8 +393,12 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_DL_METRIC, statistics.UEThp(prbsUsedDl, len(servedUEs)))
 		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_UL_METRIC, statistics.UEThp(prbsUsedUl, len(servedUEs)))
 
-		totalBWDL := bw.MHzToHz(float64(cell.Channel.BsChannelBwDL))
-		totalBWUL := bw.MHzToHz(float64(cell.Channel.BsChannelBwUL))
+		totalBWDL := 0.0
+		totalBWUL := 0.0
+		for _, carrier := range cell.Carriers {
+			totalBWDL += bw.MHzToHz(float64(carrier.BsChannelBwDL))
+			totalBWUL += bw.MHzToHz(float64(carrier.BsChannelBwUL))
+		}
 
 		availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
 		availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)

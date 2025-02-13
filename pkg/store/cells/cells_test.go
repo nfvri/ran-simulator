@@ -40,8 +40,12 @@ func TestCells(t *testing.T) {
 	cell1 := &model.Cell{
 		NCGI: ecgi1,
 		CellConfig: model.CellConfig{
-			Sector: model.Sector{
-				Center: model.Coordinate{Lat: 46, Lng: 29}, Azimuth: 180, Arc: 180, Height: 30, Tilt: -10,
+			Carriers: []*model.Carrier{
+				{
+					Beams:  []*model.Beam{{Azimuth: 180, H3dBAngle: 180, Tilt: -10}},
+					Center: model.Coordinate{Lat: 46, Lng: 29},
+					Height: 30,
+				},
 			},
 		},
 		Color: "blue",

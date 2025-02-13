@@ -103,8 +103,9 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	for _, ueSCell := range ue.ServingCells {
 		ncgiStr := strconv.FormatUint(uint64(ueSCell.NCGI), 10)
 		cell := h.model.Cells[ncgiStr]
-		if maxChannelBwDL < cell.Channel.BsChannelBwDL {
-			maxChannelBwDL = cell.Channel.BsChannelBwDL
+		// TODO: loop
+		if maxChannelBwDL < cell.Carriers[0].BsChannelBwDL {
+			maxChannelBwDL = cell.Carriers[0].BsChannelBwDL
 		}
 	}
 

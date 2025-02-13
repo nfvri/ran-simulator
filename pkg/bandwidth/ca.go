@@ -807,6 +807,8 @@ func GetValidCABandCombinations(
 			direction := utils.If(cell.ArfcnDL > 0, DL, UL)
 			cellBand, found := GetBandNR(arfcn, direction)
 			if !found {
+				logrus.Warnf("failed to find NR band for cell: %v, cell arfcnDL: %v, arfcnUL:%v",
+					cell.NCGI, cell.Carriers[0].ArfcnDL, cell.Carriers[0].ArfcnUL)
 				continue
 			}
 			cellsByNRBand[cellBand.Name] = append(cellsByNRBand[cellBand.Name], cell)
@@ -818,8 +820,8 @@ func GetValidCABandCombinations(
 	logrus.Infof("ue: %v, cellsByEUTRABand: %+v", ue.IMSI, cellsByEUTRABand)
 
 	targetBands := map[model.ConnectivityType][]string{
-		model.EUTRA: mapset.NewSet(maps.Keys(cellsByNRBand)...).ToSlice(),
-		model.NR:    mapset.NewSet(maps.Keys(cellsByEUTRABand)...).ToSlice(),
+		model.EUTRA: mapset.NewSet(maps.Keys(cellsByEUTRABand)...).ToSlice(),
+		model.NR:    mapset.NewSet(maps.Keys(cellsByNRBand)...).ToSlice(),
 	}
 
 	logrus.Infof("ue: %v, targetBands: %+v", ue.IMSI, targetBands)

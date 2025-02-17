@@ -285,7 +285,7 @@ func verifyBwNotExceeded(t *testing.T, cell *model.Cell, servedUEs []*model.UE) 
 		}
 		usedBWDL += ueUsedBWDL
 		usedBWUL += ueUsedBWUL
-		t.Logf("ue:%v usedBWDL: %v, usedBWUL: %v", ue.FiveQi, float64(ueUsedBWDL)/1e6, float64(ueUsedBWUL)/1e6)
+		t.Logf("ue: %v usedBWDL: %v, usedBWUL: %v", ue.FiveQi, float64(ueUsedBWDL)/1e6, float64(ueUsedBWUL)/1e6)
 	}
 	assert.LessOrEqual(t, float64(usedBWDL)/1e6, float64(cell.Carriers[0].BsChannelBwDL)*DEFAULT_MAX_BW_UTILIZATION)
 	assert.LessOrEqual(t, float64(usedBWUL)/1e6, float64(cell.Carriers[0].BsChannelBwUL)*DEFAULT_MAX_BW_UTILIZATION)

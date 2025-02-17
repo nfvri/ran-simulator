@@ -108,6 +108,7 @@ func AllocateBandwidth(
 	getServedUEs func(ncgi types.NCGI) []*model.UE) {
 
 	if targetCAScheme.CanBeImplemented {
+		log.Infof("\n\n----------->targetCAScheme: %+v\n\n", targetCAScheme)
 		// allocate available bandwidth to ue
 		allocateRemainingAvailableBW(targetCAScheme.FixedAllocCells, ue, getServedUEs)
 
@@ -116,6 +117,7 @@ func AllocateBandwidth(
 		return
 	}
 
+	log.Infof("\n\n-----------\nue: %v | targetCells: %+v\n\n", ue.IMSI, targetCells)
 	reallocateBandwidth(targetCells, getServedUEs, ue)
 }
 
@@ -126,7 +128,7 @@ func reallocateBandwidth(reallocationCells []*model.Cell, getServedUEs func(ncgi
 		servedUEs := getServedUEs(targetCell.NCGI)
 		// augment allocation with new ue
 		servedUEs = append(servedUEs, ue)
-		reqAlloc := BwAllocationOf(servedUEs)
+		reqAlloc := BwAllocationOf(targetCell.NCGI, servedUEs)
 
 		// delete current cell allocation
 		targetCell.Bwps = map[uint64]*model.Bwp{}
@@ -212,57 +214,6 @@ func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, av
 
 }
 
-func enoughBW(tCell *model.Cell, requestedBwps []*model.Bwp) bool {
-	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
-
-	totalBWDL := 0.0
-	totalBWUL := 0.0
-	for _, carrier := range tCell.Carriers {
-		totalBWDL += MHzToHz(float64(carrier.BsChannelBwDL))
-		totalBWUL += MHzToHz(float64(carrier.BsChannelBwUL))
-	}
-
-	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
-	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
-
-	requestedBWDLUe, requestedBWULUe := 0, 0
-	for index := range requestedBwps {
-		bwp := requestedBwps[index]
-		if bwp.Downlink {
-			requestedBWDLUe += bwp.Scs * 12 * bwp.NumberOfRBs
-		} else {
-			requestedBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
-		}
-	}
-	sufficientBWDL := requestedBWDLUe+usedBWDLCell <= availBWDL
-	sufficientBWUL := requestedBWULUe+usedBWULCell <= availBWUL
-
-	return sufficientBWDL && sufficientBWUL
-}
-
-func enoughBWScaled(tCell *model.Cell, scaledBwps []*model.Bwp) bool {
-	usedBWDLCell, usedBWULCell := usedBWCell(tCell)
-	pcc := tCell.Carriers[0]
-	totalBWDL := MHzToHz(float64(pcc.BsChannelBwDL))
-	totalBWUL := MHzToHz(float64(pcc.BsChannelBwUL))
-
-	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
-	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
-	scaledBWDLUe, scaledBWULUe := 0, 0
-	for index := range scaledBwps {
-		bwp := scaledBwps[index]
-		if bwp.Downlink {
-			scaledBWDLUe += bwp.Scs * 12 * bwp.NumberOfRBs
-		} else {
-			scaledBWULUe += bwp.Scs * 12 * bwp.NumberOfRBs
-		}
-	}
-	sufficientBWDL := scaledBWDLUe+usedBWDLCell <= availBWDL
-	sufficientBWUL := scaledBWULUe+usedBWULCell <= availBWUL
-
-	return sufficientBWDL && sufficientBWUL
-}
-
 func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
 
 	for index := range cell.Bwps {
@@ -277,86 +228,19 @@ func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
 
 }
 
-func BwAllocationOf(ues []*model.UE) map[types.IMSI][]model.Bwp {
+func BwAllocationOf(ncgi types.NCGI, ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
 	for index := range ues {
 		ue := ues[index]
-		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(ue.ServingCells[0].BwpRefs))
-		for index := range ue.ServingCells[0].BwpRefs {
-			bwp := *ue.ServingCells[0].BwpRefs[index]
+		ueServCell, _ := ue.GetServingCell(ncgi)
+		bwAlloc[ue.IMSI] = make([]model.Bwp, 0, len(ueServCell.BwpRefs))
+		for index := range ueServCell.BwpRefs {
+			bwp := *ueServCell.BwpRefs[index]
 			bwAlloc[ue.IMSI] = append(bwAlloc[ue.IMSI], bwp)
 		}
 	}
 	return bwAlloc
 }
-
-// TODO: refactor
-// func getScaledBwps(ues []*model.UE, ueCQI, cqi int, reqBwps []*model.Bwp) []*model.Bwp {
-// 	cqiBWDL := 0
-// 	cqiBWUL := 0
-// 	cqiNumUEs := 0
-// 	for _, ue := range ues {
-// 		if cqi == ue.FiveQi {
-// 			cqiNumUEs++
-// 			for _, bwp := range ue.ServingCells[0].BwpRefs {
-// 				if bwp.Downlink {
-// 					cqiBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
-// 				} else {
-// 					cqiBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
-// 				}
-// 			}
-// 		}
-// 	}
-// 	if cqiNumUEs == 0 {
-// 		if cqi-1 == 0 {
-// 			if ueCQI+1 > 15 {
-// 				return reqBwps
-// 			}
-// 			return getScaledBwps(ues, ueCQI, ueCQI+1, reqBwps)
-// 		}
-// 		if cqi > ueCQI {
-// 			if cqi+1 > 15 {
-// 				return reqBwps
-// 			}
-// 			return getScaledBwps(ues, ueCQI, cqi+1, reqBwps)
-// 		}
-// 		return getScaledBwps(ues, ueCQI, cqi-1, reqBwps)
-// 	}
-
-// 	avgCqiBWDL := cqiBWDL / cqiNumUEs
-// 	avgCqiBWUL := cqiBWUL / cqiNumUEs
-
-// 	reqPRBsDL := 0
-// 	reqBWDL := 0
-// 	reqPRBsUL := 0
-// 	reqBWUL := 0
-// 	reqBWPsDL := []*model.Bwp{}
-// 	reqBWPsUL := []*model.Bwp{}
-// 	for index := range reqBwps {
-// 		bwp := *reqBwps[index]
-// 		if bwp.Downlink {
-// 			reqPRBsDL++
-// 			reqBWDL += 12 * bwp.Scs * bwp.NumberOfRBs
-// 			reqBWPsDL = append(reqBWPsDL, &bwp)
-// 		} else {
-// 			reqPRBsUL++
-// 			reqBWUL += 12 * bwp.Scs * bwp.NumberOfRBs
-// 			reqBWPsUL = append(reqBWPsUL, &bwp)
-// 		}
-// 	}
-// 	scaledBwpsDL := reqBWPsDL
-// 	if reqBWDL > avgCqiBWDL {
-// 		// TODO: see how to obtain scsOptions
-// 		scaledBwpsDL, _ = generateBWPs(avgCqiBWDL, reqPRBsDL, true)
-// 	}
-// 	scaledBwpsUL := reqBWPsUL
-// 	if reqBWUL > avgCqiBWUL {
-// 		// TODO: see how to obtain scsOptions
-// 		scaledBwpsUL, _ = generateBWPs(avgCqiBWUL, reqPRBsUL, false)
-// 	}
-
-// 	return append(scaledBwpsDL, scaledBwpsUL...)
-// }
 
 func MHzToHz(MHz float64) float64 {
 	return MHz * 1e6

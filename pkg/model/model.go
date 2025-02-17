@@ -50,7 +50,7 @@ func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, target
 
 	// TODO: handle len(targetCellINcgis) == 0
 
-	logrus.Infof("[UpdateServiceMappings] sourceCellNcgis: %v, targetCellINcgis: %v", sourceCellNcgis, targetCellINcgis)
+	logrus.Infof("ue: %v | [UPDATE-SM] sourceCellNcgis: %v, targetCellINcgis: %v", ueIMSI, sourceCellNcgis, targetCellINcgis)
 
 	// delete ue from sourceCells & sourceCells from ue
 	ue := m.UEs[strconv.FormatUint(uint64(ueIMSI), 10)]
@@ -78,9 +78,32 @@ func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, target
 		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], tcNcgi)
 	}
 
-	logrus.Infof("[UpdateServiceMappings] ue.ServingCells:%+v ue.NeighborCells:%+v before update", ue.ServingCells, ue.NeighborCells)
+	sCellNCGIs := []types.NCGI{}
+	nCellNCGIs := []types.NCGI{}
+	for _, ueServCell := range ue.ServingCells {
+		sCellNCGIs = append(sCellNCGIs, ueServCell.NCGI)
+	}
+	for _, ueNeighCell := range ue.NeighborCells {
+		nCellNCGIs = append(nCellNCGIs, ueNeighCell.NCGI)
+	}
+	logrus.Infof(
+		"ue: %v | [UPDATE-SM] ue.ServingCells:%+v ue.NeighborCells:%+v before update",
+		ueIMSI, sCellNCGIs, nCellNCGIs,
+	)
 	m.UpdateUECells(sourceCellNcgis, targetCellINcgis, ue)
-	logrus.Infof("[UpdateServiceMappings] ue.ServingCells:%+v ue.NeighborCells:%+v after update", ue.ServingCells, ue.NeighborCells)
+
+	sCellNCGIs = []types.NCGI{}
+	nCellNCGIs = []types.NCGI{}
+	for _, ueServCell := range ue.ServingCells {
+		sCellNCGIs = append(sCellNCGIs, ueServCell.NCGI)
+	}
+	for _, ueNeighCell := range ue.NeighborCells {
+		nCellNCGIs = append(nCellNCGIs, ueNeighCell.NCGI)
+	}
+	logrus.Infof(
+		`ue: %v | [UPDATE-SM] ue.ServingCells:%+v ue.NeighborCells:%+v after update`,
+		ueIMSI, sCellNCGIs, nCellNCGIs,
+	)
 
 }
 
@@ -96,7 +119,12 @@ SERVING_CELL_DELETION:
 				continue SERVING_CELL_DELETION
 			}
 		}
-		deletedUECells = append(deletedUECells, ue.DeleteServingCell(servCellNCGI))
+		deletedUECell := ue.DeleteServingCell(servCellNCGI)
+		if deletedUECell == nil {
+			continue
+		}
+		logrus.Infof("ue: %v | deleting serving cell: %v", ue.IMSI, deletedUECell.NCGI)
+		deletedUECells = append(deletedUECells, deletedUECell)
 	}
 
 	// TODO: for each target serving cell
@@ -106,8 +134,8 @@ SERVING_CELL_DELETION:
 		if neighTargetUECell != nil {
 			ue.NeighborCells = append(ue.NeighborCells[neighUECellIndex:], ue.NeighborCells[neighUECellIndex+1:]...)
 		}
+		ue.ServingCells = append(ue.ServingCells, neighTargetUECell)
 	}
-
 	ue.NeighborCells = append(ue.NeighborCells, deletedUECells...)
 
 }
@@ -418,9 +446,9 @@ type UE struct {
 	Location                  Coordinate                                `mapstructure:"location" yaml:"location" json:"location"`
 	Heading                   uint32                                    `mapstructure:"heading" yaml:"heading" json:"heading"`
 	FiveQi                    int                                       `mapstructure:"fiveQi" yaml:"fiveQi" json:"fiveQi"`
-	ServingCells              []*UECell                                 `mapstructure:"cell" yaml:"cell" json:"servingCells"`
+	ServingCells              []*UECell                                 `mapstructure:"servingCells" yaml:"servingCells" json:"servingCells"`
+	NeighborCells             []*UECell                                 `mapstructure:"neighborCells" yaml:"neighborCells" json:"neighborCells"`
 	CRNTI                     types.CRNTI                               `mapstructure:"CRNTI" yaml:"CRNTI" json:"CRNTI"`
-	NeighborCells             []*UECell                                 `mapstructure:"cells" yaml:"cells" json:"neighborCells"`
 	Height                    float64                                   `mapstructure:"height" yaml:"height" json:"height"`
 	IsAdmitted                bool                                      `mapstructure:"isAdmitted" yaml:"isAdmitted" json:"isAdmitted"`
 	SupportedBandCombinations map[ConnectivityType]*ConnTypeSupportInfo `mapstructure:"supportedBandCombinations"`
@@ -439,7 +467,7 @@ func (ue *UE) GetServingCell(ncgi types.NCGI) (*UECell, bool) {
 
 func (ue *UE) DeleteServingCell(ncgi types.NCGI) *UECell {
 	var deletedCell *UECell
-	deletedCellIndex := 0
+	deletedCellIndex := -1
 	for servCellIndex := range ue.ServingCells {
 		if ncgi == ue.ServingCells[servCellIndex].NCGI {
 			deletedCellIndex = servCellIndex
@@ -447,12 +475,10 @@ func (ue *UE) DeleteServingCell(ncgi types.NCGI) *UECell {
 			break
 		}
 	}
-	log.Infof("len(ue.ServingCells) == %v", len(ue.ServingCells))
+	if deletedCellIndex == -1 {
+		return nil
+	}
 	ue.ServingCells = append(ue.ServingCells[:deletedCellIndex], ue.ServingCells[deletedCellIndex+1:]...)
-	// if len(ue.ServingCells) <= 1 {
-	// 	ue.ServingCells = make([]*UECell, 0)
-	// } else {
-	// }
 	return deletedCell
 }
 

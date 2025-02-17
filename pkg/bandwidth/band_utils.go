@@ -35,36 +35,21 @@ type BandEutra struct {
 }
 
 var BandsEutra = map[string]BandEutra{
-	"1":  {"1", 1920, 1980, 2110, 2170, 19200, 19949, 0, 599, "FDD"},
-	"2":  {"2", 1850, 1910, 1930, 1990, 18600, 19199, 600, 1199, "FDD"},
-	"3":  {"3", 1710, 1785, 1805, 1880, 19200, 19949, 1200, 1949, "FDD"},
-	"4":  {"4", 1710, 1755, 2110, 2155, 17100, 17549, 1950, 2399, "FDD"},
-	"5":  {"5", 824, 849, 869, 894, 20400, 20649, 2400, 2649, "FDD"},
-	"7":  {"7", 2500, 2570, 2620, 2690, 20700, 21449, 2750, 3449, "FDD"},
-	"8":  {"8", 880, 915, 925, 960, 21450, 21799, 3450, 3799, "FDD"},
-	"20": {"20", 832, 862, 791, 821, 22100, 22349, 6150, 6449, "FDD"},
-	"28": {"28", 703, 748, 758, 803, 27000, 27449, 9210, 9659, "FDD"},
-	"38": {"38", 2570, 2620, 2570, 2620, 25700, 26199, 25700, 26199, "TDD"},
-	"40": {"40", 2300, 2400, 2300, 2400, 23000, 23999, 23000, 23999, "TDD"},
-	"41": {"41", 2496, 2690, 2496, 2690, 24960, 26899, 24960, 26899, "TDD"},
-	"66": {"66", 1710, 1780, 2110, 2200, 17100, 17849, 66436, 67335, "FDD"},
-	"71": {"71", 663, 698, 617, 652, 68586, 68935, 68586, 68935, "FDD"},
+	"1":  {"1", 1920, 1980, 2110, 2170, 19200, 19949, 0, 599, FDD},
+	"2":  {"2", 1850, 1910, 1930, 1990, 18600, 19199, 600, 1199, FDD},
+	"3":  {"3", 1710, 1785, 1805, 1880, 19200, 19949, 1200, 1949, FDD},
+	"4":  {"4", 1710, 1755, 2110, 2155, 17100, 17549, 1950, 2399, FDD},
+	"5":  {"5", 824, 849, 869, 894, 20400, 20649, 2400, 2649, FDD},
+	"7":  {"7", 2500, 2570, 2620, 2690, 20700, 21449, 2750, 3449, FDD},
+	"8":  {"8", 880, 915, 925, 960, 21450, 21799, 3450, 3799, FDD},
+	"20": {"20", 832, 862, 791, 821, 22100, 22349, 6150, 6449, FDD},
+	"28": {"28", 703, 748, 758, 803, 27000, 27449, 9210, 9659, FDD},
+	"38": {"38", 2570, 2620, 2570, 2620, 25700, 26199, 25700, 26199, TDD},
+	"40": {"40", 2300, 2400, 2300, 2400, 23000, 23999, 23000, 23999, TDD},
+	"41": {"41", 2496, 2690, 2496, 2690, 24960, 26899, 24960, 26899, TDD},
+	"66": {"66", 1710, 1780, 2110, 2200, 17100, 17849, 66436, 67335, FDD},
+	"71": {"71", 663, 698, 617, 652, 68586, 68935, 68586, 68935, FDD},
 }
-
-// func FrequencyToEARFCN(frequency float64, isUplink bool) (int, error) {
-// 	for _, band := range BandsEutra {
-// 		if isUplink {
-// 			if frequency >= band.ULlow && frequency <= band.ULhigh {
-// 				return int((frequency - band.ULlow) * 10) + band.EarfcnULlow, nil
-// 			}
-// 		} else {
-// 			if frequency >= band.DLlow && frequency <= band.DLhigh {
-// 				return int((frequency - band.DLlow) * 10) + band.EarfcnDLlow, nil
-// 			}
-// 		}
-// 	}
-// 	return 0, fmt.Errorf("frequency out of range")
-// }
 
 type BandNR struct {
 	Name                   string
@@ -98,9 +83,9 @@ var BandsNR = map[string]BandNR{
 		422000,
 		434000,
 		map[int][]int{
-			15: append(ChannelBWByFR[FR1][1:7], ChannelBWByFR[FR1][8:10]...),
-			30: append(ChannelBWByFR[FR1][1:6], ChannelBWByFR[FR1][8:10]...),
-			60: append(ChannelBWByFR[FR1][1:6], ChannelBWByFR[FR1][8:10]...),
+			15: {5, 10, 15, 20, 25, 30, 40, 45, 50},
+			30: {10, 15, 20, 25, 30, 40, 45, 50},
+			60: {10, 15, 20, 25, 30, 40, 45, 50},
 		},
 	},
 	"n2": {
@@ -114,7 +99,12 @@ var BandsNR = map[string]BandNR{
 		382000,
 		386000,
 		398000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6], ChannelBWByFR[FR1][8:10]...)}},
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40},
+			30: {10, 15, 20, 25, 30, 35, 40},
+			60: {10, 15, 20, 25, 30, 35, 40},
+		},
+	},
 
 	"n3": {
 		"n3",
@@ -127,9 +117,12 @@ var BandsNR = map[string]BandNR{
 		357000,
 		361000,
 		376000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40, 45, 50},
+			30: {10, 15, 20, 25, 30, 35, 40, 45, 50},
+			60: {10, 15, 20, 25, 30, 35, 40, 45, 50},
+		},
+	},
 	"n5": {
 		"n5",
 		824,
@@ -141,9 +134,12 @@ var BandsNR = map[string]BandNR{
 		169800,
 		173800,
 		178800,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25},
+			30: {10, 15, 20, 25},
+			60: {},
+		},
+	},
 	"n7": {
 		"n7",
 		2500,
@@ -155,9 +151,12 @@ var BandsNR = map[string]BandNR{
 		514000,
 		524000,
 		538000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40, 50},
+			30: {10, 15, 20, 25, 30, 35, 40, 50},
+			60: {10, 15, 20, 25, 30, 35, 40, 50},
+		},
+	},
 	"n8": {
 		"n8",
 		880,
@@ -169,9 +168,12 @@ var BandsNR = map[string]BandNR{
 		183000,
 		185000,
 		192000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35},
+			30: {10, 15, 20, 25, 30, 35},
+			60: {},
+		},
+	},
 	"n12": {
 		"n12",
 		699,
@@ -183,9 +185,12 @@ var BandsNR = map[string]BandNR{
 		143200,
 		145800,
 		149200,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15},
+			30: {10, 15},
+			60: {},
+		},
+	},
 	"n13": {
 		"n13",
 		777,
@@ -197,9 +202,12 @@ var BandsNR = map[string]BandNR{
 		157400,
 		149200,
 		151200,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {},
+		},
+	},
 	"n14": {
 		"n14",
 		788,
@@ -211,9 +219,12 @@ var BandsNR = map[string]BandNR{
 		159600,
 		151600,
 		153600,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {},
+		},
+	},
 	"n18": {
 		"n18",
 		815,
@@ -225,9 +236,12 @@ var BandsNR = map[string]BandNR{
 		166000,
 		172000,
 		175000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15},
+			30: {10, 15},
+			60: {},
+		},
+	},
 	"n20": {
 		"n20",
 		832,
@@ -239,9 +253,12 @@ var BandsNR = map[string]BandNR{
 		172400,
 		158200,
 		164200,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {},
+		},
+	},
 	"n24": {
 		"n24",
 		1626.5,
@@ -253,9 +270,12 @@ var BandsNR = map[string]BandNR{
 		332100,
 		305000,
 		311800,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {10},
+		},
+	},
 	"n25": {
 		"n25",
 		1850,
@@ -267,9 +287,12 @@ var BandsNR = map[string]BandNR{
 		383000,
 		386000,
 		399000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40, 45},
+			30: {10, 15, 20, 25, 30, 35, 40, 45},
+			60: {10, 15, 20, 25, 30, 35, 40, 45},
+		},
+	},
 	"n26": {
 		"n26",
 		814,
@@ -281,9 +304,12 @@ var BandsNR = map[string]BandNR{
 		169800,
 		171800,
 		178800,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {3, 5, 10, 15, 20, 25, 30},
+			30: {10, 15, 20, 25, 30},
+			60: {},
+		},
+	},
 	"n28": {
 		"n28",
 		703,
@@ -295,9 +321,12 @@ var BandsNR = map[string]BandNR{
 		149600,
 		151600,
 		160600,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {3, 5, 10, 15, 20, 25, 30, 40},
+			30: {10, 15, 20, 25, 30, 40},
+			60: {},
+		},
+	},
 	"n29": {
 		"n29",
 		0,
@@ -309,9 +338,12 @@ var BandsNR = map[string]BandNR{
 		0,
 		143400,
 		145600,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {},
+		},
+	},
 	"n30": {
 		"n30",
 		2305,
@@ -323,9 +355,12 @@ var BandsNR = map[string]BandNR{
 		463000,
 		470000,
 		472000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {},
+		},
+	},
 	"n31": {
 		"n31",
 		452.5,
@@ -337,9 +372,12 @@ var BandsNR = map[string]BandNR{
 		91500,
 		92500,
 		93500,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {3, 5},
+			30: {},
+			60: {},
+		},
+	},
 	"n34": {
 		"n34",
 		2010,
@@ -351,9 +389,12 @@ var BandsNR = map[string]BandNR{
 		405000,
 		402000,
 		405000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15},
+			30: {10, 15},
+			60: {10, 15},
+		},
+	},
 	"n38": {
 		"n38",
 		2570,
@@ -365,9 +406,12 @@ var BandsNR = map[string]BandNR{
 		524000,
 		514000,
 		524000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40},
+			30: {10, 15, 20, 25, 30, 40},
+			60: {10, 15, 20, 25, 30, 40},
+		},
+	},
 	"n39": {
 		"n39",
 		1880,
@@ -379,9 +423,12 @@ var BandsNR = map[string]BandNR{
 		384000,
 		376000,
 		384000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40},
+			30: {10, 15, 20, 25, 30, 35, 40},
+			60: {10, 15, 20, 25, 30, 35, 40},
+		},
+	},
 	"n40": {
 		"n40",
 		2300,
@@ -393,9 +440,12 @@ var BandsNR = map[string]BandNR{
 		480000,
 		460000,
 		480000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40, 50},
+			30: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+			60: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n41": {
 		"n41",
 		2496,
@@ -407,9 +457,12 @@ var BandsNR = map[string]BandNR{
 		537999,
 		499200,
 		537999,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40, 45, 50},
+			30: {10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100},
+			60: {10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n46": {
 		"n46",
 		5150,
@@ -421,9 +474,12 @@ var BandsNR = map[string]BandNR{
 		795000,
 		743334,
 		795000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {10, 20, 40},
+			30: {10, 20, 40, 60, 80, 100},
+			60: {10, 20, 40, 60, 80, 100},
+		},
+	},
 	"n47": {
 		"n47",
 		5855,
@@ -435,9 +491,12 @@ var BandsNR = map[string]BandNR{
 		795000,
 		790334,
 		795000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {10, 20, 30, 40},
+			30: {10, 20, 30, 40},
+			60: {10, 20, 30, 40},
+		},
+	},
 	"n48": {
 		"n48",
 		3550,
@@ -449,9 +508,12 @@ var BandsNR = map[string]BandNR{
 		646666,
 		636667,
 		646666,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 30, 40, 50},
+			30: {10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100},
+			60: {10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n50": {
 		"n50",
 		1432,
@@ -463,9 +525,12 @@ var BandsNR = map[string]BandNR{
 		303400,
 		286400,
 		303400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 30, 40, 50},
+			30: {10, 15, 20, 30, 40, 50, 60, 80},
+			60: {10, 15, 20, 30, 40, 50, 60, 80},
+		},
+	},
 	"n51": {
 		"n51",
 		1427,
@@ -477,9 +542,12 @@ var BandsNR = map[string]BandNR{
 		286400,
 		285400,
 		286400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5},
+			30: {},
+			60: {},
+		},
+	},
 	"n53": {
 		"n53",
 		2483.5,
@@ -491,9 +559,12 @@ var BandsNR = map[string]BandNR{
 		499000,
 		496700,
 		499000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {10},
+		},
+	},
 	"n54": {
 		"n54",
 		1670,
@@ -505,9 +576,12 @@ var BandsNR = map[string]BandNR{
 		335000,
 		334000,
 		335000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5},
+			30: {},
+			60: {},
+		},
+	},
 	"n65": {
 		"n65",
 		1920,
@@ -519,9 +593,12 @@ var BandsNR = map[string]BandNR{
 		402000,
 		422000,
 		440000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 50},
+			30: {10, 15, 20, 50},
+			60: {10, 15, 20, 50},
+		},
+	},
 	"n66": {
 		"n66",
 		1710,
@@ -533,9 +610,12 @@ var BandsNR = map[string]BandNR{
 		356000,
 		422000,
 		440000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40, 45},
+			30: {10, 15, 20, 25, 30, 35, 40, 45},
+			60: {10, 15, 20, 25, 30, 35, 40, 45},
+		},
+	},
 	"n67": {
 		"n67",
 		0,
@@ -547,9 +627,12 @@ var BandsNR = map[string]BandNR{
 		0,
 		147600,
 		151600,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {},
+		},
+	},
 	"n70": {
 		"n70",
 		1695,
@@ -561,9 +644,12 @@ var BandsNR = map[string]BandNR{
 		342000,
 		399000,
 		404000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25},
+			30: {10, 15, 20, 25},
+			60: {10, 15, 20, 25},
+		},
+	},
 	"n71": {
 		"n71",
 		663,
@@ -575,9 +661,12 @@ var BandsNR = map[string]BandNR{
 		139600,
 		123400,
 		130400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35},
+			30: {10, 15, 20, 25, 30, 35},
+			60: {},
+		},
+	},
 	"n72": {
 		"n72",
 		451,
@@ -589,9 +678,12 @@ var BandsNR = map[string]BandNR{
 		91200,
 		92200,
 		93200,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {3, 5},
+			30: {},
+			60: {},
+		},
+	},
 	"n74": {
 		"n74",
 		1427,
@@ -603,9 +695,12 @@ var BandsNR = map[string]BandNR{
 		294000,
 		295000,
 		303600,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {10, 15, 20},
+		},
+	},
 	"n75": {
 		"n75",
 		0,
@@ -617,9 +712,12 @@ var BandsNR = map[string]BandNR{
 		0,
 		286400,
 		303400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40, 50},
+			30: {10, 15, 20, 25, 30, 40, 50},
+			60: {10, 15, 20, 25, 30, 40, 50},
+		},
+	},
 	"n76": {
 		"n76",
 		0,
@@ -631,9 +729,12 @@ var BandsNR = map[string]BandNR{
 		0,
 		285400,
 		286400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5},
+			30: {},
+			60: {},
+		},
+	},
 	"n77": {
 		"n77",
 		3300,
@@ -645,9 +746,12 @@ var BandsNR = map[string]BandNR{
 		680000,
 		620000,
 		680000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40, 50},
+			30: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+			60: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n78": {
 		"n78",
 		3300,
@@ -659,9 +763,12 @@ var BandsNR = map[string]BandNR{
 		653333,
 		620000,
 		653333,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40, 50},
+			30: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+			60: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n79": {
 		"n79",
 		4400,
@@ -673,9 +780,12 @@ var BandsNR = map[string]BandNR{
 		733333,
 		693334,
 		733333,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {10, 20, 30, 40, 50},
+			30: {10, 20, 30, 40, 50, 60, 70, 80, 90, 100},
+			60: {10, 20, 30, 40, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n80": {
 		"n80",
 		1710,
@@ -687,9 +797,12 @@ var BandsNR = map[string]BandNR{
 		357000,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40},
+			30: {10, 15, 20, 25, 30, 40},
+			60: {10, 15, 20, 25, 30, 40},
+		},
+	},
 	"n81": {
 		"n81",
 		880,
@@ -701,9 +814,12 @@ var BandsNR = map[string]BandNR{
 		183000,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {},
+		},
+	},
 	"n82": {
 		"n82",
 		832,
@@ -715,9 +831,12 @@ var BandsNR = map[string]BandNR{
 		172400,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {},
+		},
+	},
 	"n83": {
 		"n83",
 		703,
@@ -729,9 +848,12 @@ var BandsNR = map[string]BandNR{
 		149600,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40},
+			30: {10, 15, 20, 25, 30, 40},
+			60: {},
+		},
+	},
 	"n84": {
 		"n84",
 		1920,
@@ -743,9 +865,12 @@ var BandsNR = map[string]BandNR{
 		396000,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40, 50},
+			30: {10, 15, 20, 25, 30, 40, 50},
+			60: {10, 15, 20, 25, 30, 40, 50},
+		},
+	},
 	"n85": {
 		"n85",
 		698,
@@ -757,9 +882,12 @@ var BandsNR = map[string]BandNR{
 		143200,
 		145600,
 		149200,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {3, 5, 10, 15},
+			30: {10, 15},
+			60: {},
+		},
+	},
 	"n86": {
 		"n86",
 		1710,
@@ -771,9 +899,12 @@ var BandsNR = map[string]BandNR{
 		356000,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 40},
+			30: {10, 15, 20, 40},
+			60: {10, 15, 20, 40},
+		},
+	},
 	"n89": {
 		"n89",
 		824,
@@ -785,9 +916,12 @@ var BandsNR = map[string]BandNR{
 		169800,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {},
+		},
+	},
 	"n90": {
 		"n90",
 		2496,
@@ -799,9 +933,12 @@ var BandsNR = map[string]BandNR{
 		537999,
 		499200,
 		537999,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40, 45, 50},
+			30: {10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100},
+			60: {10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n91": {
 		"n91",
 		832,
@@ -813,9 +950,12 @@ var BandsNR = map[string]BandNR{
 		172400,
 		285400,
 		286400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {},
+			60: {},
+		},
+	},
 	"n92": {
 		"n92",
 		832,
@@ -827,9 +967,12 @@ var BandsNR = map[string]BandNR{
 		172400,
 		286400,
 		303400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {},
+		},
+	},
 	"n93": {
 		"n93",
 		880,
@@ -841,9 +984,12 @@ var BandsNR = map[string]BandNR{
 		183000,
 		285400,
 		286400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {},
+			60: {},
+		},
+	},
 	"n94": {
 		"n94",
 		880,
@@ -855,9 +1001,12 @@ var BandsNR = map[string]BandNR{
 		183000,
 		286400,
 		303400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {},
+		},
+	},
 	"n95": {
 		"n95",
 		2010,
@@ -869,9 +1018,12 @@ var BandsNR = map[string]BandNR{
 		405000,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15},
+			30: {10, 15},
+			60: {10, 15},
+		},
+	},
 	"n96": {
 		"n96",
 		5925,
@@ -883,9 +1035,12 @@ var BandsNR = map[string]BandNR{
 		875000,
 		795000,
 		875000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {20, 40},
+			30: {20, 40, 60, 80, 100},
+			60: {20, 40, 60, 80, 100},
+		},
+	},
 	"n97": {
 		"n97",
 		2300,
@@ -897,9 +1052,12 @@ var BandsNR = map[string]BandNR{
 		480000,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40, 50},
+			30: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+			60: {10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n98": {
 		"n98",
 		1880,
@@ -911,9 +1069,12 @@ var BandsNR = map[string]BandNR{
 		384000,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35, 40},
+			30: {10, 15, 20, 25, 30, 35, 40},
+			60: {10, 15, 20, 25, 30, 35, 40},
+		},
+	},
 	"n99": {
 		"n99",
 		1626.5,
@@ -925,9 +1086,12 @@ var BandsNR = map[string]BandNR{
 		332100,
 		0,
 		0,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {10},
+		},
+	},
 	"n100": {
 		"n100",
 		874.4,
@@ -939,9 +1103,12 @@ var BandsNR = map[string]BandNR{
 		176000,
 		183880,
 		185000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {3, 5},
+			30: {},
+			60: {},
+		},
+	},
 	"n101": {
 		"n101",
 		1900,
@@ -953,9 +1120,12 @@ var BandsNR = map[string]BandNR{
 		382000,
 		380000,
 		382000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10},
+			30: {10},
+			60: {},
+		},
+	},
 	"n102": {
 		"n102",
 		5925,
@@ -967,9 +1137,12 @@ var BandsNR = map[string]BandNR{
 		828333,
 		795000,
 		828333,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {20, 40},
+			30: {20, 40, 60, 80, 100},
+			60: {20, 40, 60, 80, 100},
+		},
+	},
 	"n104": {
 		"n104",
 		6425,
@@ -981,9 +1154,12 @@ var BandsNR = map[string]BandNR{
 		875000,
 		828334,
 		875000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {20, 30, 40, 50},
+			30: {20, 30, 40, 50, 60, 70, 80, 90, 100},
+			60: {20, 30, 40, 50, 60, 70, 80, 90, 100},
+		},
+	},
 	"n105": {
 		"n105",
 		663,
@@ -995,9 +1171,12 @@ var BandsNR = map[string]BandNR{
 		140600,
 		122400,
 		130400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 35},
+			30: {10, 15, 20, 25, 30, 35},
+			60: {},
+		},
+	},
 	"n106": {
 		"n106",
 		896,
@@ -1009,9 +1188,12 @@ var BandsNR = map[string]BandNR{
 		180200,
 		187000,
 		188000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {3},
+			30: {},
+			60: {},
+		},
+	},
 	"n109": {
 		"n109",
 		703,
@@ -1023,9 +1205,12 @@ var BandsNR = map[string]BandNR{
 		146600,
 		286400,
 		303400,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20, 25, 30, 40, 50},
+			30: {10, 15, 20, 25, 30, 40, 50},
+			60: {},
+		},
+	},
 	"n256": {
 		"n256",
 		1980,
@@ -1037,9 +1222,12 @@ var BandsNR = map[string]BandNR{
 		402000,
 		434000,
 		440000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {10, 15, 20},
+		},
+	},
 	"n255": {
 		"n255",
 		1626.5,
@@ -1051,9 +1239,12 @@ var BandsNR = map[string]BandNR{
 		332100,
 		305000,
 		311800,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
-
+		map[int][]int{
+			15: {5, 10, 15, 20},
+			30: {10, 15, 20},
+			60: {10, 15, 20},
+		},
+	},
 	"n254": {
 		"n254",
 		1610,
@@ -1065,8 +1256,12 @@ var BandsNR = map[string]BandNR{
 		325300,
 		496700,
 		500000,
-		map[int][]int{15: append(ChannelBWByFR[FR1][1:6],
-			ChannelBWByFR[FR1][8:10]...)}},
+		map[int][]int{
+			15: {5, 10, 15},
+			30: {10, 15},
+			60: {10, 15},
+		},
+	},
 }
 
 // type SCSInfo struct {
@@ -1390,4 +1585,18 @@ func roundToNearestChannelBW(fr string, chBw int) int {
 		}
 	}
 	return int(math.Round(float64(chBw)/roundFactor) * roundFactor)
+}
+
+type OHKey struct {
+	FR        string
+	Direction string
+}
+
+// 3GPP TS 38.306
+// 4.1.2 Supported max data rate for DL/UL
+var OH = map[OHKey]float64{
+	{FR1, DL}: 0.14,
+	{FR2, DL}: 0.18,
+	{FR1, UL}: 0.08,
+	{FR2, UL}: 0.10,
 }

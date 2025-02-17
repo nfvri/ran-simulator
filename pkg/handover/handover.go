@@ -5,7 +5,6 @@
 package handover
 
 import (
-	"os"
 	"reflect"
 	"strconv"
 
@@ -165,10 +164,6 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 	e.Model.ServiceMappings.Lock()
 	defer e.Model.ServiceMappings.Unlock()
 
-	if len(servCellNCGIs) == 0 {
-		log.Error("DIE!")
-		os.Exit(1)
-	}
 	releasedBwps := bw.ReleaseBW(stoppedServingCells, ue)
 	e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
 	e.ComputeCellMetricsFor(ue)
@@ -236,7 +231,11 @@ func (e *DefaultHOExecutor) ComputeCellMetricsFor(ue *model.UE) {
 		servCell.Rsrq = signal.RSRQ(servCell.Sinr, servCell.AvailPrbsDl)
 	}
 
-	ue.FiveQi = signal.GetCQI(ue.ServingCells[0].Sinr)
+	if len(ue.ServingCells) > 0 {
+		ue.FiveQi = signal.GetCQI(ue.ServingCells[0].Sinr)
+	} else {
+		ue.FiveQi = 1
+	}
 
 	for c := range ue.NeighborCells {
 		neighCell := ue.NeighborCells[c]

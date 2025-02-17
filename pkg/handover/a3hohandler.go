@@ -54,7 +54,7 @@ func (h *A3HandoverHandler) Run() {
 }
 
 func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
-	logrus.Info("[rankTargetCellsByRSRP]...")
+
 	bestRSRPsByNCGI := map[types.NCGI]float64{}
 
 	for _, ueSCell := range ue.ServingCells {
@@ -88,12 +88,13 @@ func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
 		return bestRSRPsByNCGI[rankedNCGIs[i]] > bestRSRPsByNCGI[rankedNCGIs[j]]
 	})
 
+	logrus.Infof("ue: %v | rankTargetCellsByRSRP -> rankedNCGIs: %v", ue.IMSI, rankedNCGIs)
 	return rankedNCGIs
 }
 
 func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.NCGI) ([]types.NCGI, bw.CAScheme) {
 
-	logrus.Info("[selectTargetCells]...")
+	logrus.Infof("ue: %v | selectTargetCells", ue.IMSI)
 
 	if len(rankedNCGIs) == 0 {
 		return rankedNCGIs, bw.CAScheme{}
@@ -103,9 +104,10 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	for _, ueSCell := range ue.ServingCells {
 		ncgiStr := strconv.FormatUint(uint64(ueSCell.NCGI), 10)
 		cell := h.model.Cells[ncgiStr]
-		// TODO: loop
-		if maxChannelBwDL < cell.Carriers[0].BsChannelBwDL {
-			maxChannelBwDL = cell.Carriers[0].BsChannelBwDL
+		for c := range cell.Carriers {
+			if maxChannelBwDL < cell.Carriers[c].BsChannelBwDL {
+				maxChannelBwDL = cell.Carriers[c].BsChannelBwDL
+			}
 		}
 	}
 
@@ -139,7 +141,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	// 	servedUEs := h.model.GetServedUEs(cell.NCGI)
 	// 	cellAvailPrbsUL, cellAvailPrbsDL, err := bw.GetCellAvailPRBs(cell, servedUEs, &ue)
 	// 	logrus.Infof(
-	// 		`ue:%v,
+	// 		`ue: %v |
 	// 		ueRequiredPRBsUL:%v vs cellAvailPrbsUL:%v,
 	// 		ueRequiredPRBsDL:%v vs cellAvailPrbsDL:%v`,
 	// 		ue.IMSI,
@@ -156,16 +158,17 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	// 	}
 	// }
 
-	logrus.Infof("ue:%v, attempting ccSchedulingCells: %+v", ue.IMSI, ccSchedulingCells)
+	logrus.Infof("ue: %v | attempting ccSchedulingCells: %+v", ue.IMSI, ccSchedulingCells)
 
 	validCACombinations, cellsByEUTRABand, cellsByNRBand := bw.GetValidCABandCombinations(ue, h.cas, ccSchedulingCells, ue.SupportedBandCombinations)
 
-	logrus.Infof("ue:%v, validCACombinations: %+v", ue.IMSI, validCACombinations)
+	logrus.Infof("ue: %v | validCACombinations: %+v", ue.IMSI, validCACombinations)
 	feasibleCASchemes := bw.GetFeasibleCASchemes(validCACombinations, cellsByEUTRABand, cellsByNRBand, h.model, &ue)
-	logrus.Infof("ue:%v, feasibleCASchemes: %+v", ue.IMSI, feasibleCASchemes)
+	logrus.Infof("ue: %v | feasibleCASchemes: %+v", ue.IMSI, feasibleCASchemes)
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 
 	if !anyFeasibleCAScheme {
+		logrus.Infof("ue: %v | no feasible CA scheme found", ue.IMSI)
 		return rankedNCGIs, bw.CAScheme{}
 	}
 

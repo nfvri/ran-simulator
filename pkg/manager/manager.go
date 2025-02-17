@@ -296,10 +296,15 @@ func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, sumUse
 		bwUtilizationUL = float64(sumUsedPRBsUL) / float64(availPRBsUL)
 	}
 
-	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationDL)
-	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC, 100*bwUtilizationUL)
-	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC, bwUtilizationDL*float64(availBWDL))
-	m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC, bwUtilizationUL*float64(availBWUL))
+	bwUtilStats := map[string]any{
+		bw.TOT_BW_USAGE_DL_METRIC: 100 * bwUtilizationDL,
+		bw.TOT_BW_USAGE_UL_METRIC: 100 * bwUtilizationUL,
+		bw.USED_BW_DL_METRIC:      bwUtilizationDL * float64(availBWDL),
+		bw.USED_BW_UL_METRIC:      bwUtilizationUL * float64(availBWUL),
+	}
+
+	m.storeStats(ctx, uint64(cell.NCGI), bwUtilStats)
+
 }
 
 func (m *Manager) computeCellStatistics(ctx context.Context) {
@@ -312,6 +317,7 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 	prbsUsedULPerCQI := map[int]int{}
 
 	for _, cell := range m.model.Cells {
+
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 		prbsUsedDl := 0
 		bwUsedDl := 0
@@ -324,20 +330,16 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 		}
 
 		for _, ue := range servedUEs {
-
 			if _, ok := prbsUsedDLPerCQI[ue.FiveQi]; !ok {
 				prbsUsedDLPerCQI[ue.FiveQi] = 0
 			}
 			if _, ok := prbsUsedULPerCQI[ue.FiveQi]; !ok {
 				prbsUsedULPerCQI[ue.FiveQi] = 0
 			}
-
 			if ue.RrcState == e2smmho.Rrcstatus_RRCSTATUS_CONNECTED {
 				activeUEs++
 			}
 
-			// TODO: calculate metric per cell.
-			// collect bwps of each cell separately
 			for sCellIndex := range ue.ServingCells {
 				sCell := ue.ServingCells[sCellIndex]
 				if sCell.NCGI == cell.NCGI {
@@ -362,39 +364,12 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 		totalPrbsTotalDl += prbsUsedDl
 		totalPrbsTotalUl += prbsUsedUl
 
-		// iBwUtilizationDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC)
-		// prevBwUtilizationDL := iBwUtilizationDL.(float64)
-		// iBwUtilizationUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC)
-		// prevBwUtilizationUL := iBwUtilizationUL.(float64)
-
-		// iUsedBWDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC)
-		// prevUsedBWDL := iUsedBWDL.(float64)
-		// iUsedBWUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC)
-		// prevUsedBWUL := iUsedBWUL.(float64)
-
-		// logrus.Info("======================================")
-		// logrus.Infof("ncgi: %v", cell.NCGI)
-		// logrus.Infof("prevBwUtilizationDL: %v", prevBwUtilizationDL)
-		// logrus.Infof("prevBwUtilizationUL: %v", prevBwUtilizationUL)
-		// logrus.Infof("prevUsedBWDL: %.f", prevUsedBWDL)
-		// logrus.Infof("prevUsedBWUL: %.f", prevUsedBWUL)
-		// logrus.Info("----------------------------------------")
-
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_PRBS_DL_METRIC, prbsUsedDl)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_PRBS_UL_METRIC, prbsUsedUl)
-		for cqi, prbsDl := range prbsUsedDLPerCQI {
-			m.metricsStore.Set(ctx, uint64(cell.NCGI), fmt.Sprintf(bw.USED_PRBS_DL_METRIC+".%d", cqi), prbsDl)
-		}
-		for cqi, prbsUl := range prbsUsedULPerCQI {
-			m.metricsStore.Set(ctx, uint64(cell.NCGI), fmt.Sprintf(bw.USED_PRBS_UL_METRIC+".%d", cqi), prbsUl)
-		}
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_DL_METRIC, activeUEs)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_UL_METRIC, activeUEs)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_DL_METRIC, statistics.UEThp(prbsUsedDl, len(servedUEs)))
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.UE_THP_UL_METRIC, statistics.UEThp(prbsUsedUl, len(servedUEs)))
+		m.logBWUtilization(ctx, cell)
 
 		totalBWDL := 0.0
 		totalBWUL := 0.0
+		// TODO:
+		// statistics.CalculateThroughputMbps()
 		for _, carrier := range cell.Carriers {
 			totalBWDL += bw.MHzToHz(float64(carrier.BsChannelBwDL))
 			totalBWUL += bw.MHzToHz(float64(carrier.BsChannelBwUL))
@@ -405,25 +380,75 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 
 		bwUtilizationDL := float64(bwUsedDl) / float64(availBWDL)
 		bwUtilizationUL := float64(bwUsedUl) / float64(availBWUL)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationDL)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC, 100*bwUtilizationUL)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC, bwUsedDl)
-		m.metricsStore.Set(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC, bwUsedUl)
 
-		// logrus.Infof("BwUtilizationDL: %v", 100*bwUtilizationDL)
-		// logrus.Infof("BwUtilizationUL: %v", 100*bwUtilizationUL)
-		// logrus.Infof("usedBWDL: %.f", float64(bwUsedDl))
-		// logrus.Infof("usedBWUL: %.f", float64(bwUsedUl))
-		// logrus.Infof("availBWDL: %.f", float64(availBWDL))
-		// logrus.Infof("availBWUL: %.f", float64(availBWUL))
-		// logrus.Info("======================================\n")
+		cellStats := map[string]any{
+			bw.USED_PRBS_DL_METRIC:    prbsUsedDl,
+			bw.USED_PRBS_UL_METRIC:    prbsUsedUl,
+			bw.ACTIVE_UES_DL_METRIC:   activeUEs,
+			bw.ACTIVE_UES_UL_METRIC:   activeUEs,
+			bw.UE_THP_DL_METRIC:       statistics.UEThp(prbsUsedDl, len(servedUEs)),
+			bw.UE_THP_UL_METRIC:       statistics.UEThp(prbsUsedUl, len(servedUEs)),
+			bw.TOT_BW_USAGE_DL_METRIC: 100 * bwUtilizationDL,
+			bw.TOT_BW_USAGE_UL_METRIC: 100 * bwUtilizationUL,
+			bw.USED_BW_DL_METRIC:      bwUsedDl,
+			bw.USED_BW_UL_METRIC:      bwUsedUl,
+		}
+
+		for cqi, prbsDl := range prbsUsedDLPerCQI {
+			cellStats[fmt.Sprintf(bw.USED_PRBS_DL_METRIC+".%d", cqi)] = prbsDl
+		}
+		for cqi, prbsUl := range prbsUsedULPerCQI {
+			cellStats[fmt.Sprintf(bw.USED_PRBS_UL_METRIC+".%d", cqi)] = prbsUl
+		}
+
+		m.storeStats(ctx, uint64(cell.NCGI), cellStats)
+
+		logrus.Infof("BwUtilizationDL: %v", 100*bwUtilizationDL)
+		logrus.Infof("BwUtilizationUL: %v", 100*bwUtilizationUL)
+		logrus.Infof("usedBWDL: %.f", float64(bwUsedDl))
+		logrus.Infof("usedBWUL: %.f", float64(bwUsedUl))
+		logrus.Infof("availBWDL: %.f", float64(availBWDL))
+		logrus.Infof("availBWUL: %.f", float64(availBWUL))
+		logrus.Info("======================================\n")
 	}
 
-	m.metricsStore.Set(ctx, uint64(1), "SUBNET_RRU.PrbTotDl", totalPrbsTotalDl)
-	m.metricsStore.Set(ctx, uint64(1), "SUBNET_RRU.PrbTotUl", totalPrbsTotalUl)
-	m.metricsStore.Set(ctx, uint64(1), "SUBNET_AVG_DRB.UEThpDl", statistics.UEThp(totalPrbsTotalDl, totalactiveUEs))
-	m.metricsStore.Set(ctx, uint64(1), "SUBNET_AVG_DRB.UEThpUl", statistics.UEThp(totalPrbsTotalUl, totalactiveUEs))
-	m.metricsStore.Set(ctx, uint64(1), "SUBNET_DRB.MeanActiveUeDl", totalactiveUEs)
+	subnetStats := map[string]any{
+		"SUBNET_RRU.PrbTotDl":       totalPrbsTotalDl,
+		"SUBNET_RRU.PrbTotUl":       totalPrbsTotalUl,
+		"SUBNET_AVG_DRB.UEThpDl":    statistics.UEThp(totalPrbsTotalDl, totalactiveUEs),
+		"SUBNET_AVG_DRB.UEThpUl":    statistics.UEThp(totalPrbsTotalUl, totalactiveUEs),
+		"SUBNET_DRB.MeanActiveUeDl": totalactiveUEs,
+	}
+
+	m.storeStats(ctx, uint64(1), subnetStats)
+
+}
+
+func (m *Manager) logBWUtilization(ctx context.Context, cell *model.Cell) {
+	// FIXME: nil iBwUtilizationDL/iBwUtilizationUL
+	iBwUtilizationDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC)
+	prevBwUtilizationDL := iBwUtilizationDL.(float64)
+	iBwUtilizationUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC)
+	prevBwUtilizationUL := iBwUtilizationUL.(float64)
+
+	iUsedBWDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC)
+	prevUsedBWDL := iUsedBWDL.(float64)
+	iUsedBWUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC)
+	prevUsedBWUL := iUsedBWUL.(float64)
+
+	logrus.Info("======================================")
+	logrus.Infof("ncgi: %v", cell.NCGI)
+	logrus.Infof("prevBwUtilizationDL: %v", prevBwUtilizationDL)
+	logrus.Infof("prevBwUtilizationUL: %v", prevBwUtilizationUL)
+	logrus.Infof("prevUsedBWDL: %.f", prevUsedBWDL)
+	logrus.Infof("prevUsedBWUL: %.f", prevUsedBWUL)
+	logrus.Info("----------------------------------------")
+}
+
+func (m *Manager) storeStats(ctx context.Context, entityID uint64, stats map[string]any) {
+	for k, v := range stats {
+		m.metricsStore.Set(ctx, entityID, k, v)
+	}
 }
 
 // startSouthboundServer starts the northbound gRPC server

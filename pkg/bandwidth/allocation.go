@@ -67,9 +67,14 @@ func (s *ProportionalFair) apply() {
 	if len(s.ScsOptionsHz) == 0 {
 		pcc := s.Cell.Carriers[0]
 		arfcn := utils.If(pcc.ArfcnDL > 0, pcc.ArfcnDL, pcc.ArfcnUL)
+		direction := utils.If(pcc.ArfcnDL > 0, DL, UL)
 		fr := GetFR(float64(arfcn))
+		band, _ := GetBandNR(arfcn, direction)
 		s.ScsOptionsHz = SupportedSCSByFR[fr]
-		log.Infof("fr: %s, arfcnDL:%v, arfcnUL:%v, scs:%v", fr, pcc.ArfcnDL, pcc.ArfcnUL, s.ScsOptionsHz)
+		log.Infof(
+			`fr: %s, band: %s, arfcnDL:%v, arfcnUL:%v, scs:%v`,
+			fr, band.Name, pcc.ArfcnDL, pcc.ArfcnUL, s.ScsOptionsHz,
+		)
 	}
 
 	totalBWDL := 0.0
@@ -134,9 +139,10 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 
 	for index := range s.ServedUEs {
 		ue := s.ServedUEs[index]
-		//TODO: clear all serving cells?
-		ue.ServingCells[0].BwpRefs = []*model.Bwp{}
+		ueCell, _ := ue.GetServingCell(s.Cell.NCGI)
+		ueCell.BwpRefs = []*model.Bwp{}
 	}
+
 	s.Cell.Bwps = map[uint64]*model.Bwp{}
 
 	sumCQIs := 0.0

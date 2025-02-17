@@ -762,12 +762,12 @@ func GetValidCABandCombinations(
 		for _, bandCombo := range ctsi.SupportedBandCombinations {
 			bcEnc := ""
 			comboBands := []string{}
-			logrus.Infof("ue: %v, bandCombo.CombinedBandsInfo: %+v", ue.IMSI, bandCombo.CombinedBandsInfo)
+			logrus.Infof("ue: %v | bandCombo.CombinedBandsInfo: %+v", ue.IMSI, bandCombo.CombinedBandsInfo)
 			for bi := range bandCombo.CombinedBandsInfo {
 				comboBands = append(comboBands, bandCombo.CombinedBandsInfo[bi].Band)
 			}
 			comboBands = SortBands(ct, comboBands)
-			logrus.Infof("ue: %v, comboBands: %+v", ue.IMSI, comboBands)
+			logrus.Infof("ue: %v | comboBands: %+v", ue.IMSI, comboBands)
 			for _, band := range comboBands {
 				bcEnc += band + "_"
 			}
@@ -775,12 +775,12 @@ func GetValidCABandCombinations(
 				continue
 			}
 			bcEnc = bcEnc[:len(bcEnc)-1]
-			logrus.Infof("ue: %v, bcEnc: %v", ue.IMSI, bcEnc)
+			logrus.Infof("ue: %v | bcEnc: %v", ue.IMSI, bcEnc)
 			supportedCACombosByConnType[ct] = append(supportedCACombosByConnType[ct], bcEnc)
 		}
 	}
 
-	logrus.Infof("ue: %v, supportedCACombosByConnType: %+v", ue.IMSI, supportedCACombosByConnType)
+	logrus.Infof("ue: %v | supportedCACombosByConnType: %+v", ue.IMSI, supportedCACombosByConnType)
 
 	validCABandCombos = map[model.ConnectivityType][][]string{}
 	cellsByNRBand = make(map[string][]*model.Cell)
@@ -816,15 +816,15 @@ func GetValidCABandCombinations(
 
 	}
 
-	logrus.Infof("ue: %v, cellsByNRBand: %+v", ue.IMSI, cellsByNRBand)
-	logrus.Infof("ue: %v, cellsByEUTRABand: %+v", ue.IMSI, cellsByEUTRABand)
+	logrus.Infof("ue: %v | cellsByNRBand: %+v", ue.IMSI, cellsByNRBand)
+	logrus.Infof("ue: %v | cellsByEUTRABand: %+v", ue.IMSI, cellsByEUTRABand)
 
 	targetBands := map[model.ConnectivityType][]string{
 		model.EUTRA: mapset.NewSet(maps.Keys(cellsByEUTRABand)...).ToSlice(),
 		model.NR:    mapset.NewSet(maps.Keys(cellsByNRBand)...).ToSlice(),
 	}
 
-	logrus.Infof("ue: %v, targetBands: %+v", ue.IMSI, targetBands)
+	logrus.Infof("ue: %v | targetBands: %+v", ue.IMSI, targetBands)
 	logrus.Info("\n========================================================================\n")
 	for ct := range connectionSupportInfo {
 		allBandCombos := allBandCombinations(SortBands(ct, targetBands[ct]))
@@ -859,7 +859,6 @@ func SortBands(connType model.ConnectivityType, bands []string) []string {
 }
 
 func allBandCombinations(sortedBandsNR []string) []string {
-	logrus.Info("[GetCABandCombinations]...")
 	var combinations []string
 	queue := []string{}
 
@@ -911,7 +910,7 @@ func GetFeasibleCASchemes(
 	ranModel *model.Model,
 	ue *model.UE) []CAScheme {
 
-	logrus.Info("[GetFeasibleCASchemes]...")
+	logrus.Infof("ue: %v | GetFeasibleCASchemes", ue.IMSI)
 	ueRequiredPRBsDL, ueRequiredPRBsUL := CurrPRBsUsed(ue)
 
 	maxPRBsDL := 0
@@ -998,7 +997,6 @@ func ChooseReallocCells(bandComboCells []*model.Cell, availPRBsPerCell map[types
 	dynamicReallocationSet = make([]*model.Cell, 0)
 
 	for _, cell := range bandComboCells {
-		// TODO: for loop on carriers
 		pcc := cell.Carriers[0]
 		arfcn := utils.If(pcc.ArfcnDL > 0, pcc.ArfcnDL, pcc.ArfcnUL)
 		direction := utils.If(pcc.ArfcnDL > 0, DL, UL)
@@ -1076,8 +1074,16 @@ func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (in
 	arfcn := utils.If(pcc.ArfcnDL > 0, float64(pcc.ArfcnDL), float64(pcc.ArfcnUL))
 	fr := GetFR(arfcn)
 	scs := NrSCSByCQIPerFR[fr][ue.FiveQi]
-	cellAvailBwDL := MHzToHz(float64(pcc.BsChannelBwDL)) - usedBWDL
-	cellAvailBwUL := MHzToHz(float64(pcc.BsChannelBwUL)) - usedBWUL
+
+	totalBWDL := 0.0
+	totalBWUL := 0.0
+	for _, carrier := range cell.Carriers {
+		totalBWDL += MHzToHz(float64(carrier.BsChannelBwDL))
+		totalBWUL += MHzToHz(float64(carrier.BsChannelBwUL))
+	}
+
+	cellAvailBwDL := MHzToHz(totalBWDL) - usedBWDL
+	cellAvailBwUL := MHzToHz(totalBWUL) - usedBWUL
 
 	cellAvailPrbsUL := GetPRBs(uint32(HzToMHz(cellAvailBwUL)), scs, fr)
 	cellAvailPrbsDL := GetPRBs(uint32(HzToMHz(cellAvailBwDL)), scs, fr)

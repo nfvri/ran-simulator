@@ -27,26 +27,17 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 	numUEsPerCQIByCell := bw.GetNumUEsPerCQIByCell(numUEsByCell)
 	usedPRBsDLPerCQIByCell, usedPRBsULPerCQIByCell := bw.GetUsedPRBsPerCQIByCell(prbMeasPerCell, numUEsPerCQIByCell)
 
-	for sCellNCGI, numUEsPerCQI := range numUEsPerCQIByCell {
-		log.Infof("Cell: %v -- numUEsPerCQI: %v\n\n", sCellNCGI, numUEsPerCQI)
-	}
-	for sCellNCGI, prbMeas := range prbMeasPerCell {
-		log.Infof("Cell: %v -- prbMeas: %v\n\n", sCellNCGI, prbMeas)
-	}
-
-	for sCellNCGI, usedPRBsDL := range usedPRBsDLPerCQIByCell {
+	for _, usedPRBsDL := range usedPRBsDLPerCQIByCell {
 		sum := 0
 		for _, numPRBs := range usedPRBsDL {
 			sum += numPRBs
 		}
-		log.Infof("Cell: %v -- usedPrbsDl: %v", sCellNCGI, sum)
 	}
-	for sCellNCGI, usedPRBsUL := range usedPRBsULPerCQIByCell {
+	for _, usedPRBsUL := range usedPRBsULPerCQIByCell {
 		sum := 0
 		for _, numPRBs := range usedPRBsUL {
 			sum += numPRBs
 		}
-		log.Infof("Cell: %v -- usedPrbsUl: %v", sCellNCGI, sum)
 	}
 	ues := map[string]*model.UE{}
 	cellServedUEs := []*model.UE{}
@@ -125,6 +116,11 @@ func GenerateUEsBasedOnBeamQS(sCell *model.Cell, cells map[string]*model.Cell, n
 				ueRSRP := ueRSRPs[i]
 				ueLocation := ueLocations[i]
 				ueNeighbors := InitUeNeighbors(ueLocation, servCell, beamQs.BeamID, cells, ueHeight, prbMeasPerCell)
+				nNCGIs := []types.NCGI{}
+				for _, neigh := range ueNeighbors {
+					nNCGIs = append(nNCGIs, neigh.NCGI)
+				}
+				log.Infof("\n\n\n++++++++\n\n\nneighbors: %v\n\n+++++\n\n", nNCGIs)
 				totalPrbsDl := prbMeasPerCell[uint64(sCell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
 				ueRSRQ := math.Round(signal.RSRQ(ueSINR, totalPrbsDl)*100) / 100
 
@@ -222,36 +218,38 @@ func CreateSimulationUE(ncgi uint64, beamQS model.BeamQS, counter, totalPrbsDl i
 }
 
 func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, beamID model.BeamID, cells map[string]*model.Cell, ueHeight float64, prbMeasPerCell map[uint64]map[string]int) []*model.UECell {
+	ueNeighCellNCGIs := mapset.NewSet[types.NCGI]()
 	ueNeighbors := []*model.UECell{}
 
 	interferingBeamIDs, neighborCells := signal.GetInterferingBeams(point, sCell, beamID, cells)
 
 	for _, nBeamID := range interferingBeamIDs {
 		nCell, ok := neighborCells[nBeamID.NCGI]
-		if !ok {
+		if !ok || ueNeighCellNCGIs.Contains(nCell.NCGI) {
 			continue
 		}
 		nCarrier := nCell.GetCarrier(nBeamID)
 
-		if signal.IsPointInsideBoundingBox(point, nCell.BoundingBoxes[nBeamID]) {
+		// FIXME: already checked by GetInterferingBeams?
+		// if signal.IsPointInsideBoundingBox(point, nCell.BoundingBoxes[nBeamID]) {
 
-			mpf := signal.RiceanFading(signal.GetRiceanK(nCarrier))
-			interfBeamIDs, interfCells := signal.GetInterferingBeams(point, nCell, nBeamID, cells)
-			rsrp := signal.Strength(point, ueHeight, mpf, nCell, nBeamID)
-			sinr := signal.Sinr(point, ueHeight, nCell, nBeamID, interfBeamIDs, interfCells)
-			rsrq := signal.RSRQ(sinr, 24)
+		mpf := signal.RiceanFading(signal.GetRiceanK(nCarrier))
+		interfBeamIDs, interfCells := signal.GetInterferingBeams(point, nCell, nBeamID, cells)
+		rsrp := signal.Strength(point, ueHeight, mpf, nCell, nBeamID)
+		sinr := signal.Sinr(point, ueHeight, nCell, nBeamID, interfBeamIDs, interfCells)
+		rsrq := signal.RSRQ(sinr, 24)
 
-			ueCell := &model.UECell{
-				ID:          types.GnbID(nBeamID.NCGI),
-				NCGI:        nBeamID.NCGI,
-				BeamID:      nBeamID,
-				Rsrp:        math.Round(rsrp*100) / 100,
-				Rsrq:        math.Round(rsrq*100) / 100,
-				Sinr:        math.Round(sinr*100) / 100,
-				AvailPrbsDl: prbMeasPerCell[uint64(nBeamID.NCGI)][bw.AVAIL_PRBS_DL_METRIC],
-			}
-			ueNeighbors = append(ueNeighbors, ueCell)
+		ueCell := &model.UECell{
+			NCGI:        nBeamID.NCGI,
+			BeamID:      nBeamID,
+			Rsrp:        math.Round(rsrp*100) / 100,
+			Rsrq:        math.Round(rsrq*100) / 100,
+			Sinr:        math.Round(sinr*100) / 100,
+			AvailPrbsDl: prbMeasPerCell[uint64(nBeamID.NCGI)][bw.AVAIL_PRBS_DL_METRIC],
 		}
+		ueNeighbors = append(ueNeighbors, ueCell)
+		ueNeighCellNCGIs.Add(nCell.NCGI)
+		// }
 	}
 
 	return ueNeighbors

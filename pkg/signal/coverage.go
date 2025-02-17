@@ -62,8 +62,6 @@ func GetRandGuessesChanUEs(cell *model.Cell, beamID model.BeamID, numGuesses, cq
 	step := utils.MetersToLatDegrees(float64(stepMeters))
 	cutOffDistance := utils.MetersToLatDegrees(5000)
 	bb := cell.BoundingBoxes[beamID]
-	log.Infof("cell.BoundingBoxes: %+v\n", cell.BoundingBoxes)
-	log.Infof("bb: %+v, beamID: %v", bb, beamID)
 	latScalingFactor := utils.DegreesToMeters(bb.MaxLat-bb.MinLat) * 0.01
 	lngScalingFactor := utils.DegreesToMeters(bb.MaxLng-bb.MinLng) * 0.01
 

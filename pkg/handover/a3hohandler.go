@@ -117,7 +117,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 		return []types.NCGI{rankedNCGIs[0]}, bw.CAScheme{}
 	}
 
-	logrus.Infof("ue %v supports CA! ", ue.IMSI)
+	logrus.Infof("ue: %v | supports CA!", ue.IMSI)
 
 	ccSchedulingCells := []*model.Cell{}
 	selfSchedulingCells := []*model.Cell{}
@@ -158,17 +158,30 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	// 	}
 	// }
 
+	// Check Bands for CA
 	logrus.Infof("ue: %v | attempting ccSchedulingCells: %+v", ue.IMSI, ccSchedulingCells)
+	supportedCACombos, cellsByEUTRABand, cellsByNRBand := bw.FindSupportedCACombos(&ue, h.cas, ccSchedulingCells)
+	logrus.Infof("ue: %v | validCACombinations: %+v", ue.IMSI, supportedCACombos)
+	anyValidBandCombo := false
+	for ct := range supportedCACombos {
+		anyValidBandCombo = len(supportedCACombos[ct]) > 0
+		if anyValidBandCombo {
+			break
+		}
+	}
 
-	validCACombinations, cellsByEUTRABand, cellsByNRBand := bw.GetValidCABandCombinations(ue, h.cas, ccSchedulingCells, ue.SupportedBandCombinations)
+	if !anyValidBandCombo {
+		return []types.NCGI{rankedNCGIs[0]}, bw.CAScheme{}
+	}
 
-	logrus.Infof("ue: %v | validCACombinations: %+v", ue.IMSI, validCACombinations)
-	feasibleCASchemes := bw.GetFeasibleCASchemes(validCACombinations, cellsByEUTRABand, cellsByNRBand, h.model, &ue)
+	// Check available BW for CA
+	feasibleCASchemes := bw.GetFeasibleCASchemes(supportedCACombos, cellsByEUTRABand, cellsByNRBand, h.model, &ue)
 	logrus.Infof("ue: %v | feasibleCASchemes: %+v", ue.IMSI, feasibleCASchemes)
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 
 	if !anyFeasibleCAScheme {
 		logrus.Infof("ue: %v | no feasible CA scheme found", ue.IMSI)
+		logrus.Info("\n========================================================================\n")
 		return rankedNCGIs, bw.CAScheme{}
 	}
 
@@ -181,6 +194,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	for _, c := range selectedCAScheme.ReallocCells {
 		targetCellNcgis = append(targetCellNcgis, c.NCGI)
 	}
+	logrus.Info("\n========================================================================\n")
 
 	return targetCellNcgis, selectedCAScheme
 }

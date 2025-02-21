@@ -188,8 +188,17 @@ func If[T any](cond bool, vtrue, vfalse T) T {
 	return vfalse
 }
 
-// TODO: Determine if it's necessary to track which specific cell carrier is a neighbor.
-func GetNeighborCells(cell *model.Cell, cells map[string]*model.Cell) map[types.NCGI]*model.Cell {
+type neighRelation struct{}
+
+var By struct {
+	Freq           neighRelation
+	Location       neighRelation
+	FreqOrLocation neighRelation
+}
+
+func GetNeighborCells(cell *model.Cell, cells map[string]*model.Cell, rel neighRelation) map[types.NCGI]*model.Cell {
+	// TODO: make configurable based on cell type?
+	const maxDistance = 500.0
 
 	neighborCells := map[types.NCGI]*model.Cell{}
 	for _, ncgi := range cell.Neighbors {
@@ -197,14 +206,37 @@ func GetNeighborCells(cell *model.Cell, cells map[string]*model.Cell) map[types.
 		if !ok {
 			continue
 		}
-		for nCellcarriedIndex := range nCell.Carriers {
-			for carriedIndex := range cell.Carriers {
-				if nCell.Carriers[nCellcarriedIndex].ArfcnDL == cell.Carriers[carriedIndex].ArfcnDL {
-					neighborCells[ncgi] = nCell
+
+		switch rel {
+		case By.Freq:
+			for _, nCarrier := range nCell.Carriers {
+				for _, carrier := range cell.Carriers {
+					if nCarrier.ArfcnDL == carrier.ArfcnDL {
+						neighborCells[ncgi] = nCell
+						break
+					}
+				}
+			}
+		case By.Location:
+			for _, nCarrier := range nCell.Carriers {
+				for _, carrier := range cell.Carriers {
+					distance := GetSphericalDistance(nCarrier.Center, carrier.Center)
+					if distance <= maxDistance {
+						neighborCells[ncgi] = nCell
+						break
+					}
+				}
+			}
+		case By.FreqOrLocation:
+			for _, nCarrier := range nCell.Carriers {
+				for _, carrier := range cell.Carriers {
+					if nCarrier.ArfcnDL == carrier.ArfcnDL || GetSphericalDistance(nCarrier.Center, carrier.Center) <= maxDistance {
+						neighborCells[ncgi] = nCell
+						break
+					}
 				}
 			}
 		}
-
 	}
 	return neighborCells
 }

@@ -448,6 +448,7 @@ type UE struct {
 	FiveQi                    int                                       `mapstructure:"fiveQi" yaml:"fiveQi" json:"fiveQi"`
 	ServingCells              []*UECell                                 `mapstructure:"servingCells" yaml:"servingCells" json:"servingCells"`
 	NeighborCells             []*UECell                                 `mapstructure:"neighborCells" yaml:"neighborCells" json:"neighborCells"`
+	InterferingBeams          []*UECell                                 `mapstructure:"interferingBeams" yaml:"interferingBeams" json:"interferingBeams"`
 	CRNTI                     types.CRNTI                               `mapstructure:"CRNTI" yaml:"CRNTI" json:"CRNTI"`
 	Height                    float64                                   `mapstructure:"height" yaml:"height" json:"height"`
 	IsAdmitted                bool                                      `mapstructure:"isAdmitted" yaml:"isAdmitted" json:"isAdmitted"`

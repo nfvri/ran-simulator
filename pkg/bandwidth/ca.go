@@ -750,15 +750,70 @@ func (ca *CarrierAggregatorNR) IsValidBandCombination(bandCombo string) bool {
 // https://www.sqimway.com/nr_nrdc.php
 // https://www.sqimway.com/nr_endc.php
 // https://www.sqimway.com/nr_nedc.php
-func GetValidCABandCombinations(
-	ue model.UE,
+func FindSupportedCACombos(
+	ue *model.UE,
 	carrAggregators map[model.ConnectivityType]CarrierAggregator,
-	targetCells []*model.Cell,
-	connectionSupportInfo map[model.ConnectivityType]*model.ConnTypeSupportInfo) (validCABandCombos map[model.ConnectivityType][][]string, cellsByEUTRABand, cellsByNRBand map[string][]*model.Cell) {
+	targetCells []*model.Cell) (supportedCABandCombos map[model.ConnectivityType][][]string, cellsByEUTRABand, cellsByNRBand map[string][]*model.Cell) {
 
-	supportedCACombosByConnType := map[model.ConnectivityType][]string{}
-	for ct := range connectionSupportInfo {
-		ctsi := connectionSupportInfo[ct]
+	ueSupportedCACombosByConnType := GetUESupportedCACombosByConnType(ue)
+
+	logrus.Infof("ue: %v | supportedCACombosByConnType: %+v", ue.IMSI, ueSupportedCACombosByConnType)
+
+	bandSupportInfo := GetBandSupportInfo(targetCells)
+	cellsByNRBand = bandSupportInfo[model.NR]
+	cellsByEUTRABand = bandSupportInfo[model.EUTRA]
+	logrus.Infof("ue: %v | cellsByNRBand: %+v", ue.IMSI, cellsByNRBand)
+	logrus.Infof("ue: %v | cellsByEUTRABand: %+v", ue.IMSI, cellsByEUTRABand)
+
+	validCellCABandCombosByConnType := GetValidCABandCombosByConnType(bandSupportInfo, carrAggregators)
+	supportedCABandCombos = map[model.ConnectivityType][][]string{}
+	for ct := range ueSupportedCACombosByConnType {
+		supportedCABandCombos[ct] = [][]string{}
+		validCellCABandCombos, caForConnType := validCellCABandCombosByConnType[ct]
+		if !caForConnType {
+			continue
+		}
+		for _, caBandCombo := range validCellCABandCombos {
+			isSupported := mapset.NewSet(ueSupportedCACombosByConnType[ct]...).Contains(caBandCombo)
+			if isSupported {
+				supportedCABandCombos[ct] = append(supportedCABandCombos[ct], strings.Split(caBandCombo, "_"))
+			}
+		}
+	}
+
+	return
+}
+
+// GetValidCABandCombosByConnType returns valid CA band combinations per ConnectivityType NR/EUTRA as a list of strings
+//
+//	e.g. ["n1_n77", "n70_n71_n77"]
+func GetValidCABandCombosByConnType(bandSupportInfo map[model.ConnectivityType]map[string][]*model.Cell, carrAggregators map[model.ConnectivityType]CarrierAggregator) map[model.ConnectivityType][]string {
+	targetBands := map[model.ConnectivityType][]string{
+		model.EUTRA: mapset.NewSet(maps.Keys(bandSupportInfo[model.EUTRA])...).ToSlice(),
+		model.NR:    mapset.NewSet(maps.Keys(bandSupportInfo[model.NR])...).ToSlice(),
+	}
+
+	validCellCABandCombosByConnType := map[model.ConnectivityType][]string{}
+	for ct := range bandSupportInfo {
+		validCellCABandCombosByConnType[ct] = []string{}
+		allBandCombos := AllBandCombinations(SortBands(ct, targetBands[ct]))
+		for _, caBandCombo := range allBandCombos {
+			if carrAggregators[ct].IsValidBandCombination(caBandCombo) {
+				validCellCABandCombosByConnType[ct] = append(validCellCABandCombosByConnType[ct], caBandCombo)
+			}
+		}
+	}
+	return validCellCABandCombosByConnType
+}
+
+// GetUESupportedCACombosByConnType returns UE supperted CA band combinations per ConnectivityType NR/EUTRA as a list of strings
+//
+//	e.g. ["n1_n77", "n70_n71_n77"]
+func GetUESupportedCACombosByConnType(ue *model.UE) map[model.ConnectivityType][]string {
+	ueSupportedCACombosByConnType := map[model.ConnectivityType][]string{}
+	for ct := range ue.SupportedBandCombinations {
+		ctSupportedCACombos := mapset.NewSet[string]()
+		ctsi := ue.SupportedBandCombinations[ct]
 		for _, bandCombo := range ctsi.SupportedBandCombinations {
 			bcEnc := ""
 			comboBands := []string{}
@@ -776,22 +831,31 @@ func GetValidCABandCombinations(
 			}
 			bcEnc = bcEnc[:len(bcEnc)-1]
 			logrus.Infof("ue: %v | bcEnc: %v", ue.IMSI, bcEnc)
-			supportedCACombosByConnType[ct] = append(supportedCACombosByConnType[ct], bcEnc)
+			ctSupportedCACombos.Add(bcEnc)
 		}
+		ueSupportedCACombosByConnType[ct] = ctSupportedCACombos.ToSlice()
+	}
+	return ueSupportedCACombosByConnType
+}
+
+// GetBandSupportInfo returns the supported connectivity types NR/EUTRA for the cells
+// the bands and the cells under on each band.
+//
+// It is organized as:
+//
+// ConnectivityType ───┐
+//
+//					  └── Band ───┐
+//	           		      └── Cells
+func GetBandSupportInfo(cells []*model.Cell) (bandSupportInfo map[model.ConnectivityType]map[string][]*model.Cell) {
+	bandSupportInfo = map[model.ConnectivityType]map[string][]*model.Cell{
+		model.NR:    make(map[string][]*model.Cell),
+		model.EUTRA: make(map[string][]*model.Cell),
 	}
 
-	logrus.Infof("ue: %v | supportedCACombosByConnType: %+v", ue.IMSI, supportedCACombosByConnType)
+	for cellIndex := range cells {
 
-	validCABandCombos = map[model.ConnectivityType][][]string{}
-	cellsByNRBand = make(map[string][]*model.Cell)
-	cellsByEUTRABand = make(map[string][]*model.Cell)
-
-	for cellIndex := range targetCells {
-
-		cell := targetCells[cellIndex]
-		if _, ok := validCABandCombos[model.ConnectivityType(cell.RATType)]; !ok {
-			validCABandCombos[model.ConnectivityType(cell.RATType)] = [][]string{}
-		}
+		cell := cells[cellIndex]
 
 		switch cell.RATType {
 		case model.RAT_EUTRA:
@@ -801,7 +865,7 @@ func GetValidCABandCombinations(
 			if !found {
 				continue
 			}
-			cellsByEUTRABand[cellBand.Name] = append(cellsByEUTRABand[cellBand.Name], cell)
+			bandSupportInfo[model.EUTRA][cellBand.Name] = append(bandSupportInfo[model.EUTRA][cellBand.Name], cell)
 		case model.RAT_NR:
 			arfcn := utils.If(cell.ArfcnDL > 0, cell.ArfcnDL, cell.ArfcnUL)
 			direction := utils.If(cell.ArfcnDL > 0, DL, UL)
@@ -811,31 +875,10 @@ func GetValidCABandCombinations(
 					cell.NCGI, cell.Carriers[0].ArfcnDL, cell.Carriers[0].ArfcnUL)
 				continue
 			}
-			cellsByNRBand[cellBand.Name] = append(cellsByNRBand[cellBand.Name], cell)
+			bandSupportInfo[model.NR][cellBand.Name] = append(bandSupportInfo[model.NR][cellBand.Name], cell)
 		}
 
 	}
-
-	logrus.Infof("ue: %v | cellsByNRBand: %+v", ue.IMSI, cellsByNRBand)
-	logrus.Infof("ue: %v | cellsByEUTRABand: %+v", ue.IMSI, cellsByEUTRABand)
-
-	targetBands := map[model.ConnectivityType][]string{
-		model.EUTRA: mapset.NewSet(maps.Keys(cellsByEUTRABand)...).ToSlice(),
-		model.NR:    mapset.NewSet(maps.Keys(cellsByNRBand)...).ToSlice(),
-	}
-
-	logrus.Infof("ue: %v | targetBands: %+v", ue.IMSI, targetBands)
-	logrus.Info("\n========================================================================\n")
-	for ct := range connectionSupportInfo {
-		allBandCombos := allBandCombinations(SortBands(ct, targetBands[ct]))
-		for _, caBandCombo := range allBandCombos {
-			isSupported := mapset.NewSet(supportedCACombosByConnType[ct]...).Contains(caBandCombo)
-			if isSupported && carrAggregators[ct].IsValidBandCombination(caBandCombo) {
-				validCABandCombos[ct] = append(validCABandCombos[ct], strings.Split(caBandCombo, "_"))
-			}
-		}
-	}
-
 	return
 }
 
@@ -858,7 +901,7 @@ func SortBands(connType model.ConnectivityType, bands []string) []string {
 	return bands
 }
 
-func allBandCombinations(sortedBandsNR []string) []string {
+func AllBandCombinations(sortedBandsNR []string) []string {
 	var combinations []string
 	queue := []string{}
 

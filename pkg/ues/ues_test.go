@@ -3,6 +3,7 @@ package ues
 import (
 	"testing"
 
+	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	"github.com/nfvri/ran-simulator/pkg/model"
 	"github.com/nfvri/ran-simulator/pkg/signal"
 )
@@ -18,5 +19,5 @@ func TestUpdateCells(t *testing.T) {
 		BeamID: model.BeamID{NCGI: 1234, CarrierIndex: 1, BeamIndex: 1},
 		CQI:    1,
 	}
-	CreateSimulationUE(17660905553922, beamQS, 1, numPRBs, ueHeight, sinr, rsrp, rsrq, model.Coordinate{Lat: 0.0, Lng: 0.0}, []*model.UECell{})
+	CreateSimulationUE(17660905553922, map[types.NCGI]*model.Cell{}, beamQS, 1, numPRBs, ueHeight, sinr, rsrp, rsrq, model.Coordinate{Lat: 0.0, Lng: 0.0}, []*model.UECell{}, []*model.UECell{})
 }

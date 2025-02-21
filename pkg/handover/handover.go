@@ -226,8 +226,8 @@ func (e *DefaultHOExecutor) ComputeCellMetricsFor(ue *model.UE) {
 		sCell := e.Model.Cells[strconv.FormatUint(uint64(ue.ServingCells[c].NCGI), 10)]
 		servCell := ue.ServingCells[c]
 		servCell.Rsrp = signal.RSRP(ue, sCell, servCell.BeamID)
-		iBeamIDs, nCells := signal.GetInterferingBeams(ue.Location, sCell, servCell.BeamID, e.Model.Cells)
-		servCell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, servCell.BeamID, iBeamIDs, nCells)
+		iBeamIDs, interferingCells := signal.GetInterferingBeams(ue.Location, sCell, servCell.BeamID, e.Model.Cells)
+		servCell.Sinr = signal.Sinr(ue.Location, ue.Height, sCell, servCell.BeamID, iBeamIDs, interferingCells)
 		servCell.Rsrq = signal.RSRQ(servCell.Sinr, servCell.AvailPrbsDl)
 	}
 

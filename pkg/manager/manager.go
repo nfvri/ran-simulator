@@ -309,6 +309,11 @@ func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, sumUse
 
 func (m *Manager) computeCellStatistics(ctx context.Context) {
 
+	logrus.Info(`
+	------------------------------------
+	CALCULATING STATISTICS
+	------------------------------------
+	`)
 	totalactiveUEs := 0
 	totalPrbsTotalDl := 0
 	totalPrbsTotalUl := 0
@@ -438,8 +443,8 @@ func (m *Manager) logBWUtilization(ctx context.Context, cell *model.Cell) {
 
 	logrus.Info("======================================")
 	logrus.Infof("ncgi: %v", cell.NCGI)
-	logrus.Infof("prevBwUtilizationDL: %v", prevBwUtilizationDL)
-	logrus.Infof("prevBwUtilizationUL: %v", prevBwUtilizationUL)
+	logrus.Infof("prevBwUtilizationDL: %v", utils.RoundToDecimal((prevBwUtilizationDL/100.0), 4))
+	logrus.Infof("prevBwUtilizationUL: %v", utils.RoundToDecimal((prevBwUtilizationUL/100.0), 4))
 	logrus.Infof("prevUsedBWDL: %.f", prevUsedBWDL)
 	logrus.Infof("prevUsedBWUL: %.f", prevUsedBWUL)
 	logrus.Info("----------------------------------------")

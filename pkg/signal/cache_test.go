@@ -83,7 +83,7 @@ func Test_GenerateUEsLocations(t *testing.T) {
 		}
 
 		numUEsPerBeamQS := bw.GetNumUEsPerBeamQS(sCell, cqiMap)
-		nCells := utils.GetNeighborCells(sCell, m.Cells)
+		nCells := utils.GetNeighborCells(sCell, m.Cells, utils.By.Freq)
 		nBeamIDs := GetNeighborBeamIDs(nCells)
 
 		if _, exists := uesLocations[sCellNCGI]; !exists {

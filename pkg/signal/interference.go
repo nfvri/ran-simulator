@@ -181,7 +181,7 @@ func GetNeighborBeamIDs(neighborCells map[types.NCGI]*model.Cell) []model.BeamID
 func GetInterferingBeams(point model.Coordinate, sCell *model.Cell, beamID model.BeamID, cells map[string]*model.Cell) ([]model.BeamID, map[types.NCGI]*model.Cell) {
 
 	interferingBeamIDs := []model.BeamID{}
-	neighborCells := map[types.NCGI]*model.Cell{}
+	interferingCells := map[types.NCGI]*model.Cell{}
 
 	for _, nNCGI := range sCell.Neighbors {
 		nCell, exists := cells[strconv.FormatUint(uint64(nNCGI), 10)]
@@ -198,14 +198,14 @@ func GetInterferingBeams(point model.Coordinate, sCell *model.Cell, beamID model
 				nBmIndex := nBeamIndex + 1
 				interferingBeamID := model.BeamID{NCGI: nNCGI, CarrierIndex: nCarIndex, BeamIndex: nBmIndex}
 				if IsPointInsideBoundingBox(point, nCell.BoundingBoxes[interferingBeamID]) {
-					neighborCells[nNCGI] = nCell
+					interferingCells[nNCGI] = nCell
 					interferingBeamIDs = append(interferingBeamIDs, interferingBeamID)
 				}
 			}
 		}
 	}
 
-	return interferingBeamIDs, neighborCells
+	return interferingBeamIDs, interferingCells
 }
 
 func calculateNoisePower(bandwidthHz float64, cellType types.CellType) float64 {

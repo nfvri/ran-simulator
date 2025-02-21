@@ -19,6 +19,7 @@ import (
 	"github.com/nfvri/ran-simulator/pkg/utils"
 	mho "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_mho_go/v2/e2sm-mho-go"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]*model.UE, bool) {
@@ -40,7 +41,7 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		}
 	}
 	ues := map[string]*model.UE{}
-	cellServedUEs := []*model.UE{}
+
 	ctx := context.Background()
 	ueGroup, err := cacheStore.GetUEGroup(ctx, snapshotId)
 	storeInCache := snapshotId != "" && err != nil
@@ -71,15 +72,17 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 			continue
 		}
 
+		cellServedUEs := []*model.UE{}
 		ues, cellServedUEs = GenerateUEsBasedOnBeamQS(sCell, cells, numUEsPerBeamQS, ueHeight, dc, prbMeasPerCell, ues)
 
 		usedPRBsDL := usedPRBsDLPerCQIByCell[sCellNCGI]
 		usedPRBsUL := usedPRBsULPerCQIByCell[sCellNCGI]
 		availPRBsDL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_UL_METRIC]
-		log.Info("[InitUEs]... -> bw.InitBWPs")
-		log.Infof("[InitUEs] cell:%v , cellServedUEs: %+v", sCell.NCGI, cellServedUEs)
+		log.Infof("cell:%v , cellServedUEs: %+v", sCell.NCGI, cellServedUEs)
 
+		// FIXME: add CA -> give bw on all serving
+		log.Info("[InitUEs]... -> bw.InitBWPs")
 		bw.InitBWPs(sCell, numUEsPerCQI, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, cellServedUEs)
 	}
 
@@ -89,7 +92,7 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 }
 
 func GenerateUEsBasedOnBeamQS(sCell *model.Cell, cells map[string]*model.Cell, numUEsPerBeamQS map[model.BeamQS]int, ueHeight float64, dc float64, prbMeasPerCell map[uint64]map[string]int, ues map[string]*model.UE) (map[string]*model.UE, []*model.UE) {
-	nCells := utils.GetNeighborCells(sCell, cells)
+	nCells := utils.GetNeighborCells(sCell, cells, utils.By.FreqOrLocation)
 	nBeamIDs := signal.GetNeighborBeamIDs(nCells)
 
 	cellServedUEs := []*model.UE{}
@@ -115,19 +118,37 @@ func GenerateUEsBasedOnBeamQS(sCell *model.Cell, cells map[string]*model.Cell, n
 
 				ueRSRP := ueRSRPs[i]
 				ueLocation := ueLocations[i]
-				ueNeighbors := InitUeNeighbors(ueLocation, servCell, beamQs.BeamID, cells, ueHeight, prbMeasPerCell)
-				nNCGIs := []types.NCGI{}
-				for _, neigh := range ueNeighbors {
-					nNCGIs = append(nNCGIs, neigh.NCGI)
+
+				ueInterferingBeams := findInterferingBeams(ueLocation, servCell, beamQs.BeamID, cells, ueHeight, prbMeasPerCell)
+				neighborCells := map[types.NCGI]*model.UECell{}
+				for b := range ueInterferingBeams {
+					beam := ueInterferingBeams[b]
+					_, neighborExists := neighborCells[beam.NCGI]
+					if !neighborExists || beam.Rsrp > neighborCells[beam.NCGI].Rsrp {
+						neighborCells[beam.NCGI] = beam
+					}
 				}
-				log.Infof("\n\n\n++++++++\n\n\nneighbors: %v\n\n+++++\n\n", nNCGIs)
-				totalPrbsDl := prbMeasPerCell[uint64(sCell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
+				totalPrbsDl := prbMeasPerCell[uint64(servCell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
 				ueRSRQ := math.Round(signal.RSRQ(ueSINR, totalPrbsDl)*100) / 100
 
 				mtx.Lock()
 				counter := len(ues) + 1
 				mtx.Unlock()
-				simUE, ueIMSI := CreateSimulationUE(uint64(sCell.NCGI), beamQs, counter, totalPrbsDl, ueHeight, ueSINR, ueRSRP, ueRSRQ, ueLocation, ueNeighbors)
+
+				simUE, ueIMSI := CreateSimulationUE(
+					uint64(servCell.NCGI),
+					nCells,
+					beamQs,
+					counter,
+					totalPrbsDl,
+					ueHeight,
+					ueSINR,
+					ueRSRP,
+					ueRSRQ,
+					ueLocation,
+					maps.Values(neighborCells),
+					ueInterferingBeams,
+				)
 
 				mtx.Lock()
 				ues[ueIMSI] = simUE
@@ -153,17 +174,28 @@ func GetUERsrpsBasedOnLocation(sCell *model.Cell, beamID model.BeamID, uesLocati
 	return
 }
 
-func CreateSimulationUE(ncgi uint64, beamQS model.BeamQS, counter, totalPrbsDl int, ueHeight, sinr, rsrp, rsrq float64, location model.Coordinate, neighborCells []*model.UECell) (*model.UE, string) {
+func CreateSimulationUE(
+	ncgi uint64,
+	nCells map[types.NCGI]*model.Cell,
+	beamQS model.BeamQS,
+	counter, totalPrbsDl int,
+	ueHeight, sinr, rsrp, rsrq float64,
+	location model.Coordinate,
+	neighborCells, interferingBeams []*model.UECell) (*model.UE, string) {
 
 	imsi := utils.ImsiGenerator(counter)
 	ueIMSI := strconv.FormatUint(uint64(imsi), 10)
 
 	rrcState := mho.Rrcstatus_RRCSTATUS_CONNECTED
 	// add neighbours
-	servingCell := &model.UECell{
-		ID:          types.GnbID(ncgi),
-		NCGI:        types.NCGI(ncgi),
-		BeamID:      model.BeamID{NCGI: beamQS.BeamID.NCGI, CarrierIndex: beamQS.BeamID.CarrierIndex, BeamIndex: beamQS.BeamID.BeamIndex},
+	pCell := &model.UECell{
+		ID:   types.GnbID(ncgi),
+		NCGI: types.NCGI(ncgi),
+		BeamID: model.BeamID{
+			NCGI:         beamQS.BeamID.NCGI,
+			CarrierIndex: beamQS.BeamID.CarrierIndex,
+			BeamIndex:    beamQS.BeamID.BeamIndex,
+		},
 		Rsrq:        rsrq,
 		Rsrp:        rsrp,
 		Sinr:        sinr,
@@ -176,63 +208,37 @@ func CreateSimulationUE(ncgi uint64, beamQS model.BeamQS, counter, totalPrbsDl i
 		Type:                      "phone",
 		Location:                  location,
 		Heading:                   0,
-		ServingCells:              []*model.UECell{servingCell},
+		ServingCells:              []*model.UECell{pCell}, // FIXME: add CA
 		FiveQi:                    beamQS.CQI,
 		CRNTI:                     types.CRNTI(90125 + counter),
 		NeighborCells:             neighborCells,
+		InterferingBeams:          interferingBeams,
 		IsAdmitted:                false,
 		Height:                    ueHeight,
 		RrcState:                  rrcState,
-		SupportedBandCombinations: pickRandomBandCombos(),
-		SupportedBandsNR:          make([]string, 0),
-		SupportedBandsEutra:       make([]string, 0),
+		SupportedBandCombinations: map[model.ConnectivityType]*model.ConnTypeSupportInfo{},
+		SupportedBandsNR:          []string{},
+		SupportedBandsEutra:       []string{},
 	}
 
-	bandsNRSet := mapset.NewSet[string]()
-	bandsEUTRASet := mapset.NewSet[string]()
-	for conType, csi := range ue.SupportedBandCombinations {
-		switch conType {
-		case model.NR:
-			{
-				for _, bandCombo := range csi.SupportedBandCombinations {
-					for _, bandInfo := range bandCombo.CombinedBandsInfo {
-						bandsNRSet.Add(bandInfo.Band)
-					}
-				}
-			}
-		case model.EUTRA:
-			{
-				for _, bandCombo := range csi.SupportedBandCombinations {
-					for _, bandInfo := range bandCombo.CombinedBandsInfo {
-						bandsEUTRASet.Add(bandInfo.Band)
-					}
-				}
-			}
-		}
-	}
-
-	ue.SupportedBandsNR = bandsNRSet.ToSlice()
-	ue.SupportedBandsEutra = bandsEUTRASet.ToSlice()
+	initUEConnectivity(ue, maps.Values(nCells))
 
 	return ue, ueIMSI
 }
 
-func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, beamID model.BeamID, cells map[string]*model.Cell, ueHeight float64, prbMeasPerCell map[uint64]map[string]int) []*model.UECell {
+func findInterferingBeams(point model.Coordinate, sCell *model.Cell, beamID model.BeamID, cells map[string]*model.Cell, ueHeight float64, prbMeasPerCell map[uint64]map[string]int) []*model.UECell {
 	ueNeighCellNCGIs := mapset.NewSet[types.NCGI]()
 	ueNeighbors := []*model.UECell{}
 
-	interferingBeamIDs, neighborCells := signal.GetInterferingBeams(point, sCell, beamID, cells)
+	interferingBeamIDs, interferingCells := signal.GetInterferingBeams(point, sCell, beamID, cells)
 
 	for _, nBeamID := range interferingBeamIDs {
-		nCell, ok := neighborCells[nBeamID.NCGI]
+		nCell, ok := interferingCells[nBeamID.NCGI]
 		if !ok || ueNeighCellNCGIs.Contains(nCell.NCGI) {
 			continue
 		}
+
 		nCarrier := nCell.GetCarrier(nBeamID)
-
-		// FIXME: already checked by GetInterferingBeams?
-		// if signal.IsPointInsideBoundingBox(point, nCell.BoundingBoxes[nBeamID]) {
-
 		mpf := signal.RiceanFading(signal.GetRiceanK(nCarrier))
 		interfBeamIDs, interfCells := signal.GetInterferingBeams(point, nCell, nBeamID, cells)
 		rsrp := signal.Strength(point, ueHeight, mpf, nCell, nBeamID)
@@ -247,9 +253,10 @@ func InitUeNeighbors(point model.Coordinate, sCell *model.Cell, beamID model.Bea
 			Sinr:        math.Round(sinr*100) / 100,
 			AvailPrbsDl: prbMeasPerCell[uint64(nBeamID.NCGI)][bw.AVAIL_PRBS_DL_METRIC],
 		}
+
 		ueNeighbors = append(ueNeighbors, ueCell)
 		ueNeighCellNCGIs.Add(nCell.NCGI)
-		// }
+
 	}
 
 	return ueNeighbors
@@ -259,91 +266,63 @@ func pickRandomlyFromSlice(slice []string) string {
 	return slice[rand.Intn(len(slice))]
 }
 
-func pickRandomBandCombos() map[model.ConnectivityType]*model.ConnTypeSupportInfo {
-	// NR Combo
-	c := pickRandomlyFromSlice(bw.CABandCombinationsNR)
-	caBandCombosNR := mapset.NewSet[string]()
-	caBandCombosNR.Append(strings.Split(c, "_")...)
-	supportedBandCombinations := map[model.ConnectivityType]*model.ConnTypeSupportInfo{}
-
-	comboSupportInfoNR := &model.ConnTypeSupportInfo{
-		SupportedBandCombinations: []*model.BandCombination{
-			{Direction: bw.UL, CombinedBandsInfo: []*model.BandSupportInfo{}},
-			{Direction: bw.DL, CombinedBandsInfo: []*model.BandSupportInfo{}},
-		},
+func initUEConnectivity(ue *model.UE, cells []*model.Cell) {
+	cas := map[model.ConnectivityType]bw.CarrierAggregator{
+		model.EUTRA: bw.NewCarrierAggregatorEUTRA(),
+		model.NR:    bw.NewCarrierAggregatorNR(),
 	}
 
-	for band := range caBandCombosNR.Iter() {
-		bwClass := pickRandomlyFromSlice(bw.BandwidthClassesNR[:3])
-		switch bw.BandsNR[band].DuplexingMode {
-		case bw.FDD, bw.TDD:
-			{
-				comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo = append(
-					comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo,
-					&model.BandSupportInfo{
-						Band:           band,
-						BandwidthClass: bwClass,
-					},
-				)
-				comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo = append(
-					comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo,
-					&model.BandSupportInfo{
-						Band:           band,
-						BandwidthClass: bwClass,
-					},
-				)
-			}
+	bandSupportInfo := bw.GetBandSupportInfo(cells)
+	log.Infof("bandSupportInfo: \n%+v", bandSupportInfo)
+	validCABandCombosByConnType := bw.GetValidCABandCombosByConnType(bandSupportInfo, cas)
+	log.Infof("validCABandCombosByConnType: \n%+v", validCABandCombosByConnType)
 
-		case bw.SDL:
-			{
-				comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo = append(
-					comboSupportInfoNR.SupportedBandCombinations[1].CombinedBandsInfo,
-					&model.BandSupportInfo{
-						Band:           band,
-						BandwidthClass: bwClass,
-					},
-				)
-			}
-		case bw.SUL:
-			{
-				comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo = append(
-					comboSupportInfoNR.SupportedBandCombinations[0].CombinedBandsInfo,
-					&model.BandSupportInfo{
-						Band:           band,
-						BandwidthClass: bwClass,
-					},
-				)
-			}
+	anyValidBandCombo := false
+	var supportedConnType model.ConnectivityType
+	for ct := range validCABandCombosByConnType {
+		anyValidBandCombo = len(validCABandCombosByConnType[ct]) > 0
+		if anyValidBandCombo {
+			supportedConnType = ct
+			break
+		}
+	}
 
+	if !anyValidBandCombo {
+		return
+	}
+
+	ue.SupportedBandCombinations[supportedConnType] = &model.ConnTypeSupportInfo{
+		SupportedBandCombinations: []*model.BandCombination{},
+	}
+
+	numCombos := 1 + rand.Intn(4)
+	for c := 0; c < numCombos; c++ {
+		combo := pickRandomlyFromSlice(validCABandCombosByConnType[supportedConnType])
+		comboBands := strings.Split(combo, "_")
+		bandSupportInfo := []*model.BandSupportInfo{}
+
+		for _, band := range comboBands {
+			bandSupportInfo = append(bandSupportInfo, &model.BandSupportInfo{
+				Band:           band,
+				BandwidthClass: pickRandomlyFromSlice(bw.BandwidthClassesNR),
+				MIMOLayers:     pickRandomlyFromSlice([]string{"2", "4", "8", "16", "32"}),
+			})
 		}
 
-	}
-
-	supportedBandCombinations[model.NR] = comboSupportInfoNR
-
-	// Eutra combo
-	c = pickRandomlyFromSlice(bw.CABandCombinationsEutra)
-	caBandCombosEutra := mapset.NewSet[string]()
-	caBandCombosEutra.Append(strings.Split(c, "_")...)
-
-	comboSupportInfoEUTRA := &model.ConnTypeSupportInfo{
-		SupportedBandCombinations: []*model.BandCombination{
-			{Direction: bw.UL, CombinedBandsInfo: []*model.BandSupportInfo{}},
-			{Direction: bw.DL, CombinedBandsInfo: []*model.BandSupportInfo{}},
-		},
-	}
-
-	for band := range caBandCombosEutra.Iter() {
-		comboSupportInfoEUTRA.SupportedBandCombinations[0].CombinedBandsInfo = append(
-			comboSupportInfoEUTRA.SupportedBandCombinations[0].CombinedBandsInfo,
-			&model.BandSupportInfo{
-				Band:           band,
-				BandwidthClass: pickRandomlyFromSlice(bw.BandwidthClassesNR[:3]),
+		// TODO: add same model.BandCombination once
+		ue.SupportedBandCombinations[supportedConnType].SupportedBandCombinations = append(
+			ue.SupportedBandCombinations[supportedConnType].SupportedBandCombinations,
+			&model.BandCombination{
+				CombinedBandsInfo: bandSupportInfo,
 			},
 		)
+
+		switch supportedConnType {
+		case model.EUTRA:
+			ue.SupportedBandsEutra = append(ue.SupportedBandsEutra, comboBands...)
+		case model.NR:
+			ue.SupportedBandsNR = append(ue.SupportedBandsNR, comboBands...)
+		}
 	}
 
-	supportedBandCombinations[model.EUTRA] = comboSupportInfoEUTRA
-
-	return supportedBandCombinations
 }

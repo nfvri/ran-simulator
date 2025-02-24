@@ -12,34 +12,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CalculateFrequencyMHz(arfcn uint32) float64 {
-
-	var deltaFGlobal float64
-	var fRefOffs float64
-	var nRefOffs uint32
-
-	switch {
-	case arfcn < 600000:
-		deltaFGlobal = 5
-		fRefOffs = 0
-		nRefOffs = 0
-	case arfcn < 2016667:
-		deltaFGlobal = 15
-		fRefOffs = 3000
-		nRefOffs = 600000
-	default:
-		deltaFGlobal = 60
-		fRefOffs = 24250.08
-		nRefOffs = 2016667
-	}
-
-	frequency := fRefOffs + float64(arfcn-nRefOffs)*deltaFGlobal/1000
-	return frequency
-}
+const NUM_SUBFRAMES = 10
 
 func InitBWPs(pCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
 	if len(pCell.Bwps) == 0 {
-		AllocateBW(pCell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
+		AllocatePRBs(pCell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
 
 		if len(pCell.Bwps) == 0 {
 			log.Errorf("failed to initialize BWPs for cell: %v", pCell.NCGI)
@@ -54,14 +31,14 @@ func InitBWPs(pCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, ava
 		existingCellBwps = append(existingCellBwps, &bwp)
 	}
 
-	// use DisaggregateCellUsedPRBs for cell bwps disagregation, as it has the same
+	// use DistributeCellUsedPRBsToCQIs for cell bwps disagreggation, as it has the same
 	// functionality but name is kept for better readability in the other use cases
-	bwpsPerCQI := DisaggregateCellUsedPRBs(numUEs, len(existingCellBwps))
+	prbsPerCQI := DistributeCellUsedPRBsToCQIs(numUEs, len(existingCellBwps))
 	allocatedBWPs := 0
-	for cqi, numBWPsToAllocate := range bwpsPerCQI {
-		if allocatedBWPs+numBWPsToAllocate <= len(existingCellBwps) {
-			allocateBWPsToUEs(existingCellBwps[allocatedBWPs:allocatedBWPs+numBWPsToAllocate], servedUEs, cqi)
-			allocatedBWPs += numBWPsToAllocate
+	for cqi, numPRBsToAllocate := range prbsPerCQI {
+		if allocatedBWPs+numPRBsToAllocate <= len(existingCellBwps) {
+			allocateBWPsToUEs(existingCellBwps[allocatedBWPs:allocatedBWPs+numPRBsToAllocate], servedUEs, cqi)
+			allocatedBWPs += numPRBsToAllocate
 		}
 	}
 
@@ -192,10 +169,7 @@ func allocateRemainingAvailableBW(fixedAllocCells []*model.Cell, ue *model.UE, g
 	}
 }
 
-func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
-	// Infer BWP allocation from cell prb measurements
-	// pick used prbs if found else resort to total available
-
+func AllocatePRBs(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, availPRBsDL, availPRBsUL int, servedUEs []*model.UE) {
 	// allocate using selected scheme
 	switch cell.ResourceAllocScheme {
 	case PROPORTIONAL_FAIR:
@@ -214,20 +188,6 @@ func AllocateBW(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, av
 
 }
 
-func usedBWCell(cell *model.Cell) (usedBWDLCell, usedBWULCell int) {
-
-	for index := range cell.Bwps {
-		bwp := cell.Bwps[index]
-		if bwp.Downlink {
-			usedBWDLCell += bwp.Scs * 12 * bwp.NumberOfRBs
-		} else {
-			usedBWULCell += bwp.Scs * 12 * bwp.NumberOfRBs
-		}
-	}
-	return
-
-}
-
 func BwAllocationOf(ncgi types.NCGI, ues []*model.UE) map[types.IMSI][]model.Bwp {
 	bwAlloc := map[types.IMSI][]model.Bwp{}
 	for index := range ues {
@@ -240,18 +200,6 @@ func BwAllocationOf(ncgi types.NCGI, ues []*model.UE) map[types.IMSI][]model.Bwp
 		}
 	}
 	return bwAlloc
-}
-
-func MHzToHz(MHz float64) float64 {
-	return MHz * 1e6
-}
-
-func HzToMHz(MHz float64) float64 {
-	return MHz * 1e-6
-}
-
-func MHzToGHz(MHz float64) float64 {
-	return MHz / 1e3
 }
 
 func CreateUsedPrbsMaps(cellMeasurements []*metrics.Metric) (map[uint64]map[int]float64, map[uint64]map[int]float64) {
@@ -295,25 +243,29 @@ func MatchesPattern(metric, p string) bool {
 }
 
 func UtilizationInfoByCell(cellMeasurements []*metrics.Metric) (map[uint64]map[string]int, map[uint64]map[string]int) {
-	// cellPrbsMap[NCGI][MetricName]
+	// numUEsByCell[NCGI][MetricName]
 	numUEsByCell := map[uint64]map[string]int{}
 	// prbMeasPerCell[NCGI][MetricName]
 	prbMeasPerCell := map[uint64]map[string]int{}
 
 	for _, metric := range cellMeasurements {
-		if _, exists := prbMeasPerCell[metric.EntityID]; !exists {
-			prbMeasPerCell[metric.EntityID] = map[string]int{}
-		}
+
 		if _, exists := numUEsByCell[metric.EntityID]; !exists {
 			numUEsByCell[metric.EntityID] = map[string]int{}
+		}
+		if _, exists := prbMeasPerCell[metric.EntityID]; !exists {
+			prbMeasPerCell[metric.EntityID] = map[string]int{}
 		}
 
 		valueFloat, err := strconv.ParseFloat(metric.GetValue(), 64)
 		if err != nil {
-			log.Errorf("Failed to convert metric valye '%v' to float64: %v", metric.GetValue(), err)
+			log.Errorf("Failed to convert metric value '%v' to float64: %v", metric.GetValue(), err)
 		}
 		value := int(valueFloat)
+
 		switch {
+
+		// UE Measurements
 		case metric.Key == ACTIVE_UES_DL_METRIC:
 			numUEsByCell[metric.EntityID][ACTIVE_UES_DL_METRIC] = value
 
@@ -326,27 +278,22 @@ func UtilizationInfoByCell(cellMeasurements []*metrics.Metric) (map[uint64]map[s
 		case MatchesPattern(metric.Key, ACTIVE_UES_DL_PATTERN):
 			numUEsByCell[metric.EntityID][metric.Key] = value
 
-		// TODO: multiply by NUM_SUBFRAMES
+		// PRB Measurements
 		case metric.Key == AVAIL_PRBS_DL_METRIC:
 			prbMeasPerCell[metric.EntityID][AVAIL_PRBS_DL_METRIC] = value
 
-		// TODO: multiply by NUM_SUBFRAMES
 		case metric.Key == AVAIL_PRBS_UL_METRIC:
 			prbMeasPerCell[metric.EntityID][AVAIL_PRBS_UL_METRIC] = value
 
-		// TODO: multiply by NUM_SUBFRAMES
 		case metric.Key == USED_PRBS_DL_METRIC:
 			prbMeasPerCell[metric.EntityID][USED_PRBS_DL_METRIC] = value
 
-		// TODO: multiply by NUM_SUBFRAMES
 		case MatchesPattern(metric.Key, USED_PRBS_DL_PATTERN):
 			prbMeasPerCell[metric.EntityID][metric.Key] = value
 
-		// TODO: multiply by NUM_SUBFRAMES
 		case metric.Key == USED_PRBS_UL_METRIC:
 			prbMeasPerCell[metric.EntityID][USED_PRBS_UL_METRIC] = value
 
-		// TODO: multiply by NUM_SUBFRAMES
 		case MatchesPattern(metric.Key, USED_PRBS_UL_PATTERN):
 			prbMeasPerCell[metric.EntityID][metric.Key] = value
 		}
@@ -441,7 +388,7 @@ func ConvertMetricKeyToCQIKey(cellUsedPRBs map[uint64]map[string]int, numUEsPerC
 		prbsToAllocate, onlyCellMetricExists := usedPRBsMetrics[cellMetricName]
 		// only Cell Level Metric exists
 		if len(usedPRBsMetrics) == 1 && onlyCellMetricExists {
-			usedPRBsPerCQIByCell[cellNCGI] = DisaggregateCellUsedPRBs(numUEsPerCQIByCell[cellNCGI], prbsToAllocate)
+			usedPRBsPerCQIByCell[cellNCGI] = DistributeCellUsedPRBsToCQIs(numUEsPerCQIByCell[cellNCGI], prbsToAllocate)
 		} else {
 			for metricName, numPrbs := range usedPRBsMetrics {
 				if MatchesPattern(metricName, cqiIndexedMetricPattern) {
@@ -458,9 +405,9 @@ func ConvertMetricKeyToCQIKey(cellUsedPRBs map[uint64]map[string]int, numUEsPerC
 	return
 }
 
-// DisaggregateCellUsedPRBs only when no CQI Indexed Metrics exist and the Cell Metric exists.
+// DistributeCellUsedPRBsToCQIs only when no CQI Indexed Metrics exist and the Cell Metric exists.
 // If CQI Indexed Metrics exist then, use them and ignore Cell Metric
-func DisaggregateCellUsedPRBs(numUEsPerCQI map[int]int, prbsToAllocate int) (usedPRBsPerCQI map[int]int) {
+func DistributeCellUsedPRBsToCQIs(numUEsPerCQI map[int]int, prbsToAllocate int) (usedPRBsPerCQI map[int]int) {
 	usedPRBsPerCQI = map[int]int{}
 	sumCQI := 0
 	for cqi, numUEs := range numUEsPerCQI {

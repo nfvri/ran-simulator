@@ -30,7 +30,7 @@ func Distance(c1 model.Coordinate, c2 model.Coordinate) float64 {
 	return 2 * earthRadius * math.Asin(math.Sqrt(h))
 }
 
-// Euclidean distance function
+// Spherical distance function
 func GetSphericalDistance(coord1 model.Coordinate, coord2 model.Coordinate) float64 {
 	earthRadius := 6378.137
 	dLat := coord1.Lat*math.Pi/180 - coord2.Lat*math.Pi/180

@@ -15,11 +15,8 @@ const (
 	PROPORTIONAL_FAIR = "PF"
 	ROUND_ROBIN       = "RR"
 
-	TOT_BW_USAGE_DL_METRIC = "RRU.BwTotDl"
-	TOT_BW_USAGE_UL_METRIC = "RRU.BwTotUl"
-
-	USED_BW_DL_METRIC = "RRU.BwUsedDl"
-	USED_BW_UL_METRIC = "RRU.BwUsedUl"
+	PRBS_UTIL_DL_METRIC = "RRU.PrbUtilDl"
+	PRBS_UTIL_UL_METRIC = "RRU.PrbUtilUl"
 
 	AVAIL_PRBS_DL_METRIC = "RRU.PrbAvailDl"
 	AVAIL_PRBS_UL_METRIC = "RRU.PrbAvailUl"
@@ -215,7 +212,7 @@ func (s *ProportionalFair) generateUsedPRBs(availBWHz int, downlink bool) {
 	usedBWHz := float64(availBWHz)
 	// BWprb := 12 * SCSprb
 	usedPRBs := int(usedBWHz / float64(12*s.ScsOptionsHz[0]))
-	usedPRBsPerCQI := DisaggregateCellUsedPRBs(s.NumUEs, usedPRBs)
+	usedPRBsPerCQI := DistributeCellUsedPRBsToCQIs(s.NumUEs, usedPRBs)
 
 	if downlink {
 		for cqi, usedPRBs := range usedPRBsPerCQI {

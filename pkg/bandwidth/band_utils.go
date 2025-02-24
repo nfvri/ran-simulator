@@ -1364,7 +1364,7 @@ func GetBandEUTRA(earfcn uint32, direction string) (nrBand BandEutra, found bool
 
 // GetFR takes a frequency and returns the frequency range designation.
 func GetFR(arfcn float64) string {
-	freq := CalculateFrequency(int(arfcn))
+	freq := CalculateFrequencyMHz(uint32(arfcn))
 	switch {
 	case freq >= 410 && freq <= 7125:
 		return "FR1"
@@ -1430,10 +1430,11 @@ func CalculateARFCN(frequency float64) int {
 	return nRef
 }
 
-func CalculateFrequency(arfcn int) float64 {
+func CalculateFrequencyMHz(arfcn uint32) float64 {
+
 	var deltaFGlobal float64
 	var fRefOffs float64
-	var nRefOffs int
+	var nRefOffs uint32
 
 	switch {
 	case arfcn < 600000:
@@ -1454,28 +1455,7 @@ func CalculateFrequency(arfcn int) float64 {
 	return frequency
 }
 
-// // GetSCS takes a frequency and returns the allowed SCSs.
-// func GetSCS(frequencyRange string) []int {
-// 	var allowedSCS []int
-
-// 	// Iterate over the SCSList and add SCS values for the given frequency range
-// 	for _, scs := ran {
-// 		if scs.FRName == frequencyRange {
-// 			allowedSCS = append(allowedSCS, scs.Value)
-// 		}
-// 	}
-
-// 	// Return the slice of allowed SCS values for the given frequency range
-// 	return allowedSCS
-// }
-
-// GetNumerology takes an SCS value and returns its corresponding numerology.
-// func GetNumerology(scs int) (int, bool) {
-// 	num, exists := NumerologyMapping[scs]
-// 	return num, exists
-// }
-
-// ChannelSCSPRB defines the structure for Channel Bandwidth, SCS, and Max PRBs.
+// ChannelInfo defines the structure for FR, SCS, and Channel Bandwidth.
 type ChannelInfo struct {
 	FR           string
 	SCS          uint32

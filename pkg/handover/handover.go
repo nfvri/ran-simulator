@@ -110,12 +110,14 @@ type DefaultHOExecutor struct {
 
 func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
-	log.Info("---------------------------------- ")
-	log.Infof("handover:  ue: %v tcells: %v",
+	log.Infof(
+		`
+	------------------------------------------------------------
+	ue: %v | HANDOVER EXECUTION: tcells: %v 
+	------------------------------------------------------------`,
 		hoDecision.UE.IMSI,
 		hoDecision.TargetCellNcgis,
 	)
-	log.Info("---------------------------------- ")
 
 	isHandover := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED
 	if !isHandover {

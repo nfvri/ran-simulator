@@ -94,6 +94,11 @@ func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
 
 func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.NCGI) ([]types.NCGI, bw.CAScheme) {
 
+	logrus.Infof(`
+	------------------------------------------------------------
+	ue: %v | HANDOVER PREPARATION
+	------------------------------------------------------------
+	`, ue.IMSI)
 	logrus.Infof("ue: %v | selectTargetCells", ue.IMSI)
 
 	if len(rankedNCGIs) == 0 {
@@ -113,7 +118,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 
 	ueSupportsCA := len(ue.SupportedBandCombinations) > 0
 	if !ueSupportsCA {
-		logrus.Infof("UE %v does not support CA", ue.IMSI)
+		logrus.Infof("ue %v | does not support CA", ue.IMSI)
 		return []types.NCGI{rankedNCGIs[0]}, bw.CAScheme{}
 	}
 

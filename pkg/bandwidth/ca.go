@@ -788,7 +788,7 @@ func FindSupportedCACombos(
 //
 //	e.g. ["n1_n77", "n70_n71_n77"]
 func GetValidCABandCombosByConnType(bandSupportInfo map[model.ConnectivityType]map[string][]*model.Cell, carrAggregators map[model.ConnectivityType]CarrierAggregator) map[model.ConnectivityType][]string {
-	targetBands := map[model.ConnectivityType][]string{
+	bands := map[model.ConnectivityType][]string{
 		model.EUTRA: mapset.NewSet(maps.Keys(bandSupportInfo[model.EUTRA])...).ToSlice(),
 		model.NR:    mapset.NewSet(maps.Keys(bandSupportInfo[model.NR])...).ToSlice(),
 	}
@@ -796,7 +796,7 @@ func GetValidCABandCombosByConnType(bandSupportInfo map[model.ConnectivityType]m
 	validCellCABandCombosByConnType := map[model.ConnectivityType][]string{}
 	for ct := range bandSupportInfo {
 		validCellCABandCombosByConnType[ct] = []string{}
-		allBandCombos := AllBandCombinations(SortBands(ct, targetBands[ct]))
+		allBandCombos := AllBandCombinations(SortBands(ct, bands[ct]))
 		for _, caBandCombo := range allBandCombos {
 			if carrAggregators[ct].IsValidBandCombination(caBandCombo) {
 				validCellCABandCombosByConnType[ct] = append(validCellCABandCombosByConnType[ct], caBandCombo)

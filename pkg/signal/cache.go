@@ -54,7 +54,6 @@ func UpdateCells(cellGroup map[string]*model.Cell, redisStore redisLib.Store, ue
 			continue
 		}
 
-		// TODO: add CA support CrossCarrierSchedulingConfig
 		cell.CachedStates = cachedCell.CachedStates
 		cell.Bwps = cachedCell.Bwps
 		cell.InterferingBeams = cachedCell.InterferingBeams

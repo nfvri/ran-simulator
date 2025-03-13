@@ -124,9 +124,9 @@ func (s *ProportionalFair) apply() {
 	log.Infof("--------------------")
 	log.Infof("[PF] ncgi: %v", s.Cell.NCGI)
 	log.Infof("[PF] availBWDL: %v", availBWDL)
-	log.Infof("[PF] sumPRBsDL: %v", sumUsedPRBsDL)
+	log.Infof("[PF] sumUsedPRBsDL: %v", sumUsedPRBsDL)
 	log.Infof("[PF] availBWUL: %v", availBWUL)
-	log.Infof("[PF] sumPRBsUL: %v", sumUsedPRBsUL)
+	log.Infof("[PF] sumUsedPRBsUL: %v", sumUsedPRBsUL)
 	log.Infof("--------------------")
 	s.allocateBW(availBWDL, availBWUL)
 
@@ -173,11 +173,10 @@ func (s *ProportionalFair) allocateBW(availBWDL, availBWUL int) {
 		cqiBwps := append(cqiBwpsDL, cqiBwpsUL...)
 		cellAllocatedBwps := len(s.Cell.Bwps)
 		for i := range cqiBwps {
-			bwp := *cqiBwps[i]
+			bwp := cqiBwps[i]
 			bwp.ID = uint64(cellAllocatedBwps + i)
-			s.Cell.Bwps[bwp.ID] = &bwp
+			s.Cell.Bwps[bwp.ID] = bwp
 		}
-
 		allocateBWPsToUEs(cqiBwps, s.ServedUEs, cqi)
 	}
 
@@ -190,9 +189,9 @@ func (s *ProportionalFair) allocateRemainingBW(remainingBW int, downlink bool) {
 	if remainingBW > 12*s.ScsOptionsHz[0] {
 		cqiBwps, _ := generateBWPs(remainingBW, 1, downlink, s.ScsOptionsHz)
 
-		bwp := *cqiBwps[0]
+		bwp := cqiBwps[0]
 		bwp.ID = uint64(len(s.Cell.Bwps))
-		s.Cell.Bwps[bwp.ID] = &bwp
+		s.Cell.Bwps[bwp.ID] = bwp
 
 		maxCQI := 1
 		maxNumUEs := s.NumUEs[maxCQI]

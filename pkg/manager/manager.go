@@ -58,7 +58,7 @@ type Config struct {
 
 // NewManager creates a new manager
 func NewManager(config *Config) (*Manager, error) {
-	log.Info("Creating Manager")
+	logrus.Info("Creating Manager")
 
 	mgr := &Manager{
 		config: *config,
@@ -90,9 +90,9 @@ type Manager struct {
 
 // Run starts the manager and the associated services
 func (m *Manager) Run() {
-	log.Info("Running Manager")
+	logrus.Info("Running Manager")
 	if err := m.Start(); err != nil {
-		log.Error("Unable to run Manager:", err)
+		logrus.Error("Unable to run Manager:", err)
 	}
 }
 
@@ -137,7 +137,7 @@ func (m *Manager) Start() error {
 	// Load the model data
 	err := model.Load(m.model, m.config.ModelName)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return err
 	}
 
@@ -162,7 +162,7 @@ func (m *Manager) Start() error {
 
 // Close kills the channels and manager related objects
 func (m *Manager) Close() {
-	log.Info("Closing Manager")
+	logrus.Info("Closing Manager")
 	// m.stopE2Agents()
 	m.stopNorthboundServer()
 	m.mobilityDriver.Stop()
@@ -232,13 +232,13 @@ func (m *Manager) computeCellAttributes() error {
 		if err := m.redisStore.AddCellGroup(context.Background(), m.model.SnapshotId, m.model.Cells); err != nil {
 			return fmt.Errorf("failed to store cells in cache: %v", err)
 		}
-		log.Infof("Updated CellGroup in Cache")
+		logrus.Infof("Updated CellGroup in Cache")
 	}
 
 	return nil
 }
 
-func (m *Manager) computeUEAttributes(ctx context.Context) {
+func (m *Manager) initCellMetrics(ctx context.Context) {
 
 	signal.PopulateUEs(m.model, &m.redisStore)
 
@@ -249,62 +249,50 @@ func (m *Manager) computeUEAttributes(ctx context.Context) {
 	usedPRBsULPerCQIByCell = bw.CheckBWOverflow(usedPRBsULPerCQIByCell, prbMeasPerCell, bw.AVAIL_PRBS_UL_METRIC)
 
 	for ncgi := range m.model.Cells {
+
 		cell := m.model.Cells[ncgi]
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 
-		usedPRBsDL := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)]
-		usedPRBsUL := usedPRBsULPerCQIByCell[uint64(cell.NCGI)]
+		usedPRBsDLPerCQI := usedPRBsDLPerCQIByCell[uint64(cell.NCGI)]
+		usedPRBsULPerCQI := usedPRBsULPerCQIByCell[uint64(cell.NCGI)]
 		numUEs := numUEsPerCQIByCell[uint64(cell.NCGI)]
 		availPRBsDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_UL_METRIC]
 
 		sumUsedPRBsDL := 0
 		sumUsedPRBsUL := 0
-		for _, usedPRBs := range usedPRBsDL {
+		for _, usedPRBs := range usedPRBsDLPerCQI {
 			sumUsedPRBsDL += usedPRBs
 		}
-		for _, usedPRBs := range usedPRBsUL {
+		for _, usedPRBs := range usedPRBsULPerCQI {
 			sumUsedPRBsUL += usedPRBs
 		}
 
-		m.setBWUtilization(ctx, cell, sumUsedPRBsDL, sumUsedPRBsUL, availPRBsDL, availPRBsUL)
+		prbUtilizationDL := 0.0
+		if sumUsedPRBsDL != 0 || availPRBsDL != 0 {
+			prbUtilizationDL = float64(sumUsedPRBsDL) / float64(availPRBsDL)
+		}
+		prbUtilizationUL := 0.0
+		if sumUsedPRBsUL != 0 || availPRBsUL != 0 {
+			prbUtilizationUL = float64(sumUsedPRBsUL) / float64(availPRBsUL)
+		}
 
-		logrus.Infof("[computeUEAttributes] cell:%v , cellServedUEs: %+v", cell.NCGI, servedUEs)
-		bw.AllocateBW(cell, numUEs, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, servedUEs)
+		prbUtilStats := map[string]any{
+			bw.PRBS_UTIL_DL_METRIC:  utils.RoundToDecimal(prbUtilizationDL, 4),
+			bw.PRBS_UTIL_UL_METRIC:  utils.RoundToDecimal(prbUtilizationUL, 4),
+			bw.USED_PRBS_DL_METRIC:  sumUsedPRBsDL,
+			bw.USED_PRBS_UL_METRIC:  sumUsedPRBsUL,
+			bw.AVAIL_PRBS_DL_METRIC: availPRBsDL,
+			bw.AVAIL_PRBS_UL_METRIC: availPRBsUL,
+		}
+
+		m.storeStats(ctx, uint64(cell.NCGI), prbUtilStats)
+		bw.AllocatePRBs(cell, numUEs, usedPRBsDLPerCQI, usedPRBsULPerCQI, availPRBsDL, availPRBsUL, servedUEs)
+
 		if len(cell.Bwps) == 0 && sumUsedPRBsDL+sumUsedPRBsUL != 0 {
-			log.Error("failed to initialize BWPs for cell: %v", cell.NCGI)
+			logrus.Error("failed to initialize BWPs for cell: %v", cell.NCGI)
 		}
 	}
-}
-
-func (m *Manager) setBWUtilization(ctx context.Context, cell *model.Cell, sumUsedPRBsDL, sumUsedPRBsUL int, availPRBsDL, availPRBsUL int) {
-	totalBWDL := 0.0
-	totalBWUL := 0.0
-	for _, carrier := range cell.Carriers {
-		totalBWDL += bw.MHzToHz(float64(carrier.BsChannelBwDL))
-		totalBWUL += bw.MHzToHz(float64(carrier.BsChannelBwUL))
-	}
-	availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
-	availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)
-
-	bwUtilizationDL := 0.0
-	if sumUsedPRBsDL != 0 || availPRBsDL != 0 {
-		bwUtilizationDL = float64(sumUsedPRBsDL) / float64(availPRBsDL)
-	}
-	bwUtilizationUL := 0.0
-	if sumUsedPRBsUL != 0 || availPRBsUL != 0 {
-		bwUtilizationUL = float64(sumUsedPRBsUL) / float64(availPRBsUL)
-	}
-
-	bwUtilStats := map[string]any{
-		bw.TOT_BW_USAGE_DL_METRIC: 100 * bwUtilizationDL,
-		bw.TOT_BW_USAGE_UL_METRIC: 100 * bwUtilizationUL,
-		bw.USED_BW_DL_METRIC:      bwUtilizationDL * float64(availBWDL),
-		bw.USED_BW_UL_METRIC:      bwUtilizationUL * float64(availBWUL),
-	}
-
-	m.storeStats(ctx, uint64(cell.NCGI), bwUtilStats)
-
 }
 
 func (m *Manager) computeCellStatistics(ctx context.Context) {
@@ -314,24 +302,24 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 	CALCULATING STATISTICS
 	------------------------------------
 	`)
-	totalactiveUEs := 0
-	totalPrbsTotalDl := 0
-	totalPrbsTotalUl := 0
 
-	prbsUsedDLPerCQI := map[int]int{}
-	prbsUsedULPerCQI := map[int]int{}
+	_, prbMeasPerCell := bw.UtilizationInfoByCell(m.model.CellMeasurements)
+
+	totalActiveUEs := 0
+	totalPrbsDl := 0
+	totalPrbsUl := 0
 
 	for _, cell := range m.model.Cells {
+		prbsUsedDLPerCQI := map[int]int{}
+		prbsUsedULPerCQI := map[int]int{}
 
 		servedUEs := m.model.GetServedUEs(cell.NCGI)
 		prbsUsedDl := 0
-		bwUsedDl := 0
 		prbsUsedUl := 0
-		bwUsedUl := 0
 		activeUEs := 0
 
 		if len(cell.Bwps) == 0 {
-			log.Warnf("cell %v Bwps: %v", cell.NCGI, cell.Bwps)
+			logrus.Warnf("cell %v Bwps: %v", cell.NCGI, cell.Bwps)
 		}
 
 		for _, ue := range servedUEs {
@@ -348,55 +336,84 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 			for sCellIndex := range ue.ServingCells {
 				sCell := ue.ServingCells[sCellIndex]
 				if sCell.NCGI == cell.NCGI {
+
 					for _, bwp := range sCell.BwpRefs {
-						framePRBs := bwp.NumberOfRBs * NUM_SUBFRAMES * (bwp.Scs / 15)
+						framePRBs := bwp.NumberOfRBs * (bwp.Scs / 15)
 						if bwp.Downlink {
 							prbsUsedDl += framePRBs
-							bwUsedDl += 12 * bwp.NumberOfRBs * bwp.Scs
 							prbsUsedDLPerCQI[ue.FiveQi] += framePRBs
 						} else {
 							prbsUsedUl += framePRBs
-							bwUsedUl += 12 * bwp.NumberOfRBs * bwp.Scs
 							prbsUsedULPerCQI[ue.FiveQi] += framePRBs
 						}
 					}
+
 					break
 				}
 			}
 		}
 
-		totalactiveUEs += activeUEs
-		totalPrbsTotalDl += prbsUsedDl
-		totalPrbsTotalUl += prbsUsedUl
+		// for cqi := range prbsUsedDLPerCQI {
+		// 	prbsUsedDLPerCQI[cqi] = prbsUsedDLPerCQI[cqi] / NUM_SUBFRAMES
 
-		m.logBWUtilization(ctx, cell)
+		// }
+		// for cqi := range prbsUsedULPerCQI {
+		// 	prbsUsedULPerCQI[cqi] = prbsUsedULPerCQI[cqi] / NUM_SUBFRAMES
+		// }
 
-		totalBWDL := 0.0
-		totalBWUL := 0.0
-		// TODO:
-		// statistics.CalculateThroughputMbps()
-		for _, carrier := range cell.Carriers {
-			totalBWDL += bw.MHzToHz(float64(carrier.BsChannelBwDL))
-			totalBWUL += bw.MHzToHz(float64(carrier.BsChannelBwUL))
+		prbsAvailDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
+		prbsAvailUL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_UL_METRIC]
+		prbUtilDL := float64(prbsUsedDl) / float64(prbsAvailDL)
+		prbUtilUL := float64(prbsUsedUl) / float64(prbsAvailUL)
+
+		totalActiveUEs += activeUEs
+		totalPrbsDl += prbsUsedDl
+		totalPrbsUl += prbsUsedUl
+
+		arfcn := utils.If(cell.ArfcnDL > 0, cell.ArfcnDL, cell.ArfcnUL)
+		direction := utils.If(cell.ArfcnDL > 0, bw.DL, bw.UL)
+		operatingBand, _ := bw.GetBandNR(arfcn, direction)
+
+		activeUEsUL := 0
+		activeUEsDL := 0
+
+		switch operatingBand.DuplexingMode {
+		case bw.FDD, bw.TDD:
+			activeUEsUL = activeUEs
+			activeUEsDL = activeUEs
+		case bw.SUL:
+			activeUEsUL = activeUEs
+		case bw.SDL:
+			activeUEsDL = activeUEs
 		}
 
-		availBWDL := int(totalBWDL * bw.DEFAULT_MAX_BW_UTILIZATION)
-		availBWUL := int(totalBWUL * bw.DEFAULT_MAX_BW_UTILIZATION)
+		logrus.Infof(`
+		====================================================================
+		ncgi: %v
+		operatingBand: %v
+		duplex mode: %v
+		====================================================================
+			`,
+			cell.NCGI,
+			operatingBand.Name,
+			operatingBand.DuplexingMode)
+		m.logActiveUEs(ctx, cell)
+		m.logPRBUtilization(ctx, cell)
 
-		bwUtilizationDL := float64(bwUsedDl) / float64(availBWDL)
-		bwUtilizationUL := float64(bwUsedUl) / float64(availBWUL)
+		// TODO:
+		// statistics.CalculateThroughputMbps()
 
 		cellStats := map[string]any{
-			bw.USED_PRBS_DL_METRIC:    prbsUsedDl,
-			bw.USED_PRBS_UL_METRIC:    prbsUsedUl,
-			bw.ACTIVE_UES_DL_METRIC:   activeUEs,
-			bw.ACTIVE_UES_UL_METRIC:   activeUEs,
-			bw.UE_THP_DL_METRIC:       statistics.UEThp(prbsUsedDl, len(servedUEs)),
-			bw.UE_THP_UL_METRIC:       statistics.UEThp(prbsUsedUl, len(servedUEs)),
-			bw.TOT_BW_USAGE_DL_METRIC: 100 * bwUtilizationDL,
-			bw.TOT_BW_USAGE_UL_METRIC: 100 * bwUtilizationUL,
-			bw.USED_BW_DL_METRIC:      bwUsedDl,
-			bw.USED_BW_UL_METRIC:      bwUsedUl,
+			bw.ACTIVE_UES_DL_METRIC: activeUEsDL,
+			bw.ACTIVE_UES_UL_METRIC: activeUEsUL,
+			bw.UE_THP_DL_METRIC:     statistics.UEThp(prbsUsedDl, len(servedUEs)),
+			bw.UE_THP_UL_METRIC:     statistics.UEThp(prbsUsedUl, len(servedUEs)),
+			bw.PRBS_UTIL_DL_METRIC:  utils.RoundToDecimal(prbUtilDL, 4),
+			bw.PRBS_UTIL_UL_METRIC:  utils.RoundToDecimal(prbUtilUL, 4),
+			bw.USED_PRBS_DL_METRIC:  prbsUsedDl,
+			bw.USED_PRBS_UL_METRIC:  prbsUsedUl,
+			bw.AVAIL_PRBS_DL_METRIC: prbsAvailDL,
+			bw.AVAIL_PRBS_UL_METRIC: prbsAvailUL,
 		}
 
 		for cqi, prbsDl := range prbsUsedDLPerCQI {
@@ -408,46 +425,65 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 
 		m.storeStats(ctx, uint64(cell.NCGI), cellStats)
 
-		logrus.Infof("BwUtilizationDL: %v", 100*bwUtilizationDL)
-		logrus.Infof("BwUtilizationUL: %v", 100*bwUtilizationUL)
-		logrus.Infof("usedBWDL: %.f", float64(bwUsedDl))
-		logrus.Infof("usedBWUL: %.f", float64(bwUsedUl))
-		logrus.Infof("availBWDL: %.f", float64(availBWDL))
-		logrus.Infof("availBWUL: %.f", float64(availBWUL))
-		logrus.Info("======================================\n")
+		m.logActiveUEs(ctx, cell)
+		m.logPRBUtilization(ctx, cell)
 	}
 
 	subnetStats := map[string]any{
-		"SUBNET_RRU.PrbTotDl":       totalPrbsTotalDl,
-		"SUBNET_RRU.PrbTotUl":       totalPrbsTotalUl,
-		"SUBNET_AVG_DRB.UEThpDl":    statistics.UEThp(totalPrbsTotalDl, totalactiveUEs),
-		"SUBNET_AVG_DRB.UEThpUl":    statistics.UEThp(totalPrbsTotalUl, totalactiveUEs),
-		"SUBNET_DRB.MeanActiveUeDl": totalactiveUEs,
+		"SUBNET_RRU.PrbTotDl":       totalPrbsDl,
+		"SUBNET_RRU.PrbTotUl":       totalPrbsUl,
+		"SUBNET_AVG_DRB.UEThpDl":    statistics.UEThp(totalPrbsDl, totalActiveUEs),
+		"SUBNET_AVG_DRB.UEThpUl":    statistics.UEThp(totalPrbsUl, totalActiveUEs),
+		"SUBNET_DRB.MeanActiveUeDl": totalActiveUEs,
 	}
 
 	m.storeStats(ctx, uint64(1), subnetStats)
 
 }
 
-func (m *Manager) logBWUtilization(ctx context.Context, cell *model.Cell) {
-	// FIXME: nil iBwUtilizationDL/iBwUtilizationUL
-	iBwUtilizationDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_DL_METRIC)
-	prevBwUtilizationDL := iBwUtilizationDL.(float64)
-	iBwUtilizationUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.TOT_BW_USAGE_UL_METRIC)
-	prevBwUtilizationUL := iBwUtilizationUL.(float64)
+func (m *Manager) logActiveUEs(ctx context.Context, cell *model.Cell) {
 
-	iUsedBWDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_BW_DL_METRIC)
-	prevUsedBWDL := iUsedBWDL.(float64)
-	iUsedBWUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_BW_UL_METRIC)
-	prevUsedBWUL := iUsedBWUL.(float64)
+	iActiveUEsDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_DL_METRIC)
+	activeUEsDL := 0
+	if iActiveUEsDL != nil {
+		activeUEsDL = iActiveUEsDL.(int)
+	}
 
-	logrus.Info("======================================")
-	logrus.Infof("ncgi: %v", cell.NCGI)
-	logrus.Infof("prevBwUtilizationDL: %v", utils.RoundToDecimal((prevBwUtilizationDL/100.0), 4))
-	logrus.Infof("prevBwUtilizationUL: %v", utils.RoundToDecimal((prevBwUtilizationUL/100.0), 4))
-	logrus.Infof("prevUsedBWDL: %.f", prevUsedBWDL)
-	logrus.Infof("prevUsedBWUL: %.f", prevUsedBWUL)
-	logrus.Info("----------------------------------------")
+	iActiveUEsUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.ACTIVE_UES_UL_METRIC)
+	activeUEsUL := 0
+	if iActiveUEsUL != nil {
+		activeUEsUL = iActiveUEsUL.(int)
+	}
+
+	logrus.Info("--------------------------------------------------------------------")
+	logrus.Infof("ncgi: %v | Active UEs DL: %v", cell.NCGI, activeUEsDL)
+	logrus.Infof("ncgi: %v | Active UEs UL: %v", cell.NCGI, activeUEsUL)
+}
+
+func (m *Manager) logPRBUtilization(ctx context.Context, cell *model.Cell) {
+
+	iPRBUtilizationDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.PRBS_UTIL_DL_METRIC)
+	prbUtilizationDL := iPRBUtilizationDL.(float64)
+	iPRBUtilizationUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.PRBS_UTIL_UL_METRIC)
+	prbUtilizationUL := iPRBUtilizationUL.(float64)
+
+	iUsedPRBsDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_PRBS_DL_METRIC)
+	usedPRBsDL := iUsedPRBsDL.(int)
+	iUsedPRBsUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.USED_PRBS_UL_METRIC)
+	usedPRBsUL := iUsedPRBsUL.(int)
+
+	iAvailPRBsDL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.AVAIL_PRBS_DL_METRIC)
+	availPRBsDL := iAvailPRBsDL.(int)
+	iAvailPRBsUL, _ := m.metricsStore.Get(ctx, uint64(cell.NCGI), bw.AVAIL_PRBS_UL_METRIC)
+	availPRBsUL := iAvailPRBsUL.(int)
+
+	logrus.Infof("ncgi: %v | PRB Utilization DL: %v", cell.NCGI, utils.RoundToDecimal(prbUtilizationDL, 4))
+	logrus.Infof("ncgi: %v | PRB Utilization UL: %v", cell.NCGI, utils.RoundToDecimal(prbUtilizationUL, 4))
+	logrus.Infof("ncgi: %v | PRBs Used DL: %d", cell.NCGI, usedPRBsDL)
+	logrus.Infof("ncgi: %v | PRBs Used UL: %d", cell.NCGI, usedPRBsUL)
+	logrus.Infof("ncgi: %v | PRBs Available DL: %d", cell.NCGI, availPRBsDL)
+	logrus.Infof("ncgi: %v | PRBs Available UL: %d", cell.NCGI, availPRBsUL)
+	logrus.Info("--------------------------------------------------------------------")
 }
 
 func (m *Manager) storeStats(ctx context.Context, entityID uint64, stats map[string]any) {
@@ -485,7 +521,7 @@ func (m *Manager) startNorthboundServer() error {
 	go func() {
 		err := m.server.Serve(
 			func(started string) {
-				log.Info("Started NBI on ", started)
+				logrus.Info("Started NBI on ", started)
 				close(doneCh)
 			},
 			grpcOpts...,
@@ -502,7 +538,7 @@ func (m *Manager) StartE2Agents() error {
 	// var err error
 	// m.agents, err = agents.NewE2Agents(m.model, m.nodeStore, m.ueStore, m.cellStore, m.metricsStore, m.mobilityDriver.GetHoCtrl().GetOutputChan(), m.mobilityDriver)
 	// if err != nil {
-	// 	log.Error(err)
+	// 	logrus.Error(err)
 	// 	return err
 	// }
 	// // Start the E2 agents
@@ -524,7 +560,7 @@ func (m *Manager) stopNorthboundServer() {
 
 // PauseAndClear pauses simulation and clears the model
 func (m *Manager) PauseAndClear(ctx context.Context) {
-	log.Info("Pausing RAN simulator...")
+	logrus.Info("Pausing RAN simulator...")
 	m.metricsStore.Clear(ctx)
 }
 
@@ -554,14 +590,28 @@ func (m *Manager) GetModel(ctx context.Context) (*model.Model, error) {
 // LoadMetrics loads new metrics into the simulator
 func (m *Manager) LoadMetrics(ctx context.Context) error {
 	for _, metric := range m.model.CellMeasurements {
+
+		iValue, err := strconv.Atoi(metric.Value)
+		if err == nil {
+			m.metricsStore.Set(ctx, metric.EntityID, metric.Key, iValue)
+			continue
+		}
+
+		fValue, err := strconv.ParseFloat(metric.Value, 64)
+		if err == nil {
+			m.metricsStore.Set(ctx, metric.EntityID, metric.Key, fValue)
+			continue
+		}
+
 		m.metricsStore.Set(ctx, metric.EntityID, metric.Key, metric.Value)
+
 	}
 	return nil
 }
 
 // Resume resume the simulation
 func (m *Manager) Resume(ctx context.Context) error {
-	log.Info("Resuming RAN simulator...")
+	logrus.Info("Resuming RAN simulator...")
 	// _ = m.StartE2Agents()
 
 	if err := m.computeCellAttributes(); err != nil {
@@ -569,11 +619,11 @@ func (m *Manager) Resume(ctx context.Context) error {
 	}
 	for _, cell := range m.model.Cells {
 		if len(cell.Bwps) > 0 {
-			log.Infof("NCGI: %v len(bwps): %v", cell.NCGI, len(cell.Bwps))
+			logrus.Infof("NCGI: %v len(bwps): %v", cell.NCGI, len(cell.Bwps))
 		}
 	}
 
-	m.computeUEAttributes(ctx)
+	m.initCellMetrics(ctx)
 	m.initMobilityDriver()
 	m.createPatchedStores()
 
@@ -582,7 +632,7 @@ func (m *Manager) Resume(ctx context.Context) error {
 	m.createModelStores(ctx)
 	go func() {
 		time.Sleep(1 * time.Millisecond)
-		log.Info("Restarting NBI...")
+		logrus.Info("Restarting NBI...")
 		m.stopNorthboundServer()
 		_ = m.startNorthboundServer()
 	}()
@@ -605,7 +655,7 @@ func (m *Manager) performHandovers() {
 
 	defer close(m.finishHOsChan)
 	for range m.finishHOsChan {
-		log.Info("HOs completed")
+		logrus.Info("HOs completed")
 		return
 	}
 }

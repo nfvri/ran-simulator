@@ -273,9 +273,9 @@ func initUEConnectivity(ue *model.UE, cells []*model.Cell) {
 	}
 
 	bandSupportInfo := bw.GetBandSupportInfo(cells)
-	log.Infof("bandSupportInfo: \n%+v", bandSupportInfo)
+	log.Debugf("bandSupportInfo: \n%+v", bandSupportInfo)
 	validCABandCombosByConnType := bw.GetValidCABandCombosByConnType(bandSupportInfo, cas)
-	log.Infof("validCABandCombosByConnType: \n%+v", validCABandCombosByConnType)
+	log.Debugf("validCABandCombosByConnType: \n%+v", validCABandCombosByConnType)
 
 	anyValidBandCombo := false
 	var supportedConnType model.ConnectivityType

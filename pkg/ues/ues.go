@@ -296,8 +296,12 @@ func initUEConnectivity(ue *model.UE, cells []*model.Cell) {
 	}
 
 	numCombos := 1 + rand.Intn(4)
+	addedCombos := mapset.NewSet[string]()
 	for c := 0; c < numCombos; c++ {
 		combo := pickRandomlyFromSlice(validCABandCombosByConnType[supportedConnType])
+		if !addedCombos.Add(combo) {
+			continue
+		}
 		comboBands := strings.Split(combo, "_")
 		bandSupportInfo := []*model.BandSupportInfo{}
 
@@ -309,7 +313,6 @@ func initUEConnectivity(ue *model.UE, cells []*model.Cell) {
 			})
 		}
 
-		// TODO: add same model.BandCombination once
 		ue.SupportedBandCombinations[supportedConnType].SupportedBandCombinations = append(
 			ue.SupportedBandCombinations[supportedConnType].SupportedBandCombinations,
 			&model.BandCombination{

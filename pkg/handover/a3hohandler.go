@@ -79,7 +79,8 @@ func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
 
 	rankedNCGIs := []types.NCGI{}
 	for ncgi := range bestRSRPsByNCGI {
-		if bestRSRPsByNCGI[ncgi] > MIN_ACCEPTABLE_RSRP {
+		ncgiRSRP := bestRSRPsByNCGI[ncgi]
+		if ncgiRSRP > MIN_ACCEPTABLE_RSRP {
 			rankedNCGIs = append(rankedNCGIs, ncgi)
 		}
 	}
@@ -118,7 +119,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 
 	ueSupportsCA := len(ue.SupportedBandCombinations) > 0
 	if !ueSupportsCA {
-		logrus.Infof("ue %v | does not support CA", ue.IMSI)
+		logrus.Warnf("ue: %v | does not support CA", ue.IMSI)
 		return []types.NCGI{rankedNCGIs[0]}, bw.CAScheme{}
 	}
 
@@ -138,35 +139,36 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 		}
 	}
 
-	// logrus.Infof("attempting selfSchedulingCells: %+v", selfSchedulingCells)
+	logrus.Infof("attempting selfSchedulingCells: %+v", selfSchedulingCells)
 
-	// ueRequiredPRBsDL, ueRequiredPRBsUL := bw.CurrPRBsUsed(&ue)
-	// for c := range selfSchedulingCells {
-	// 	cell := selfSchedulingCells[c]
-	// 	servedUEs := h.model.GetServedUEs(cell.NCGI)
-	// 	cellAvailPrbsUL, cellAvailPrbsDL, err := bw.GetCellAvailPRBs(cell, servedUEs, &ue)
-	// 	logrus.Infof(
-	// 		`ue: %v |
-	// 		ueRequiredPRBsUL:%v vs cellAvailPrbsUL:%v,
-	// 		ueRequiredPRBsDL:%v vs cellAvailPrbsDL:%v`,
-	// 		ue.IMSI,
-	// 		ueRequiredPRBsUL, cellAvailPrbsUL,
-	// 		ueRequiredPRBsDL, cellAvailPrbsDL,
-	// 	)
+	// self scheduling
+	ueRequiredPRBsDL, ueRequiredPRBsUL := bw.CurrPRBsUsed(&ue)
+	for c := range selfSchedulingCells {
+		cell := selfSchedulingCells[c]
+		servedUEs := h.model.GetServedUEs(cell.NCGI)
+		cellAvailPrbsUL, cellAvailPrbsDL, err := bw.GetCellAvailPRBs(cell, servedUEs, &ue)
+		logrus.Infof(
+			`ue: %v |
+			ueRequiredPRBsUL:%v vs cellAvailPrbsUL:%v,
+			ueRequiredPRBsDL:%v vs cellAvailPrbsDL:%v`,
+			ue.IMSI,
+			ueRequiredPRBsUL, cellAvailPrbsUL,
+			ueRequiredPRBsDL, cellAvailPrbsDL,
+		)
 
-	// 	if err != nil {
-	// 		continue
-	// 	}
-	// 	if cellAvailPrbsUL >= ueRequiredPRBsUL && cellAvailPrbsDL >= ueRequiredPRBsDL {
-	// 		logrus.Infof("found selfSchedulingCell: %v", cell.NCGI)
-	// 		return []types.NCGI{cell.NCGI}, bw.CAScheme{}
-	// 	}
-	// }
+		if err != nil {
+			continue
+		}
+		if cellAvailPrbsUL >= ueRequiredPRBsUL && cellAvailPrbsDL >= ueRequiredPRBsDL {
+			logrus.Infof("found selfSchedulingCell: %v", cell.NCGI)
+			return []types.NCGI{cell.NCGI}, bw.CAScheme{}
+		}
+	}
 
 	// Check Bands for CA
 	logrus.Infof("ue: %v | attempting ccSchedulingCells: %+v", ue.IMSI, ccSchedulingCells)
 	supportedCACombos, cellsByEUTRABand, cellsByNRBand := bw.FindSupportedCACombos(&ue, h.cas, ccSchedulingCells)
-	logrus.Infof("ue: %v | validCACombinations: %+v", ue.IMSI, supportedCACombos)
+
 	anyValidBandCombo := false
 	for ct := range supportedCACombos {
 		anyValidBandCombo = len(supportedCACombos[ct]) > 0
@@ -176,8 +178,11 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	}
 
 	if !anyValidBandCombo {
+		logrus.Warnf("ue: %v | failed to find supported band combinations", ue.IMSI)
 		return []types.NCGI{rankedNCGIs[0]}, bw.CAScheme{}
 	}
+
+	logrus.Infof("ue: %v | validCACombinations: %+v", ue.IMSI, supportedCACombos)
 
 	// Check available BW for CA
 	feasibleCASchemes := bw.GetFeasibleCASchemes(supportedCACombos, cellsByEUTRABand, cellsByNRBand, h.model, &ue)
@@ -185,7 +190,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	anyFeasibleCAScheme := len(feasibleCASchemes) > 0
 
 	if !anyFeasibleCAScheme {
-		logrus.Infof("ue: %v | no feasible CA scheme found", ue.IMSI)
+		logrus.Warnf("ue: %v | failed to find feasible CA scheme", ue.IMSI)
 		logrus.Info("\n========================================================================\n")
 		return rankedNCGIs, bw.CAScheme{}
 	}

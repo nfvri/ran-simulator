@@ -88,6 +88,11 @@ spec:
                 configMapKeyRef:
                   name: {{ include "ran-simulator.fullname" . }}-config
                   key: REDIS_UE_CACHE_DB
+            - name: REFERENCE_SIGNAL_STRENGTH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ran-simulator.fullname" . }}-config
+                  key: REFERENCE_SIGNAL_STRENGTH
           args:
             - "-grpcPort={{ .Values.service.port }}"
             - "-caPath=/etc/certs/ransimCA.crt"

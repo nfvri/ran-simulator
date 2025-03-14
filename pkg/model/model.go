@@ -78,33 +78,28 @@ func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, target
 		m.UEToServingCells[ueIMSI] = append(m.UEToServingCells[ueIMSI], tcNcgi)
 	}
 
+	// LogUECells(ue)
+	m.UpdateUECells(sourceCellNcgis, targetCellINcgis, ue)
+	// LogUECells(ue)
+
+}
+
+func LogUECells(ue *UE) {
 	sCellNCGIs := []types.NCGI{}
 	nCellNCGIs := []types.NCGI{}
 	for _, ueServCell := range ue.ServingCells {
+		if ueServCell == nil {
+			logrus.Errorf("ue: %v | nil serving cell found!", ue.IMSI)
+		}
 		sCellNCGIs = append(sCellNCGIs, ueServCell.NCGI)
 	}
 	for _, ueNeighCell := range ue.NeighborCells {
 		nCellNCGIs = append(nCellNCGIs, ueNeighCell.NCGI)
 	}
 	logrus.Infof(
-		"ue: %v | [UPDATE-SM] ue.ServingCells:%+v ue.NeighborCells:%+v before update",
-		ueIMSI, sCellNCGIs, nCellNCGIs,
+		`ue: %v | ue.ServingCells:%+v ue.NeighborCells:%+v `,
+		ue.IMSI, sCellNCGIs, nCellNCGIs,
 	)
-	m.UpdateUECells(sourceCellNcgis, targetCellINcgis, ue)
-
-	sCellNCGIs = []types.NCGI{}
-	nCellNCGIs = []types.NCGI{}
-	for _, ueServCell := range ue.ServingCells {
-		sCellNCGIs = append(sCellNCGIs, ueServCell.NCGI)
-	}
-	for _, ueNeighCell := range ue.NeighborCells {
-		nCellNCGIs = append(nCellNCGIs, ueNeighCell.NCGI)
-	}
-	logrus.Infof(
-		`ue: %v | [UPDATE-SM] ue.ServingCells:%+v ue.NeighborCells:%+v after update`,
-		ueIMSI, sCellNCGIs, nCellNCGIs,
-	)
-
 }
 
 // UpdateUECells updates the serving and neighbor cells pointed by the ue.
@@ -131,9 +126,10 @@ SERVING_CELL_DELETION:
 	// remove from neighbor and add to serving cells
 	for _, tCellNCGI := range targetCellINcgis {
 		neighUECellIndex, neighTargetUECell := ue.GetNeighborCell(tCellNCGI)
-		if neighTargetUECell != nil {
-			ue.NeighborCells = append(ue.NeighborCells[neighUECellIndex:], ue.NeighborCells[neighUECellIndex+1:]...)
+		if neighTargetUECell == nil {
+			continue
 		}
+		ue.NeighborCells = append(ue.NeighborCells[neighUECellIndex:], ue.NeighborCells[neighUECellIndex+1:]...)
 		ue.ServingCells = append(ue.ServingCells, neighTargetUECell)
 	}
 	ue.NeighborCells = append(ue.NeighborCells, deletedUECells...)

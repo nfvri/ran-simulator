@@ -11,3 +11,7 @@ func HzToMHz(MHz float64) float64 {
 func MHzToGHz(MHz float64) float64 {
 	return MHz / 1e3
 }
+
+func KHzToHz(KHz float64) float64 {
+	return KHz * 1e3
+}

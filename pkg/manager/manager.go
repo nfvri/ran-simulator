@@ -290,7 +290,7 @@ func (m *Manager) initCellMetrics(ctx context.Context) {
 		bw.AllocatePRBs(cell, numUEs, usedPRBsDLPerCQI, usedPRBsULPerCQI, availPRBsDL, availPRBsUL, servedUEs)
 
 		if len(cell.Bwps) == 0 && sumUsedPRBsDL+sumUsedPRBsUL != 0 {
-			logrus.Error("failed to initialize BWPs for cell: %v", cell.NCGI)
+			logrus.Errorf("failed to initialize BWPs for cell: %v", cell.NCGI)
 		}
 	}
 }
@@ -338,7 +338,7 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 				if sCell.NCGI == cell.NCGI {
 
 					for _, bwp := range sCell.BwpRefs {
-						framePRBs := bwp.NumberOfRBs * (bwp.Scs / 15)
+						framePRBs := int(float64(bwp.NumberOfRBs) / float64((bwp.Scs / 15)))
 						if bwp.Downlink {
 							prbsUsedDl += framePRBs
 							prbsUsedDLPerCQI[ue.FiveQi] += framePRBs
@@ -352,14 +352,6 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 				}
 			}
 		}
-
-		// for cqi := range prbsUsedDLPerCQI {
-		// 	prbsUsedDLPerCQI[cqi] = prbsUsedDLPerCQI[cqi] / NUM_SUBFRAMES
-
-		// }
-		// for cqi := range prbsUsedULPerCQI {
-		// 	prbsUsedULPerCQI[cqi] = prbsUsedULPerCQI[cqi] / NUM_SUBFRAMES
-		// }
 
 		prbsAvailDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
 		prbsAvailUL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_UL_METRIC]
@@ -387,18 +379,18 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 			activeUEsDL = activeUEs
 		}
 
-		logrus.Infof(`
-		====================================================================
-		ncgi: %v
-		operatingBand: %v
-		duplex mode: %v
-		====================================================================
-			`,
-			cell.NCGI,
-			operatingBand.Name,
-			operatingBand.DuplexingMode)
-		m.logActiveUEs(ctx, cell)
-		m.logPRBUtilization(ctx, cell)
+		// logrus.Infof(`
+		// ====================================================================
+		// ncgi: %v
+		// operatingBand: %v
+		// duplex mode: %v
+		// ====================================================================
+		// 	`,
+		// 	cell.NCGI,
+		// 	operatingBand.Name,
+		// 	operatingBand.DuplexingMode)
+		// m.logActiveUEs(ctx, cell)
+		// m.logPRBUtilization(ctx, cell)
 
 		// TODO:
 		// statistics.CalculateThroughputMbps()
@@ -425,8 +417,8 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 
 		m.storeStats(ctx, uint64(cell.NCGI), cellStats)
 
-		m.logActiveUEs(ctx, cell)
-		m.logPRBUtilization(ctx, cell)
+		// m.logActiveUEs(ctx, cell)
+		// m.logPRBUtilization(ctx, cell)
 	}
 
 	subnetStats := map[string]any{

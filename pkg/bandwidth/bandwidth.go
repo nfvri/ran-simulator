@@ -175,13 +175,13 @@ func AllocatePRBs(cell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, 
 	case PROPORTIONAL_FAIR:
 	default:
 		pf := ProportionalFair{
-			Cell:        cell,
-			ServedUEs:   servedUEs,
-			NumUEs:      numUEs,
-			UsedPRBsDL:  usedPRBsDL,
-			UsedPRBsUL:  usedPRBsUL,
-			AvailPRBsDL: availPRBsDL,
-			AvailPRBsUL: availPRBsUL,
+			Cell:             cell,
+			ServedUEs:        servedUEs,
+			NumUEs:           numUEs,
+			UsedPRBsDlPerCQI: usedPRBsDL,
+			UsedPRBsUlPerCQI: usedPRBsUL,
+			AvailPRBsDL:      availPRBsDL,
+			AvailPRBsUL:      availPRBsUL,
 		}
 		pf.apply()
 	}

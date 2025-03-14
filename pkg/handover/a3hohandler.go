@@ -1,17 +1,14 @@
 package handover
 
 import (
-	"math"
-	"sort"
 	"strconv"
 
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
 	bw "github.com/nfvri/ran-simulator/pkg/bandwidth"
 	"github.com/nfvri/ran-simulator/pkg/model"
+	"github.com/nfvri/ran-simulator/pkg/signal"
 	"github.com/sirupsen/logrus"
 )
-
-const MIN_ACCEPTABLE_RSRP = -110.0
 
 // NewA3HandoverHandler returns A3HandoverHandler object
 func NewA3HandoverHandler(m *model.Model) *A3HandoverHandler {
@@ -44,53 +41,21 @@ type A3HandoverChannel struct {
 // Run starts A3 handover handler
 func (h *A3HandoverHandler) Run() {
 	for ue := range h.Chans.InputChan {
-		targetCellNCGIs, caScheme := h.selectTargetCells(ue, h.rankTargetCellsByRSRP(ue))
+		ueCells := []*model.UECell{}
+		ueCells = append(ueCells, ue.ServingCells...)
+		ueCells = append(ueCells, ue.NeighborCells...)
+		topKByRSRP := signal.TopKCellsByRSRP(ue, ueCells, len(ue.ServingCells))
+		topKNcgis := []types.NCGI{}
+		for _, ueCell := range topKByRSRP {
+			topKNcgis = append(topKNcgis, ueCell.NCGI)
+		}
+		targetCellNCGIs, caScheme := h.selectTargetCells(ue, topKNcgis)
 		h.Chans.OutputChan <- HandoverDecision{
 			UE:              ue,
 			TargetCAScheme:  caScheme,
 			TargetCellNcgis: targetCellNCGIs,
 		}
 	}
-}
-
-func (h *A3HandoverHandler) rankTargetCellsByRSRP(ue model.UE) []types.NCGI {
-
-	bestRSRPsByNCGI := map[types.NCGI]float64{}
-
-	for _, ueSCell := range ue.ServingCells {
-		bestRSRPsByNCGI[ueSCell.NCGI] = ueSCell.Rsrp
-	}
-
-	for _, cscell := range ue.NeighborCells {
-		var ncgiToReplace types.NCGI = 0.0
-		minRSRP := math.Inf(1)
-		for ncgi, rsrp := range bestRSRPsByNCGI {
-			if minRSRP > rsrp {
-				minRSRP = rsrp
-				ncgiToReplace = ncgi
-			}
-		}
-
-		if ncgiToReplace != 0.0 && minRSRP < cscell.Rsrp {
-			delete(bestRSRPsByNCGI, ncgiToReplace)
-			bestRSRPsByNCGI[cscell.NCGI] = cscell.Rsrp
-		}
-	}
-
-	rankedNCGIs := []types.NCGI{}
-	for ncgi := range bestRSRPsByNCGI {
-		ncgiRSRP := bestRSRPsByNCGI[ncgi]
-		if ncgiRSRP > MIN_ACCEPTABLE_RSRP {
-			rankedNCGIs = append(rankedNCGIs, ncgi)
-		}
-	}
-
-	sort.Slice(rankedNCGIs, func(i, j int) bool {
-		return bestRSRPsByNCGI[rankedNCGIs[i]] > bestRSRPsByNCGI[rankedNCGIs[j]]
-	})
-
-	logrus.Infof("ue: %v | rankTargetCellsByRSRP -> rankedNCGIs: %v", ue.IMSI, rankedNCGIs)
-	return rankedNCGIs
 }
 
 func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.NCGI) ([]types.NCGI, bw.CAScheme) {
@@ -100,7 +65,9 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	ue: %v | HANDOVER PREPARATION
 	------------------------------------------------------------
 	`, ue.IMSI)
-	logrus.Infof("ue: %v | selectTargetCells", ue.IMSI)
+
+	model.LogUECells(&ue)
+	logrus.Infof("ue: %v | selecting target cells", ue.IMSI)
 
 	if len(rankedNCGIs) == 0 {
 		return rankedNCGIs, bw.CAScheme{}
@@ -130,8 +97,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 	for _, ncgi := range rankedNCGIs {
 		ncgiStr := strconv.FormatUint(uint64(ncgi), 10)
 		cell := h.model.Cells[ncgiStr]
-		// crossCarrierSchedulingSupported := cell.SchedulingCellInfo == model.SCHEDULING_CELL_INFO_OTHER
-		crossCarrierSchedulingSupported := true
+		crossCarrierSchedulingSupported := cell.SchedulingCellInfo == model.SCHEDULING_CELL_INFO_OTHER
 		if crossCarrierSchedulingSupported {
 			ccSchedulingCells = append(ccSchedulingCells, cell)
 		} else {
@@ -139,7 +105,7 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 		}
 	}
 
-	logrus.Infof("attempting selfSchedulingCells: %+v", selfSchedulingCells)
+	logrus.Infof("ue: %v | attempting selfSchedulingCells: %+v", ue.IMSI, selfSchedulingCells)
 
 	// self scheduling
 	ueRequiredPRBsDL, ueRequiredPRBsUL := bw.CurrPRBsUsed(&ue)

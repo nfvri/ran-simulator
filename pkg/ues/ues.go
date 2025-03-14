@@ -75,15 +75,13 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		cellServedUEs := []*model.UE{}
 		ues, cellServedUEs = GenerateUEsBasedOnBeamQS(sCell, cells, numUEsPerBeamQS, ueHeight, dc, prbMeasPerCell, ues)
 
-		usedPRBsDL := usedPRBsDLPerCQIByCell[sCellNCGI]
-		usedPRBsUL := usedPRBsULPerCQIByCell[sCellNCGI]
+		cellUsedPRBsDlPerCQI := usedPRBsDLPerCQIByCell[sCellNCGI]
+		cellUsedPRBsUlPerCQI := usedPRBsULPerCQIByCell[sCellNCGI]
 		availPRBsDL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_DL_METRIC]
 		availPRBsUL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_UL_METRIC]
 		log.Infof("cell:%v , cellServedUEs: %+v", sCell.NCGI, cellServedUEs)
 
-		// FIXME: add CA -> give bw on all serving
-		log.Info("[InitUEs]... -> bw.InitBWPs")
-		bw.InitBWPs(sCell, numUEsPerCQI, usedPRBsDL, usedPRBsUL, availPRBsDL, availPRBsUL, cellServedUEs)
+		bw.InitBWPs(sCell, numUEsPerCQI, cellUsedPRBsDlPerCQI, cellUsedPRBsUlPerCQI, availPRBsDL, availPRBsUL, cellServedUEs)
 	}
 
 	log.Infof("------------- len(ues): %d --------------", len(ues))
@@ -208,10 +206,10 @@ func CreateSimulationUE(
 		Type:                      "phone",
 		Location:                  location,
 		Heading:                   0,
-		ServingCells:              []*model.UECell{pCell}, // FIXME: add CA
+		ServingCells:              []*model.UECell{pCell},
 		FiveQi:                    beamQS.CQI,
 		CRNTI:                     types.CRNTI(90125 + counter),
-		NeighborCells:             neighborCells,
+		NeighborCells:             []*model.UECell{},
 		InterferingBeams:          interferingBeams,
 		IsAdmitted:                false,
 		Height:                    ueHeight,
@@ -219,6 +217,16 @@ func CreateSimulationUE(
 		SupportedBandCombinations: map[model.ConnectivityType]*model.ConnTypeSupportInfo{},
 		SupportedBandsNR:          []string{},
 		SupportedBandsEutra:       []string{},
+	}
+
+	sCells := signal.TopKCellsByRSRP(*ue, neighborCells, 1+rand.Intn(5))
+	ue.ServingCells = append(ue.ServingCells, sCells...)
+
+	for _, nCell := range neighborCells {
+		if _, isServing := ue.GetServingCell(nCell.NCGI); isServing {
+			continue
+		}
+		ue.NeighborCells = append(ue.NeighborCells, nCell)
 	}
 
 	initUEConnectivity(ue, maps.Values(nCells))

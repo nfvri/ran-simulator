@@ -14,11 +14,11 @@ func Test_allocateBW_cqiProportionally(t *testing.T) {
 	cell, servedUEs := setup()
 
 	pf := ProportionalFair{
-		NumUEs:     map[int]int{1: 1, 8: 1, 15: 1},
-		UsedPRBsDL: map[int]int{1: 20, 8: 30, 15: 60},
-		UsedPRBsUL: map[int]int{1: 20, 8: 30, 15: 60},
-		Cell:       cell,
-		ServedUEs:  servedUEs,
+		NumUEs:           map[int]int{1: 1, 8: 1, 15: 1},
+		UsedPRBsDlPerCQI: map[int]int{1: 20, 8: 30, 15: 60},
+		UsedPRBsUlPerCQI: map[int]int{1: 20, 8: 30, 15: 60},
+		Cell:             cell,
+		ServedUEs:        servedUEs,
 	}
 
 	totalBWDL := 0.0
@@ -40,11 +40,11 @@ func Test_ProportionalFair_apply_allocation(t *testing.T) {
 	cell, servedUEs := setup()
 
 	pf := ProportionalFair{
-		NumUEs:     map[int]int{1: 1, 8: 1, 15: 1},
-		UsedPRBsDL: map[int]int{1: 20, 8: 30, 15: 60},
-		UsedPRBsUL: map[int]int{1: 20, 8: 30, 15: 60},
-		Cell:       cell,
-		ServedUEs:  servedUEs,
+		NumUEs:           map[int]int{1: 1, 8: 1, 15: 1},
+		UsedPRBsDlPerCQI: map[int]int{1: 20, 8: 30, 15: 60},
+		UsedPRBsUlPerCQI: map[int]int{1: 20, 8: 30, 15: 60},
+		Cell:             cell,
+		ServedUEs:        servedUEs,
 	}
 
 	pf.apply()

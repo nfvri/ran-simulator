@@ -121,6 +121,7 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
 	isHandover := hoDecision.UE.RrcState == e2sm_mho.Rrcstatus_RRCSTATUS_CONNECTED
 	if !isHandover {
+		log.Warnf("ue: %v | not in state RRC_CONNECTED cannot perform handover", hoDecision.UE.IMSI)
 		return
 	}
 
@@ -135,6 +136,7 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
 	noTargetCells := len(hoDecision.TargetCellNcgis) == 0
 	if noTargetCells {
+		log.Warnf("ue: %v | no target cells found", ue.IMSI)
 		bw.ReleaseBW(servCells, ue)
 		ue.RrcState = e2sm_mho.Rrcstatus_RRCSTATUS_IDLE
 		e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
@@ -143,6 +145,7 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 
 	noChange := reflect.DeepEqual(servCellNCGIs, hoDecision.TargetCellNcgis)
 	if noChange {
+		log.Infof("ue: %v | serving cells did not change skipping HO", ue.IMSI)
 		return
 	}
 
@@ -167,9 +170,13 @@ func (e *DefaultHOExecutor) Execute(hoDecision HandoverDecision) {
 	defer e.Model.ServiceMappings.Unlock()
 
 	releasedBwps := bw.ReleaseBW(stoppedServingCells, ue)
+	log.Infof("ue: %v | UpdateServiceMappings", ue.IMSI)
 	e.Model.UpdateServiceMappings(ue.IMSI, servCellNCGIs, hoDecision.TargetCellNcgis)
+	log.Infof("ue: %v | ComputeCellMetricsFor", ue.IMSI)
 	e.ComputeCellMetricsFor(ue)
+	log.Infof("ue: %v | AllocateBandwidth", ue.IMSI)
 	bw.AllocateBandwidth(ue, releasedBwps, stoppedServingCells, targetCells, hoDecision.TargetCAScheme, e.Model.GetServedUEs)
+	log.Infof("ue: %v | logHO", ue.IMSI)
 	logHO(hoDecision, servCellNCGIs)
 
 }

@@ -1270,8 +1270,8 @@ var BandsNR = map[string]BandNR{
 // 	FRName     string // "FR1"/"FR2-1"/"FR2-2"
 // }
 
-// SCS mapping defines the SCS values, correspoding numerologies, anf frequency ranges.
-var SupportedSCSByFR = map[string][]int{
+// SCS mapping defines the SCS values, corresponding numerologies, and frequency ranges.
+var SupportedScsKHzByFR = map[string][]int{
 	FR1: {15, 30, 60},        // FR1 SCSs
 	FR2: {60, 120, 480, 960}, // FR1 SCSs
 }

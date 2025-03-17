@@ -81,6 +81,7 @@ func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, c
 		availPRBsUL := prbMeasPerCell[sCellNCGI][bw.AVAIL_PRBS_UL_METRIC]
 		log.Infof("cell:%v , cellServedUEs: %+v", sCell.NCGI, cellServedUEs)
 
+		// FIXME: decide how to allocate allocate for all ue.ServingCells
 		bw.InitBWPs(sCell, numUEsPerCQI, cellUsedPRBsDlPerCQI, cellUsedPRBsUlPerCQI, availPRBsDL, availPRBsUL, cellServedUEs)
 	}
 
@@ -229,6 +230,7 @@ func CreateSimulationUE(
 		ue.NeighborCells = append(ue.NeighborCells, nCell)
 	}
 
+	// TODO: use assigned nCells!
 	initUEConnectivity(ue, maps.Values(nCells))
 
 	return ue, ueIMSI
@@ -271,6 +273,9 @@ func findInterferingBeams(point model.Coordinate, sCell *model.Cell, beamID mode
 }
 
 func pickRandomlyFromSlice(slice []string) string {
+	if len(slice) == 1 {
+		return slice[0]
+	}
 	return slice[rand.Intn(len(slice))]
 }
 
@@ -296,6 +301,7 @@ func initUEConnectivity(ue *model.UE, cells []*model.Cell) {
 	}
 
 	if !anyValidBandCombo {
+		log.Warnf("ue: %v | could not init CA support, no available combos found", ue.IMSI)
 		return
 	}
 

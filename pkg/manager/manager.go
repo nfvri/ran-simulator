@@ -333,24 +333,19 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 				activeUEs++
 			}
 
-			for sCellIndex := range ue.ServingCells {
-				sCell := ue.ServingCells[sCellIndex]
-				if sCell.NCGI == cell.NCGI {
+			sCell, _ := ue.GetServingCell(cell.NCGI)
 
-					for _, bwp := range sCell.BwpRefs {
-						framePRBs := int(float64(bwp.NumberOfRBs) / float64((bwp.Scs / 15)))
-						if bwp.Downlink {
-							prbsUsedDl += framePRBs
-							prbsUsedDLPerCQI[ue.FiveQi] += framePRBs
-						} else {
-							prbsUsedUl += framePRBs
-							prbsUsedULPerCQI[ue.FiveQi] += framePRBs
-						}
-					}
-
-					break
+			for _, bwp := range sCell.BwpRefs {
+				framePRBs := int(float64(bwp.NumberOfRBs) / float64((bwp.Scs / 15)))
+				if bwp.Downlink {
+					prbsUsedDl += framePRBs
+					prbsUsedDLPerCQI[ue.FiveQi] += framePRBs
+				} else {
+					prbsUsedUl += framePRBs
+					prbsUsedULPerCQI[ue.FiveQi] += framePRBs
 				}
 			}
+
 		}
 
 		prbsAvailDL := prbMeasPerCell[uint64(cell.NCGI)][bw.AVAIL_PRBS_DL_METRIC]
@@ -392,7 +387,7 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 		// m.logActiveUEs(ctx, cell)
 		// m.logPRBUtilization(ctx, cell)
 
-		// TODO:
+		// TODO: add also UE/QoE perspective throughput/metrics
 		// statistics.CalculateThroughputMbps()
 
 		cellStats := map[string]any{

@@ -48,8 +48,6 @@ type Model struct {
 
 func (m *Model) UpdateServiceMappings(ueIMSI types.IMSI, sourceCellNcgis, targetCellINcgis []types.NCGI) {
 
-	// TODO: handle len(targetCellINcgis) == 0
-
 	logrus.Infof("ue: %v | [UPDATE-SM] sourceCellNcgis: %v, targetCellINcgis: %v", ueIMSI, sourceCellNcgis, targetCellINcgis)
 
 	// delete ue from sourceCells & sourceCells from ue
@@ -122,7 +120,7 @@ SERVING_CELL_DELETION:
 		deletedUECells = append(deletedUECells, deletedUECell)
 	}
 
-	// TODO: for each target serving cell
+	// for each target serving cell
 	// remove from neighbor and add to serving cells
 	for _, tCellNCGI := range targetCellINcgis {
 		neighUECellIndex, neighTargetUECell := ue.GetNeighborCell(tCellNCGI)

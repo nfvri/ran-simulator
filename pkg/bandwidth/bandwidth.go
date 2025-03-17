@@ -94,7 +94,7 @@ func AllocateBandwidth(
 		return
 	}
 
-	log.Infof("\n\n-----------\nue: %v | targetCells: %+v\n\n", ue.IMSI, targetCells)
+	log.Infof("ue: %v | targetCells: %+v", ue.IMSI, targetCells)
 	reallocateBandwidth(targetCells, getServedUEs, ue)
 }
 

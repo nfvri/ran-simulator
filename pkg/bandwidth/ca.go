@@ -838,8 +838,13 @@ func GetUESupportedCACombosByConnType(ue *model.UE) map[model.ConnectivityType][
 	return ueSupportedCACombosByConnType
 }
 
-// GetBandSupportInfo returns the supported connectivity types NR/EUTRA for the cells
-// the bands and the cells under on each band.
+// GetBandSupportInfo returns:
+//
+// 1. the supported connectivity types NR/EUTRA for the cells
+//
+// 2. the supported bands
+//
+// 3. the cells under each band
 //
 // It is organized as:
 //
@@ -1106,9 +1111,9 @@ func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (in
 		ueServCell, _ := servedUE.GetServingCell(cell.NCGI)
 		for _, bwp := range ueServCell.BwpRefs {
 			if bwp.Downlink {
-				usedBWDL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+				usedBWDL += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
 			} else {
-				usedBWUL += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+				usedBWUL += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
 			}
 		}
 	}

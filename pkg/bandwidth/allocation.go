@@ -341,9 +341,9 @@ func (s *ProportionalFair) getUeRates() (ueRatesDL, ueRatesUL map[types.IMSI]flo
 			for index := range ueReqBWPs {
 				bwp := ueReqBWPs[index]
 				if bwp.Downlink {
-					uePeqBWDL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					uePeqBWDL[ue.IMSI] += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
 				} else {
-					ueReqBWUL[ue.IMSI] += float64(bwp.NumberOfRBs) * float64(bwp.Scs) * 12
+					ueReqBWUL[ue.IMSI] += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
 				}
 			}
 		}

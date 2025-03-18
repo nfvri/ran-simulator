@@ -1525,15 +1525,15 @@ var ChannelInfoByFR = map[ChannelInfo]uint32{
 }
 
 // GetPRBs returns the PRBs for the available Channel Bandwidth and SCS.
-func GetPRBs(channelBW uint32, scs int, fr string) int {
-	if (fr == FR1 && channelBW < 5) || (fr == FR2 && channelBW < 50) {
+func GetPRBs(channelBwMHz uint32, scs int, fr string) int {
+	if (fr == FR1 && channelBwMHz < 5) || (fr == FR2 && channelBwMHz < 50) {
 		return 0
 	}
 
 	ci := ChannelInfo{
 		FR:           fr,
 		SCS:          uint32(scs),
-		ChannelBWMHz: uint32(roundToNearestChannelBW(fr, int(channelBW))),
+		ChannelBWMHz: uint32(roundToNearestChannelBW(fr, int(channelBwMHz))),
 	}
 	return int(ChannelInfoByFR[ci])
 }

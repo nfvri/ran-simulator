@@ -293,6 +293,7 @@ func (m *Manager) initCellMetrics(ctx context.Context) {
 			logrus.Errorf("failed to initialize BWPs for cell: %v", cell.NCGI)
 		}
 	}
+
 }
 
 func (m *Manager) computeCellStatistics(ctx context.Context) {
@@ -374,18 +375,18 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 			activeUEsDL = activeUEs
 		}
 
-		// logrus.Infof(`
-		// ====================================================================
-		// ncgi: %v
-		// operatingBand: %v
-		// duplex mode: %v
-		// ====================================================================
-		// 	`,
-		// 	cell.NCGI,
-		// 	operatingBand.Name,
-		// 	operatingBand.DuplexingMode)
-		// m.logActiveUEs(ctx, cell)
-		// m.logPRBUtilization(ctx, cell)
+		logrus.Infof(`
+		====================================================================
+		ncgi: %v
+		operatingBand: %v
+		duplex mode: %v
+		====================================================================
+			`,
+			cell.NCGI,
+			operatingBand.Name,
+			operatingBand.DuplexingMode)
+		m.logActiveUEs(ctx, cell)
+		m.logPRBUtilization(ctx, cell)
 
 		// TODO: add also UE/QoE perspective throughput/metrics
 		// statistics.CalculateThroughputMbps()
@@ -412,8 +413,8 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 
 		m.storeStats(ctx, uint64(cell.NCGI), cellStats)
 
-		// m.logActiveUEs(ctx, cell)
-		// m.logPRBUtilization(ctx, cell)
+		m.logActiveUEs(ctx, cell)
+		m.logPRBUtilization(ctx, cell)
 	}
 
 	subnetStats := map[string]any{

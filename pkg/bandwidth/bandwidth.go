@@ -37,22 +37,24 @@ func InitBWPs(pCell *model.Cell, numUEs, usedPRBsDL, usedPRBsUL map[int]int, ava
 	allocatedBWPs := 0
 	for cqi, numPRBsToAllocate := range prbsPerCQI {
 		if allocatedBWPs+numPRBsToAllocate <= len(existingCellBwps) {
-			allocateBWPsToUEs(existingCellBwps[allocatedBWPs:allocatedBWPs+numPRBsToAllocate], servedUEs, cqi)
+			allocateBWPsToUEs(pCell.NCGI, existingCellBwps[allocatedBWPs:allocatedBWPs+numPRBsToAllocate], servedUEs, cqi)
 			allocatedBWPs += numPRBsToAllocate
 		}
 	}
 
 }
 
-func CurrPRBsUsed(ue *model.UE) (UsedPRBsDL, UsedPRBsUL int) {
-	for uecIndex := range ue.ServingCells {
-		ueServCell := ue.ServingCells[uecIndex]
-		for bwpIndex := range ueServCell.BwpRefs {
-			bwp := *ueServCell.BwpRefs[bwpIndex]
+func CurrPRBsUsed(ue *model.UE) (usedPRBsDL, usedPRBsUL int) {
+	usedPRBsDL = 0
+	usedPRBsUL = 0
+	for c := range ue.ServingCells {
+		ueServCell := *ue.ServingCells[c]
+		for b := range ueServCell.BwpRefs {
+			bwp := ueServCell.BwpRefs[b]
 			if bwp.Downlink {
-				UsedPRBsDL += bwp.NumberOfRBs
+				usedPRBsDL += bwp.NumberOfRBs
 			} else {
-				UsedPRBsUL += bwp.NumberOfRBs
+				usedPRBsUL += bwp.NumberOfRBs
 			}
 		}
 	}

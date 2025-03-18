@@ -186,7 +186,7 @@ func (s *ProportionalFair) allocateBW(availBwDlHz, availBwUlHz int) {
 			bwp.ID = uint64(cellAllocatedBwps + i)
 			s.Cell.Bwps[bwp.ID] = bwp
 		}
-		allocateBWPsToUEs(cqiBwps, s.ServedUEs, cqi)
+		allocateBWPsToUEs(s.Cell.NCGI, cqiBwps, s.ServedUEs, cqi)
 	}
 
 	s.allocateRemainingBW(remainingBwDlHz, true)
@@ -195,10 +195,10 @@ func (s *ProportionalFair) allocateBW(availBwDlHz, availBwUlHz int) {
 }
 
 func (s *ProportionalFair) allocateRemainingBW(remainingBwHz int, downlink bool) {
-	scsHz := KHzToHz(float64(s.ScsKHzPerCQI[15]))
+	scsHz := KHzToHz(float64(s.ScsKHzPerCQI[1]))
 	if float64(remainingBwHz) > 12*scsHz {
 		prbsToGenerate := remainingBwHz / int(scsHz)
-		cqiBwps, _ := generateBWPs(remainingBwHz, prbsToGenerate, downlink, s.ScsKHzPerCQI[15])
+		cqiBwps, _ := generateBWPs(remainingBwHz, prbsToGenerate, downlink, s.ScsKHzPerCQI[1])
 
 		bwp := cqiBwps[0]
 		bwp.ID = uint64(len(s.Cell.Bwps))
@@ -213,14 +213,14 @@ func (s *ProportionalFair) allocateRemainingBW(remainingBwHz int, downlink bool)
 			}
 		}
 
-		allocateBWPsToUEs(cqiBwps, s.ServedUEs, maxCQI)
+		allocateBWPsToUEs(s.Cell.NCGI, cqiBwps, s.ServedUEs, maxCQI)
 	}
 }
 
 func (s *ProportionalFair) populateUsedPRBs(availBWHz int, downlink bool) {
 
 	usedBWHz := float64(availBWHz)
-	usedPRBs := int(usedBWHz / float64(12*s.ScsKHzPerCQI[15]))
+	usedPRBs := int(usedBWHz / 12 * KHzToHz(float64(s.ScsKHzPerCQI[1])))
 	usedPRBsPerCQI := DistributeCellUsedPRBsToCQIs(s.NumUEs, usedPRBs)
 
 	if downlink {
@@ -264,7 +264,7 @@ func generateBWPs(remaingBWHz, usedPRBs int, downlink bool, scsKHz int) ([]*mode
 	return cqiBwps, remaingBWHz
 }
 
-func allocateBWPsToUEs(cqiBwps []*model.Bwp, servedUEs []*model.UE, cqi int) {
+func allocateBWPsToUEs(ncgi types.NCGI, cqiBwps []*model.Bwp, servedUEs []*model.UE, cqi int) {
 	bwpsToAllocate := len(cqiBwps)
 BW_ALLOCATION:
 	for bwpsToAllocate > 0 {
@@ -274,10 +274,13 @@ BW_ALLOCATION:
 				break BW_ALLOCATION
 			}
 			ue := servedUEs[index]
-			uePCell := ue.ServingCells[0]
+			ueServCell, found := ue.GetServingCell(ncgi)
+			if !found {
+				continue
+			}
 			if ue.FiveQi == cqi {
 				bwp := *cqiBwps[len(cqiBwps)-bwpsToAllocate]
-				uePCell.BwpRefs = append(uePCell.BwpRefs, &bwp)
+				ueServCell.BwpRefs = append(ueServCell.BwpRefs, &bwp)
 				bwpsToAllocate--
 			}
 		}
@@ -295,7 +298,7 @@ func (s *ProportionalFair) reallocateBW(availBWDL int, availBWUL int) {
 
 	for index := range s.ServedUEs {
 		ue := s.ServedUEs[index]
-		uePCell := ue.ServingCells[0]
+		uePCell, _ := ue.GetServingCell(s.Cell.NCGI)
 		uePCellBwps := []model.Bwp{}
 
 		if ueRateDL, ok := ueRatesDL[ue.IMSI]; ok {
@@ -397,7 +400,7 @@ func (s *ProportionalFair) reallocateBWPs(availBWHz int, imsi types.IMSI, downli
 		return newBWPs, int(remaingBWHz)
 	}
 
-	minPRBSize := 12 * KHzToHz(float64(s.ScsKHzPerCQI[15]))
+	minPRBSize := 12 * KHzToHz(float64(s.ScsKHzPerCQI[1]))
 	if remaingBWHz < minPRBSize {
 		return newBWPs, int(remaingBWHz)
 	}
@@ -407,7 +410,7 @@ func (s *ProportionalFair) reallocateBWPs(availBWHz int, imsi types.IMSI, downli
 		bwToAllocate := float64(prbsToAllocate) * minPRBSize
 		newBWPs = append(newBWPs, model.Bwp{
 			ID:          uint64(len(newBWPs)),
-			Scs:         s.ScsKHzPerCQI[15],
+			Scs:         s.ScsKHzPerCQI[1],
 			NumberOfRBs: prbsToAllocate,
 			Downlink:    downlink,
 		})

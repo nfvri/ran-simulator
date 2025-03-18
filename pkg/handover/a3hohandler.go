@@ -113,6 +113,10 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 		cell := selfSchedulingCells[c]
 		servedUEs := h.model.GetServedUEs(cell.NCGI)
 		cellAvailPrbsUL, cellAvailPrbsDL, err := bw.GetCellAvailPRBs(cell, servedUEs, &ue)
+		if err != nil {
+			logrus.Errorf("ue: %v | failed to get available prbs for cell: %v, %v", ue.IMSI, cell.NCGI, err)
+			continue
+		}
 		logrus.Infof(
 			`ue: %v |
 			ueRequiredPRBsUL:%v vs cellAvailPrbsUL:%v,
@@ -122,9 +126,6 @@ func (h *A3HandoverHandler) selectTargetCells(ue model.UE, rankedNCGIs []types.N
 			ueRequiredPRBsDL, cellAvailPrbsDL,
 		)
 
-		if err != nil {
-			continue
-		}
 		if cellAvailPrbsUL >= ueRequiredPRBsUL && cellAvailPrbsDL >= ueRequiredPRBsDL {
 			logrus.Infof("found selfSchedulingCell: %v", cell.NCGI)
 			return []types.NCGI{cell.NCGI}, bw.CAScheme{}

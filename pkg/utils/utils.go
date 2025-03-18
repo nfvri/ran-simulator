@@ -159,16 +159,6 @@ func GetEnv(key string, defaultVal string) string {
 	return defaultVal
 }
 
-func GetServedUEs(cell *model.Cell, ues []model.UE) (servedUEs []model.UE) {
-	for _, ue := range ues {
-		uePCell := ue.ServingCells[0]
-		if uePCell.NCGI == cell.NCGI {
-			servedUEs = append(servedUEs, ue)
-		}
-	}
-	return
-}
-
 func DbwToDbm(dbw float64) float64 {
 	return 10 * math.Log10(dbw)
 }

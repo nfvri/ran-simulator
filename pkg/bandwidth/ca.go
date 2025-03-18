@@ -1100,8 +1100,8 @@ func GetCAComboAvailPRBs(bandComboCells []*model.Cell, ranModel *model.Model, ue
 // given its served UEs.
 func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (int, int, error) {
 
-	usedBWDL := 0.0
-	usedBWUL := 0.0
+	usedBwHzDL := 0.0
+	usedBwHzUL := 0.0
 
 	for _, servedUE := range servedUEs {
 		// dont count already reserved bwps by ue
@@ -1111,9 +1111,9 @@ func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (in
 		ueServCell, _ := servedUE.GetServingCell(cell.NCGI)
 		for _, bwp := range ueServCell.BwpRefs {
 			if bwp.Downlink {
-				usedBWDL += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
+				usedBwHzDL += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
 			} else {
-				usedBWUL += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
+				usedBwHzUL += float64(bwp.NumberOfRBs) * KHzToHz(float64(bwp.Scs)) * 12
 			}
 		}
 	}
@@ -1130,8 +1130,8 @@ func GetCellAvailPRBs(cell *model.Cell, servedUEs []*model.UE, ue *model.UE) (in
 		totalBWUL += MHzToHz(float64(carrier.BsChannelBwUL))
 	}
 
-	cellAvailBwDL := MHzToHz(totalBWDL) - usedBWDL
-	cellAvailBwUL := MHzToHz(totalBWUL) - usedBWUL
+	cellAvailBwDL := MHzToHz(totalBWDL) - usedBwHzDL
+	cellAvailBwUL := MHzToHz(totalBWUL) - usedBwHzUL
 
 	cellAvailPrbsUL := GetPRBs(uint32(HzToMHz(cellAvailBwUL)), scs, fr)
 	cellAvailPrbsDL := GetPRBs(uint32(HzToMHz(cellAvailBwDL)), scs, fr)

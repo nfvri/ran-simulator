@@ -219,7 +219,10 @@ func (m *Manager) initMetricStore() {
 func (m *Manager) computeCellAttributes() error {
 
 	ueHeight := 1.5
-	refSignalStrength := -87.0
+	refSignalStrength, err := strconv.ParseFloat(utils.GetEnv("REFERENCE_SIGNAL_STRENGTH", "-87.0"), 64)
+	if err != nil {
+		log.Error("Error converting REFERENCE_SIGNAL_STRENGTH string to float64: ", err)
+	}
 	// change model's cells key from designated name to ncgi
 	cellGroup := make(map[string]*model.Cell)
 	for _, cell := range m.model.Cells {

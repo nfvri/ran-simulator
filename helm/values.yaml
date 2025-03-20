@@ -105,4 +105,6 @@ redis:
   cache: 
     cellDB: 1
     ueDB: 2
-  
+
+config:
+  referenceSignalStrength: -87.0

@@ -256,5 +256,5 @@ func (e *DefaultHOExecutor) ComputeCellMetricsFor(ue *model.UE) {
 	}
 
 	ueCopy := *ue
-	e.Model.UEs[strconv.FormatUint(uint64(ue.IMSI), 10)] = &ueCopy
+	e.Model.UpsertUE(&ueCopy)
 }

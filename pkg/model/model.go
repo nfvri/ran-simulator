@@ -22,6 +22,7 @@ import (
 
 // Model simulation model
 type Model struct {
+	sync.RWMutex
 	MapLayout               MapLayout               `mapstructure:"layout" yaml:"layout"`
 	RouteEndPoints          []RouteEndPoint         `mapstructure:"routeEndPoints" yaml:"routeEndPoints"`
 	WayPointRoute           bool                    `mapstructure:"wayPointRoute" yaml:"wayPointRoute"`
@@ -155,7 +156,16 @@ func (m *Model) InitServiceMappings(ues map[string]*UE) {
 	}
 }
 
+func (m *Model) UpsertUE(ue *UE) {
+	m.Lock()
+	defer m.Unlock()
+	imsi := strconv.Itoa(int(ue.IMSI))
+	m.UEs[imsi] = ue
+}
+
 func (m *Model) GetServedUEs(ncgi types.NCGI) []*UE {
+	m.Lock()
+	defer m.Unlock()
 	servedUEs := []*UE{}
 	for _, imsi := range m.CellToUEs[ncgi] {
 		imsiStr := strconv.Itoa(int(imsi))

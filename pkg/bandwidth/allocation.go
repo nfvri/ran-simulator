@@ -1,6 +1,7 @@
 package bandwidth
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/nfvri/onos-api/go/onos/ransim/metrics"
@@ -81,7 +82,7 @@ func (s *ProportionalFair) apply() {
 
 	if s.IsReallocation {
 		log.Warnf("ncgi: %v | [PF] Existing allocation found", s.Cell.NCGI)
-		log.Debugf("availBWDL:%v, availBWUL:%v", float64(availBwDlHz)/1e6, float64(availBwUlHz)/1e6)
+		log.Debugf("availBWDL (MHz):%v, availBWUL (MHz):%v", HzToMHz(float64(availBwDlHz)), HzToMHz(float64(availBwUlHz)))
 		s.reallocateBW(availBwDlHz, availBwUlHz)
 		return
 	}
@@ -111,6 +112,7 @@ func (s *ProportionalFair) apply() {
 	if len(s.UsedPRBsUlPerCQI) == 0 {
 		s.populateUsedPRBs(availBwUlHz, false)
 	}
+
 	log.Infof("--------------------")
 	log.Infof("NEW ALLOCATION")
 	log.Infof("--------------------")
@@ -159,25 +161,29 @@ func (s *ProportionalFair) allocateBW(availBwDlHz, availBwUlHz int) {
 	remainingBwDlHz := 0
 	remainingBwUlHz := 0
 
+	allocatedPRBsDL := 0
+	allocatedPRBsUL := 0
+
 	for cqi, numUEs := range s.NumUEs {
 
 		cqiAvailBwDlHz := int((float64(cqi * numUEs * availBwDlHz)) / sumCQIs)
 		cqiAvailBwUlHz := int((float64(cqi * numUEs * availBwUlHz)) / sumCQIs)
+		scs := s.ScsKHzPerCQI[cqi]
 
 		usedPRBsDL, exixtsDL := s.UsedPRBsDlPerCQI[cqi]
 		if !exixtsDL {
 			usedPRBsDL = 0
 		}
-		cqiBwpsDL, cqiRemaingBwDlHz := generateBWPs(cqiAvailBwDlHz+remainingBwDlHz, usedPRBsDL, true, s.ScsKHzPerCQI[cqi])
+		cqiBwpsDL, cqiRemainingBwDlHz := generateBWPs(cqiAvailBwDlHz+remainingBwDlHz, usedPRBsDL, true, scs)
 
 		usedPRBsUL, exixtsDL := s.UsedPRBsUlPerCQI[cqi]
 		if !exixtsDL {
 			usedPRBsUL = 0
 		}
-		cqiBwpsUL, cqiRemaingBwUlHz := generateBWPs(cqiAvailBwUlHz+remainingBwUlHz, usedPRBsUL, false, s.ScsKHzPerCQI[cqi])
+		cqiBwpsUL, cqiRemainingBwUlHz := generateBWPs(cqiAvailBwUlHz+remainingBwUlHz, usedPRBsUL, false, scs)
 
-		remainingBwDlHz = cqiRemaingBwDlHz
-		remainingBwUlHz = cqiRemaingBwUlHz
+		remainingBwDlHz = cqiRemainingBwDlHz
+		remainingBwUlHz = cqiRemainingBwUlHz
 
 		cqiBwps := append(cqiBwpsDL, cqiBwpsUL...)
 		cellAllocatedBwps := len(s.Cell.Bwps)
@@ -187,23 +193,46 @@ func (s *ProportionalFair) allocateBW(availBwDlHz, availBwUlHz int) {
 			s.Cell.Bwps[bwp.ID] = bwp
 		}
 		allocateBWPsToUEs(s.Cell.NCGI, cqiBwps, s.ServedUEs, cqi)
+
+		allocatedPRBsDL += len(cqiBwpsDL)
+		allocatedPRBsUL += len(cqiBwpsUL)
 	}
 
-	s.allocateRemainingBW(remainingBwDlHz, true)
-	s.allocateRemainingBW(remainingBwUlHz, false)
+	// TODO: refactor and maybe use allocateBW again for remaining bw?
+	s.allocateRemainingBW(remainingBwDlHz, allocatedPRBsDL, true)
+	s.allocateRemainingBW(remainingBwUlHz, allocatedPRBsUL, false)
 
 }
 
-func (s *ProportionalFair) allocateRemainingBW(remainingBwHz int, downlink bool) {
+func (s *ProportionalFair) allocateRemainingBW(remainingBwHz, allocatedPRBs int, downlink bool) {
+
+	usedPRBsPerCQI := utils.If(downlink, s.UsedPRBsDlPerCQI, s.UsedPRBsUlPerCQI)
+
+	cellUsedPRBs := 0
+	for cqi := range usedPRBsPerCQI {
+		cellUsedPRBs += usedPRBsPerCQI[cqi]
+	}
+
 	scsHz := KHzToHz(float64(s.ScsKHzPerCQI[1]))
 	if float64(remainingBwHz) > 12*scsHz {
-		prbsToGenerate := remainingBwHz / int(scsHz)
+		bwRemaingPRBs := float64(remainingBwHz / int(scsHz))
+		usageRemainingPRBs := float64(cellUsedPRBs - allocatedPRBs)
+
+		prbsToGenerate := int(math.Min(bwRemaingPRBs, usageRemainingPRBs))
 		cqiBwps, _ := generateBWPs(remainingBwHz, prbsToGenerate, downlink, s.ScsKHzPerCQI[1])
 
-		bwp := cqiBwps[0]
-		bwp.ID = uint64(len(s.Cell.Bwps))
-		s.Cell.Bwps[bwp.ID] = bwp
+		if len(cqiBwps) == 0 {
+			log.Infof("ncgi: %v | no remaining bw allocated, bwRemaingPRBs: %v, usageRemainingPRBs: %v", s.Cell.NCGI, bwRemaingPRBs, usageRemainingPRBs)
+			return
+		}
 
+		for i := range cqiBwps {
+			bwp := cqiBwps[i]
+			bwp.ID = uint64(len(s.Cell.Bwps))
+			s.Cell.Bwps[bwp.ID] = bwp
+		}
+
+		// allocate remaining PRBs to cqi with most UEs
 		maxCQI := 1
 		maxNumUEs := s.NumUEs[maxCQI]
 		for cqi, numUEs := range s.NumUEs {
@@ -234,31 +263,29 @@ func (s *ProportionalFair) populateUsedPRBs(availBWHz int, downlink bool) {
 	}
 }
 
-func generateBWPs(remaingBWHz, usedPRBs int, downlink bool, scsKHz int) ([]*model.Bwp, int) {
+func generateBWPs(remaingBWHz, requestedPRBs int, downlink bool, scsKHz int) ([]*model.Bwp, int) {
 	cqiBwps := []*model.Bwp{}
 
-	if usedPRBs == 0 {
+	if requestedPRBs == 0 {
 		return cqiBwps, remaingBWHz
 	}
 
-	for i := 0; i < usedPRBs; i++ {
-		scsHz := KHzToHz(float64(scsKHz))
+	minSCS := KHzToHz(float64(NrSCSByCQIPerFR[FR1][1]))
+	minBw := 12 * minSCS
+	for i := 0; i < requestedPRBs; i++ {
 
-		if remaingBWHz-int(12*scsHz) < 0 {
+		if remaingBWHz-int(minBw) < 0 {
 			break
 		}
 
-		numBwps := (scsKHz / 15)
-		for j := 0; j < numBwps; j++ {
-			cqiBwps = append(cqiBwps, &model.Bwp{
-				ID:          uint64(i),
-				Scs:         scsKHz,
-				NumberOfRBs: 1,
-				Downlink:    downlink,
-			})
-		}
-		i += numBwps - 1
-		remaingBWHz -= 12 * int(scsHz)
+		cqiBwps = append(cqiBwps, &model.Bwp{
+			ID:          uint64(i),
+			Scs:         scsKHz,
+			NumberOfRBs: 1,
+			Downlink:    downlink,
+		})
+
+		remaingBWHz -= int(minBw)
 	}
 
 	return cqiBwps, remaingBWHz

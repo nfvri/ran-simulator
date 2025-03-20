@@ -337,7 +337,7 @@ func (m *Manager) computeCellStatistics(ctx context.Context) {
 			sCell, _ := ue.GetServingCell(cell.NCGI)
 
 			for _, bwp := range sCell.BwpRefs {
-				framePRBs := int(float64(bwp.NumberOfRBs) / float64((bwp.Scs / 15)))
+				framePRBs := int(float64(bwp.NumberOfRBs))
 				if bwp.Downlink {
 					prbsUsedDl += framePRBs
 					prbsUsedDLPerCQI[ue.FiveQi] += framePRBs

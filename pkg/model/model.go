@@ -95,7 +95,7 @@ func LogUECells(ue *UE) {
 	for _, ueNeighCell := range ue.NeighborCells {
 		nCellNCGIs = append(nCellNCGIs, ueNeighCell.NCGI)
 	}
-	logrus.Infof(
+	logrus.Debugf(
 		`ue: %v | ue.ServingCells:%+v ue.NeighborCells:%+v `,
 		ue.IMSI, sCellNCGIs, nCellNCGIs,
 	)

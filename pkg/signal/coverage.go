@@ -198,7 +198,7 @@ func GetCovBoundaryPoints(cell *model.Cell, beamID model.BeamID, ueHeight, refSi
 	log.Debugf("calculating coverage for cell:%v", cell.NCGI)
 
 	carrier := cell.GetCarrier(beamID)
-	log.Infof("carrier: %+v, beamID: %v", carrier, beamID)
+	log.Debugf("carrier: %+v, beamID: %v", carrier, beamID)
 	mpf := RiceanFading(GetRiceanK(carrier))
 
 	cfp := func(x0 []float64) (f func(out, x []float64)) {

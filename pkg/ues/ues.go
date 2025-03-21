@@ -22,6 +22,11 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+// TODO: Decouple metrics, ueCreation and bwp Allocation. Use metrics in both initUeInStoreandServingMapings and initBWPs
+// InitUEs  -> initMetrics
+//
+//	-> initUeInStoreandServingMapings
+//	-> initBWPs
 func InitUEs(cellMeasurements []*metrics.Metric, cells map[string]*model.Cell, cacheStore redisLib.Store, snapshotId string, dc, ueHeight float64) (map[string]*model.UE, bool) {
 
 	numUEsByCell, prbMeasPerCell := bw.UtilizationInfoByCell(cellMeasurements)

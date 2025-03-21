@@ -214,6 +214,13 @@ func (s *ProportionalFair) allocateRemainingBW(remainingBwHz, allocatedPRBs int,
 	}
 
 	scsHz := KHzToHz(float64(s.ScsKHzPerCQI[1]))
+
+	log.Infof("ncgi: %v | bwRemaingPRBs: %v, scsHz: %v || cellUsedPRBs: %v,allocatedPRBs: %v ", s.Cell.NCGI, remainingBwHz, scsHz, cellUsedPRBs, allocatedPRBs)
+
+	if cellUsedPRBs-allocatedPRBs == 0 {
+		return
+	}
+
 	if float64(remainingBwHz) > 12*scsHz {
 		bwRemaingPRBs := float64(remainingBwHz / int(scsHz))
 		usageRemainingPRBs := float64(cellUsedPRBs - allocatedPRBs)
@@ -222,7 +229,7 @@ func (s *ProportionalFair) allocateRemainingBW(remainingBwHz, allocatedPRBs int,
 		cqiBwps, _ := generateBWPs(remainingBwHz, prbsToGenerate, downlink, s.ScsKHzPerCQI[1])
 
 		if len(cqiBwps) == 0 {
-			log.Infof("ncgi: %v | no remaining bw allocated, bwRemaingPRBs: %v, usageRemainingPRBs: %v", s.Cell.NCGI, bwRemaingPRBs, usageRemainingPRBs)
+			log.Warnf("ncgi: %v | no remaining bw allocated, bwRemaingPRBs: %v, usageRemainingPRBs: %v", s.Cell.NCGI, bwRemaingPRBs, usageRemainingPRBs)
 			return
 		}
 

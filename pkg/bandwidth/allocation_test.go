@@ -30,7 +30,7 @@ func Test_allocateBW_cqiProportionally(t *testing.T) {
 
 	availBWDL := int(totalBWDL * DEFAULT_MAX_BW_UTILIZATION)
 	availBWUL := int(totalBWUL * DEFAULT_MAX_BW_UTILIZATION)
-
+	pf.setSCSOptions()
 	pf.allocateBW(availBWDL, availBWUL)
 
 	verifyBwIncreasesWithCQI(t, servedUEs)
@@ -68,8 +68,8 @@ func Test_ProportionalFair_apply_reallocation(t *testing.T) {
 		FiveQi: 8,
 		ServingCells: []*model.UECell{
 			{
-				ID:   17680452419585,
-				NCGI: 17680452419585,
+				ID:   1234,
+				NCGI: 1234,
 				Rsrp: -88.84787974766571,
 				Rsrq: 21.7074,
 				Sinr: 4.909738334537388,
@@ -146,8 +146,8 @@ func setup() (*model.Cell, []*model.UE) {
 			FiveQi: 1,
 			ServingCells: []*model.UECell{
 				{
-					ID:   17680452419585,
-					NCGI: 17680452419585,
+					ID:   1234,
+					NCGI: 1234,
 					Rsrp: -88.84787974766571,
 					Rsrq: 21.7074,
 					Sinr: 4.909738334537388,
@@ -159,8 +159,8 @@ func setup() (*model.Cell, []*model.UE) {
 			FiveQi: 8,
 			ServingCells: []*model.UECell{
 				{
-					ID:   17680452419585,
-					NCGI: 17680452419585,
+					ID:   1234,
+					NCGI: 1234,
 					Rsrp: -88.84787974766571,
 					Rsrq: 21.7074,
 					Sinr: 4.909738334537388,
@@ -172,8 +172,8 @@ func setup() (*model.Cell, []*model.UE) {
 			FiveQi: 15,
 			ServingCells: []*model.UECell{
 				{
-					ID:   17680452419585,
-					NCGI: 17680452419585,
+					ID:   1234,
+					NCGI: 1234,
 					Rsrp: -88.84787974766571,
 					Rsrq: 21.7074,
 					Sinr: 4.909738334537388,

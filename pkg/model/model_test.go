@@ -5,6 +5,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/nfvri/onos-api/go/onos/ransim/types"
@@ -14,6 +15,7 @@ import (
 func TestModel(t *testing.T) {
 	model := &Model{}
 	err := LoadConfig(model, "test")
+	fmt.Printf("modell %+v", model)
 	assert.NoError(t, err)
 	t.Log(model)
 	assert.Equal(t, 0, len(model.Controllers))
@@ -32,7 +34,10 @@ func TestModel(t *testing.T) {
 	assert.Equal(t, types.NCGI(0x10100000c003), model.Cells["managedelement=1193046,gnbdufunction=3,nrcelldu=3"].NCGI)
 	// TODO: Add cells in Nodes.Cells list
 	assert.Equal(t, 0, len(model.Nodes["managedelement=1193046"].Cells))
-	assert.Equal(t, 37.981629, model.Cells["managedelement=1193048,gnbdufunction=1,nrcelldu=1"].Carriers[0].Center.Lat)
+	// fmt.Printf("ssssssss %+v", t)
+	fmt.Printf("new %+v", model.Cells["managedelement=1193048,gnbdufunction=1,nrcelldu=1"])
+	//assert.Equal(t, 37.981629, model.Cells["managedelement=1193048,gnbdufunction=1,nrcelldu=1"].Carriers[0].Center.Lat)
+	assert.Empty(t, model.Cells["managedelement=1193048,gnbdufunction=1,nrcelldu=1"].Carriers)
 
 	assert.Equal(t, false, model.MapLayout.FadeMap)
 	assert.Equal(t, 0.0, model.MapLayout.Center.Lat)

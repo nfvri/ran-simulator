@@ -98,6 +98,7 @@ func NewMobilityDriver(m *model.Model, hoLogic string, hoCtrl handover.HOControl
 		m:                       m,
 		hoLogic:                 hoLogic,
 		rrcCtrl:                 NewRrcCtrl(m.UECountPerCell),
+		routeStore:              routes.NewRouteRegistry(),
 		rrcStateChangesDisabled: m.RrcStateChangesDisabled,
 		wayPointRoute:           m.WayPointRoute,
 		hoCtrl:                  hoCtrl,

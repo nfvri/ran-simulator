@@ -37,24 +37,25 @@ func Test_UpdateCellsCache(t *testing.T) {
 	cache = &redisLib.MockedRedisStore{}
 	UpdateCells(m.Cells, cache, ueHeight, -87.0, 50, "1234")
 	assert.Equal(t, 3, len(m.Cells))
-	beamID1 := model.BeamID{NCGI: 17660905570307, CarrierIndex: 1, BeamIndex: 1}
-	beamID2 := model.BeamID{NCGI: 17660905553922, CarrierIndex: 1, BeamIndex: 1}
-	beamID3 := model.BeamID{NCGI: 17660905537537, CarrierIndex: 1, BeamIndex: 1}
-	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].RPCoverageBoundaries[beamID1][0].BoundaryPoints), 1000)
-	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].RPCoverageBoundaries[beamID2][0].BoundaryPoints), 1000)
-	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].RPCoverageBoundaries[beamID3][0].BoundaryPoints), 1000)
+	beamID1 := model.BeamID{NCGI: 17680452386819, CarrierIndex: 1, BeamIndex: 1}
+	beamID2 := model.BeamID{NCGI: 17680452403202, CarrierIndex: 1, BeamIndex: 1}
+	beamID3 := model.BeamID{NCGI: 17680452419585, CarrierIndex: 1, BeamIndex: 1}
 
-	assert.Greater(t, len(m.Cells["17660905570307"].CachedStates[m.Cells["17660905570307"].CurrentStateHash].CoverageBoundaries[beamID1][0].BoundaryPoints), 100)
-	assert.Greater(t, len(m.Cells["17660905553922"].CachedStates[m.Cells["17660905553922"].CurrentStateHash].CoverageBoundaries[beamID2][0].BoundaryPoints), 100)
-	assert.Greater(t, len(m.Cells["17660905537537"].CachedStates[m.Cells["17660905537537"].CurrentStateHash].CoverageBoundaries[beamID3][0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193046,GnbDuFunction=3,NrCellDu=3"].CachedStates[m.Cells["ManagedElement=1193046,GnbDuFunction=3,NrCellDu=3"].CurrentStateHash].RPCoverageBoundaries[beamID1][0].BoundaryPoints), 500)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2"].CachedStates[m.Cells["ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2"].CurrentStateHash].RPCoverageBoundaries[beamID2][0].BoundaryPoints), 500)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1"].CachedStates[m.Cells["ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1"].CurrentStateHash].RPCoverageBoundaries[beamID3][0].BoundaryPoints), 500)
 
-	assert.Greater(t, len(m.Cells["17660905570307"].Grid.GridPoints), 100)
-	assert.Greater(t, len(m.Cells["17660905553922"].Grid.GridPoints), 100)
-	assert.Greater(t, len(m.Cells["17660905537537"].Grid.GridPoints), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193046,GnbDuFunction=3,NrCellDu=3"].CachedStates[m.Cells["ManagedElement=1193046,GnbDuFunction=3,NrCellDu=3"].CurrentStateHash].CoverageBoundaries[beamID1][0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2"].CachedStates[m.Cells["ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2"].CurrentStateHash].CoverageBoundaries[beamID2][0].BoundaryPoints), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1"].CachedStates[m.Cells["ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1"].CurrentStateHash].CoverageBoundaries[beamID3][0].BoundaryPoints), 100)
 
-	assert.Greater(t, len(m.Cells["17660905570307"].Grid.ShadowingMaps), 100)
-	assert.Greater(t, len(m.Cells["17660905553922"].Grid.ShadowingMaps), 100)
-	assert.Greater(t, len(m.Cells["17660905537537"].Grid.ShadowingMaps), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193046,GnbDuFunction=3,NrCellDu=3"].Grid.GridPoints[beamID1]), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2"].Grid.GridPoints[beamID2]), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1"].Grid.GridPoints[beamID3]), 100)
+
+	assert.Greater(t, len(m.Cells["ManagedElement=1193046,GnbDuFunction=3,NrCellDu=3"].Grid.ShadowingMaps[beamID1]), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193047,GnbDuFunction=2,NrCellDu=2"].Grid.ShadowingMaps[beamID2]), 100)
+	assert.Greater(t, len(m.Cells["ManagedElement=1193048,GnbDuFunction=1,NrCellDu=1"].Grid.ShadowingMaps[beamID3]), 100)
 
 }
 

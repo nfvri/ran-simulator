@@ -229,6 +229,21 @@ func randomBoolean() bool {
 	return rand.Float32() < 0.5
 }
 
+func randomCoordinate() model.Coordinate {
+	min := model.Coordinate{
+		Lat: 52.35,
+		Lng: 13.25,
+	}
+	max := model.Coordinate{
+		Lat: 52.60,
+		Lng: 13.55,
+	}
+	return model.Coordinate{
+		Lat: rand.Float64()*(max.Lat-min.Lat) + min.Lat,
+		Lng: rand.Float64()*(max.Lng-min.Lng) + min.Lng,
+	}
+}
+
 func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 	s.mu.Lock()
 	for i := uint(0); i < count; i++ {
@@ -265,7 +280,7 @@ func (s *store) CreateRandomUEs(ctx context.Context, count uint) {
 			IMSI:        imsi,
 			AmfUeNgapID: types.AmfUENgapID(i + 1000),
 			Type:        "phone",
-			Location:    model.Coordinate{Lat: 0, Lng: 0},
+			Location:    randomCoordinate(),
 			Heading:     0,
 			ServingCells: []*model.UECell{
 				{

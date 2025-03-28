@@ -32,9 +32,9 @@ func TestCells(t *testing.T) {
 	ch := make(chan event.Event)
 	err = cellStore.Watch(ctx, ch, WatchOptions{Replay: false, Monitor: false})
 	assert.NoError(t, err)
-	cell, err := cellStore.Get(ctx, 17660905570307)
+	cell, err := cellStore.Get(ctx, 17680452386819)
 	assert.NoError(t, err)
-	assert.Equal(t, types.NCGI(17660905570307), cell.NCGI)
+	assert.Equal(t, types.NCGI(17680452386819), cell.NCGI)
 
 	ecgi1 := types.NCGI(17660905570308)
 	cell1 := &model.Cell{

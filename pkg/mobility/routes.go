@@ -29,9 +29,9 @@ const lngMargin = 0.01 // ~ 4.4km
 var routeEndPointIndex = 0
 
 func (d *driver) GenerateRoutes(ctx context.Context, minSpeed uint32, maxSpeed uint32, speedStdDev uint32, routeEndPoints []model.RouteEndPoint, directRoute bool) {
-	d.establishArea(ctx)
+	d.establishArea()
 	log.Infof("Generating routes in area min=%v; max=%v\n", d.min, d.max)
-	for _, ue := range d.ueStore.ListAllUEs(ctx) {
+	for _, ue := range d.m.UEs {
 		_, err := d.routeStore.Get(ctx, ue.IMSI)
 		if err != nil {
 			err = d.generateRoute(ctx, ue.IMSI, uint32(rand.Intn(int(maxSpeed-minSpeed))), speedStdDev, routeEndPoints, directRoute)
@@ -43,15 +43,15 @@ func (d *driver) GenerateRoutes(ctx context.Context, minSpeed uint32, maxSpeed u
 }
 
 // Determines the area for choosing random end-point locations
-func (d *driver) establishArea(ctx context.Context) {
-	cells, err := d.cellStore.List(ctx)
-	if err != nil {
-		return
-	}
+func (d *driver) establishArea() {
+
+	cells := d.m.Cells
 
 	d.min = &model.Coordinate{Lat: 90.0, Lng: 180.0}
 	d.max = &model.Coordinate{Lat: -90.0, Lng: -180.0}
 	for _, cell := range cells {
+		fmt.Printf("cell:%+v", cell.Carriers)
+
 		d.min.Lat = math.Min(cell.Carriers[0].Center.Lat, d.min.Lat)
 		d.min.Lng = math.Min(cell.Carriers[0].Center.Lng, d.min.Lng)
 		d.max.Lat = math.Max(cell.Carriers[0].Center.Lat, d.max.Lat)

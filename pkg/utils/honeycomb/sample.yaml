@@ -1,3 +1,4 @@
+rwmutex: {}
 layout:
   center:
     lat: 52.52
@@ -16,10 +17,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884431361
     - 221910583884431362
@@ -30,10 +31,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884447745
     - 221910583884447746
@@ -44,10 +45,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884464129
     - 221910583884464130
@@ -58,10 +59,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884480513
     - 221910583884480514
@@ -72,10 +73,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884496897
     - 221910583884496898
@@ -86,10 +87,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884513281
     - 221910583884513282
@@ -100,10 +101,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884529665
     - 221910583884529666
@@ -114,10 +115,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884546049
     - 221910583884546050
@@ -128,10 +129,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884562433
     - 221910583884562434
@@ -142,10 +143,10 @@ nodes:
     controllers:
     - e2t-1
     servicemodels:
+    - kpm
     - rcpre2
     - kpm2
     - mho
-    - kpm
     cells:
     - 221910583884578817
     - 221910583884578818
@@ -153,1724 +154,1907 @@ nodes:
     status: stopped
 cells:
   cell1:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: -10
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.44844539727567
+          lng: 13.404548527907313
+        height: 20
+        arfcndl: 42
+        arfcnul: 42
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884431361
-    sector:
-      center:
-        lat: 52.4494288343265
-        lng: 13.403839451079797
-      azimuth: 0
-      arc: 120
-      tilt: -8
-      height: 43
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884447745
-    - 221910583884431363
-    - 221910583884496897
     - 221910583884480513
+    - 221910583884529666
     - 221910583884431362
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884431363
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 417
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 168
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 42
-      arfcnul: 42
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell2:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: 14
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.44844539727567
+          lng: 13.404548527907313
+        height: 20
+        arfcndl: 43
+        arfcnul: 43
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884431362
-    sector:
-      center:
-        lat: 52.4494288343265
-        lng: 13.403839451079797
-      azimuth: 120
-      arc: 120
-      tilt: -4
-      height: 44
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884496898
-    - 221910583884431363
-    - 221910583884431361
-    - 221910583884447746
     - 221910583884480514
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884431361
+    - 221910583884431363
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 210
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 144
     earfcn: 0
-    celltype: 3
-    channel:
-      ssbfrequency: 0
-      arfcndl: 43
-      arfcnul: 43
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell3:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: -1
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.44844539727567
+          lng: 13.404548527907313
+        height: 50
+        arfcndl: 44
+        arfcnul: 44
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884431363
-    sector:
-      center:
-        lat: 52.4494288343265
-        lng: 13.403839451079797
-      azimuth: 240
-      arc: 120
-      tilt: 8
-      height: 31
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884431361
-    - 221910583884447747
-    - 221910583884496899
-    - 221910583884431362
     - 221910583884480515
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884431361
+    - 221910583884431362
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 372
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 40
     earfcn: 0
-    celltype: 0
-    channel:
-      ssbfrequency: 0
-      arfcndl: 44
-      arfcnul: 44
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell4:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: 3
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.469805519656404
+          lng: 13.455969527798715
+        height: 46
+        arfcndl: 45
+        arfcnul: 45
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884447745
-    sector:
-      center:
-        lat: 52.46608757478802
-        lng: 13.451846644131816
-      azimuth: 0
-      arc: 120
-      tilt: -12
-      height: 36
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884447746
-    - 221910583884496897
-    - 221910583884431361
-    - 221910583884447747
     - 221910583884513281
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884447746
+    - 221910583884464129
+    - 221910583884447747
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 216
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 152
     earfcn: 0
-    celltype: 0
-    channel:
-      ssbfrequency: 0
-      arfcndl: 45
-      arfcnul: 45
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell5:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: 14
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.469805519656404
+          lng: 13.455969527798715
+        height: 43
+        arfcndl: 46
+        arfcnul: 46
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884447746
-    sector:
-      center:
-        lat: 52.46608757478802
-        lng: 13.451846644131816
-      azimuth: 120
-      arc: 120
-      tilt: -8
-      height: 48
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884447747
+    - 221910583884464130
     - 221910583884513282
-    - 221910583884431362
+    - 221910583884447747
     - 221910583884447745
-    - 221910583884496898
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 92
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 134
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 46
-      arfcnul: 46
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell6:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: 9
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.469805519656404
+          lng: 13.455969527798715
+        height: 46
+        arfcndl: 47
+        arfcnul: 47
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884447747
-    sector:
-      center:
-        lat: 52.46608757478802
-        lng: 13.451846644131816
-      azimuth: 240
-      arc: 120
-      tilt: -2
-      height: 44
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884447745
-    - 221910583884431363
-    - 221910583884447746
+    - 221910583884464131
     - 221910583884513283
-    - 221910583884496899
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884447746
+    - 221910583884447745
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 384
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 337
     earfcn: 0
-    celltype: 0
-    channel:
-      ssbfrequency: 0
-      arfcndl: 47
-      arfcnul: 47
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell7:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: -13
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.4894870201351
+          lng: 13.50482799849658
+        height: 35
+        arfcndl: 48
+        arfcnul: 48
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884464129
-    sector:
-      center:
-        lat: 52.48995743235846
-        lng: 13.504892239262903
-      azimuth: 0
-      arc: 120
-      tilt: -8
-      height: 46
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884464130
-    - 221910583884513281
+    - 221910583884447745
     - 221910583884529665
+    - 221910583884513281
+    - 221910583884464130
     - 221910583884464131
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 251
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 84
     earfcn: 0
-    celltype: 3
-    channel:
-      ssbfrequency: 0
-      arfcndl: 48
-      arfcnul: 48
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 3
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell8:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: -9
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.4894870201351
+          lng: 13.50482799849658
+        height: 31
+        arfcndl: 49
+        arfcnul: 49
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884464130
-    sector:
-      center:
-        lat: 52.48995743235846
-        lng: 13.504892239262903
-      azimuth: 120
-      arc: 120
-      tilt: 10
-      height: 22
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884513282
-    - 221910583884529666
+    - 221910583884447746
     - 221910583884464129
     - 221910583884464131
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884513282
+    - 221910583884529666
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 466
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 94
     earfcn: 0
-    celltype: 3
-    channel:
-      ssbfrequency: 0
-      arfcndl: 49
-      arfcnul: 49
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell9:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: 12
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.4894870201351
+          lng: 13.50482799849658
+        height: 27
+        arfcndl: 50
+        arfcnul: 50
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884464131
-    sector:
-      center:
-        lat: 52.48995743235846
-        lng: 13.504892239262903
-      azimuth: 240
-      arc: 120
-      tilt: -12
-      height: 45
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884464130
     - 221910583884562433
+    - 221910583884529667
+    - 221910583884546049
     - 221910583884513283
     - 221910583884464129
-    - 221910583884529667
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 2
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 136
     earfcn: 0
-    celltype: 3
-    channel:
-      ssbfrequency: 0
-      arfcndl: 50
-      arfcnul: 50
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell10:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: 0
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.46917745113411
+          lng: 13.360635509532642
+        height: 26
+        arfcndl: 51
+        arfcnul: 51
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884480513
-    sector:
-      center:
-        lat: 52.46432455889399
-        lng: 13.355273597062176
-      azimuth: 0
-      arc: 120
-      tilt: -14
-      height: 38
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
+    - 221910583884546049
+    - 221910583884480514
     - 221910583884480515
     - 221910583884496897
-    - 221910583884562433
     - 221910583884431361
-    - 221910583884480514
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 82
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 84
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 51
-      arfcnul: 51
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell11:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: -7
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.46917745113411
+          lng: 13.360635509532642
+        height: 33
+        arfcndl: 52
+        arfcnul: 52
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884480514
-    sector:
-      center:
-        lat: 52.46432455889399
-        lng: 13.355273597062176
-      azimuth: 120
-      arc: 120
-      tilt: -15
-      height: 26
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884562434
+    - 221910583884480515
+    - 221910583884496898
+    - 221910583884480513
     - 221910583884431362
-    - 221910583884480515
-    - 221910583884496898
-    - 221910583884480513
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 476
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 152
     earfcn: 0
-    celltype: 3
-    channel:
-      ssbfrequency: 0
-      arfcndl: 52
-      arfcnul: 52
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell12:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: -12
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.46917745113411
+          lng: 13.360635509532642
+        height: 37
+        arfcndl: 53
+        arfcnul: 53
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884480515
-    sector:
-      center:
-        lat: 52.46432455889399
-        lng: 13.355273597062176
-      azimuth: 240
-      arc: 120
-      tilt: 9
-      height: 31
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
+    - 221910583884480513
+    - 221910583884431363
+    - 221910583884546051
     - 221910583884480514
     - 221910583884496899
-    - 221910583884562435
-    - 221910583884431363
-    - 221910583884480513
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 62
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 220
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 53
-      arfcnul: 53
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 3
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell13:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: -11
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.48962984728801
+          lng: 13.402574645203023
+        height: 21
+        arfcndl: 54
+        arfcnul: 54
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884496897
-    sector:
-      center:
-        lat: 52.481358559981054
-        lng: 13.406951671271797
-      azimuth: 0
-      arc: 120
-      tilt: -8
-      height: 25
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884496899
     - 221910583884513281
-    - 221910583884447745
     - 221910583884496898
-    - 221910583884431361
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884578817
+    - 221910583884480513
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 120
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 333
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 54
-      arfcnul: 54
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell14:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: 12
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.48962984728801
+          lng: 13.402574645203023
+        height: 24
+        arfcndl: 55
+        arfcnul: 55
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884496898
-    sector:
-      center:
-        lat: 52.481358559981054
-        lng: 13.406951671271797
-      azimuth: 120
-      arc: 120
-      tilt: -2
-      height: 41
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884447746
-    - 221910583884496897
+    - 221910583884578818
     - 221910583884480514
+    - 221910583884496897
     - 221910583884496899
-    - 221910583884513282
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884562434
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 251
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 16
     earfcn: 0
-    celltype: 0
-    channel:
-      ssbfrequency: 0
-      arfcndl: 55
-      arfcnul: 55
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell15:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: -14
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.48962984728801
+          lng: 13.402574645203023
+        height: 24
+        arfcndl: 56
+        arfcnul: 56
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884496899
-    sector:
-      center:
-        lat: 52.481358559981054
-        lng: 13.406951671271797
-      azimuth: 240
-      arc: 120
-      tilt: 11
-      height: 25
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
+    - 221910583884496897
+    - 221910583884562435
     - 221910583884480515
     - 221910583884496898
-    - 221910583884431363
-    - 221910583884496897
     - 221910583884513283
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 189
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 296
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 56
-      arfcnul: 56
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell16:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: 11
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.49898437253222
+          lng: 13.448907934368274
+        height: 46
+        arfcndl: 57
+        arfcnul: 57
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884513281
-    sector:
-      center:
-        lat: 52.49999389155084
-        lng: 13.454114338289987
-      azimuth: 0
-      arc: 120
-      tilt: 5
-      height: 25
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884513282
-    - 221910583884464129
+    - 221910583884578817
     - 221910583884447745
     - 221910583884496897
-    - 221910583884513283
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884464129
+    - 221910583884513282
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 137
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 401
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 57
-      arfcnul: 57
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell17:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: -7
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.49898437253222
+          lng: 13.448907934368274
+        height: 43
+        arfcndl: 58
+        arfcnul: 58
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884513282
-    sector:
-      center:
-        lat: 52.49999389155084
-        lng: 13.454114338289987
-      azimuth: 120
-      arc: 120
-      tilt: -2
-      height: 42
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
+    - 221910583884578818
     - 221910583884513281
     - 221910583884496898
-    - 221910583884464130
-    - 221910583884447746
     - 221910583884513283
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884447746
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 2
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 266
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 58
-      arfcnul: 58
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell18:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: -7
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.49898437253222
+          lng: 13.448907934368274
+        height: 36
+        arfcndl: 59
+        arfcnul: 59
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884513283
-    sector:
-      center:
-        lat: 52.49999389155084
-        lng: 13.454114338289987
-      azimuth: 240
-      arc: 120
-      tilt: 0
-      height: 32
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884447747
-    - 221910583884496899
     - 221910583884513281
+    - 221910583884496899
     - 221910583884513282
     - 221910583884464131
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884447747
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 330
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 65
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 59
-      arfcnul: 59
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell19:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: 4
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.521802792730654
+          lng: 13.49949525650407
+        height: 45
+        arfcndl: 60
+        arfcnul: 60
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884529665
-    sector:
-      center:
-        lat: 52.51763442124184
-        lng: 13.510346486535058
-      azimuth: 0
-      arc: 120
-      tilt: -3
-      height: 28
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884464129
     - 221910583884529666
     - 221910583884529667
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884464129
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 37
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 249
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 60
-      arfcnul: 60
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell20:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: 6
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.521802792730654
+          lng: 13.49949525650407
+        height: 30
+        arfcndl: 61
+        arfcnul: 61
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884529666
-    sector:
-      center:
-        lat: 52.51763442124184
-        lng: 13.510346486535058
-      azimuth: 120
-      arc: 120
-      tilt: -15
-      height: 39
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884529665
     - 221910583884529667
     - 221910583884464130
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884431361
+    - 221910583884529665
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 364
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 121
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 61
-      arfcnul: 61
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell21:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: -14
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.521802792730654
+          lng: 13.49949525650407
+        height: 40
+        arfcndl: 62
+        arfcnul: 62
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884529667
-    sector:
-      center:
-        lat: 52.51763442124184
-        lng: 13.510346486535058
-      azimuth: 240
-      arc: 120
-      tilt: 14
-      height: 22
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884529665
     - 221910583884464131
-    - 221910583884546049
-    - 221910583884562433
     - 221910583884529666
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 310
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 249
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 62
-      arfcnul: 62
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell22:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: 6
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.48497104095148
+          lng: 13.312022807619533
+        height: 28
+        arfcndl: 63
+        arfcnul: 63
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884546049
-    sector:
-      center:
-        lat: 52.48797672168392
-        lng: 13.30618940874611
-      azimuth: 0
-      arc: 120
-      tilt: -6
-      height: 32
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884529667
     - 221910583884464131
+    - 221910583884480513
     - 221910583884562433
     - 221910583884546050
     - 221910583884546051
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 37
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 16
     earfcn: 0
-    celltype: 3
-    channel:
-      ssbfrequency: 0
-      arfcndl: 63
-      arfcnul: 63
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell23:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: -14
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.48497104095148
+          lng: 13.312022807619533
+        height: 28
+        arfcndl: 64
+        arfcnul: 64
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884546050
-    sector:
-      center:
-        lat: 52.48797672168392
-        lng: 13.30618940874611
-      azimuth: 120
-      arc: 120
-      tilt: -8
-      height: 25
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884546051
-    - 221910583884562434
     - 221910583884546049
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884562434
+    - 221910583884480514
+    - 221910583884546051
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 120
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 333
     earfcn: 0
-    celltype: 3
-    channel:
-      ssbfrequency: 0
-      arfcndl: 64
-      arfcnul: 64
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell24:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: 6
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.48497104095148
+          lng: 13.312022807619533
+        height: 31
+        arfcndl: 65
+        arfcnul: 65
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884546051
-    sector:
-      center:
-        lat: 52.48797672168392
-        lng: 13.30618940874611
-      azimuth: 240
-      arc: 120
-      tilt: 15
-      height: 41
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884546050
     - 221910583884546049
+    - 221910583884480515
     - 221910583884562435
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 82
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 220
     earfcn: 0
-    celltype: 0
-    channel:
-      ssbfrequency: 0
-      arfcndl: 65
-      arfcnul: 65
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell25:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: 7
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.50019814043523
+          lng: 13.348545849906976
+        height: 34
+        arfcndl: 66
+        arfcnul: 66
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884562433
-    sector:
-      center:
-        lat: 52.5001088871172
-        lng: 13.350453964894024
-      azimuth: 0
-      arc: 120
-      tilt: -11
-      height: 22
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884480513
-    - 221910583884562434
-    - 221910583884529667
     - 221910583884546049
+    - 221910583884496897
+    - 221910583884562434
     - 221910583884562435
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 384
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 452
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 66
-      arfcnul: 66
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 3
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell26:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: 11
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.50019814043523
+          lng: 13.348545849906976
+        height: 41
+        arfcndl: 67
+        arfcnul: 67
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884562434
-    sector:
-      center:
-        lat: 52.5001088871172
-        lng: 13.350453964894024
-      azimuth: 120
-      arc: 120
-      tilt: 14
-      height: 28
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
-    - 221910583884562435
-    - 221910583884562433
     - 221910583884546050
     - 221910583884480514
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884562435
+    - 221910583884496898
+    - 221910583884562433
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 77
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 296
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 67
-      arfcnul: 67
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 0
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell27:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: -7
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.50019814043523
+          lng: 13.348545849906976
+        height: 48
+        arfcndl: 68
+        arfcnul: 68
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884562435
-    sector:
-      center:
-        lat: 52.5001088871172
-        lng: 13.350453964894024
-      azimuth: 240
-      arc: 120
-      tilt: -1
-      height: 44
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884562433
     - 221910583884546051
     - 221910583884562434
     - 221910583884480515
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884496899
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 395
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 418
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 68
-      arfcnul: 68
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell28:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 0
+          tilt: -5
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.518484193660754
+          lng: 13.40568470068715
+        height: 29
+        arfcndl: 69
+        arfcnul: 69
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884578817
-    sector:
-      center:
-        lat: 52.52219409408899
-        lng: 13.404278168621579
-      azimuth: 0
-      arc: 120
-      tilt: 0
-      height: 32
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884578819
     - 221910583884578818
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    - 221910583884496897
+    - 221910583884513281
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 172
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 144
     earfcn: 0
-    celltype: 0
-    channel:
-      ssbfrequency: 0
-      arfcndl: 69
-      arfcnul: 69
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 3
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell29:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 120
+          tilt: 11
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.518484193660754
+          lng: 13.40568470068715
+        height: 20
+        arfcndl: 70
+        arfcnul: 70
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884578818
-    sector:
-      center:
-        lat: 52.52219409408899
-        lng: 13.404278168621579
-      azimuth: 120
-      arc: 120
-      tilt: 5
-      height: 49
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
+    - 221910583884513282
+    - 221910583884496898
     - 221910583884578817
     - 221910583884578819
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 364
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 232
     earfcn: 0
-    celltype: 1
-    channel:
-      ssbfrequency: 0
-      arfcndl: 70
-      arfcnul: 70
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 1
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
   cell30:
+    rwmutex: {}
+    cellconfig:
+      carriers:
+      - beams:
+        - beamIndex: 0
+          azimuth: 240
+          tilt: -14
+          h3dBAngle: 120
+          v3dBAngle: 0
+          maxGain: 0
+        center:
+          lat: 52.518484193660754
+          lng: 13.40568470068715
+        height: 32
+        arfcndl: 71
+        arfcnul: 71
+        bSChannelBwDL: 0
+        bSChannelBwUL: 0
+        txpowerdb: 11
+        vSideLobeAttenuationDB: 0
+        environment: ""
+        LOS: false
+      schedulingcellinfo: ""
+      rattype: ""
     ncgi: 221910583884578819
-    sector:
-      center:
-        lat: 52.52219409408899
-        lng: 13.404278168621579
-      azimuth: 240
-      arc: 120
-      tilt: -5
-      height: 36
     color: green
-    maxues: 99999
+    maxUEs: 99999
     neighbors:
     - 221910583884578818
+    - 221910583884496899
+    - 221910583884513283
     - 221910583884578817
-    txpowerdb: 11
-    measurementparams:
-      timetotrigger: 0
-      frequencyoffset: 0
-      pcellindividualoffset: 0
-      ncellindividualoffsets: {}
+    measurementParams:
+      timeToTrigger: 0
+      frequencyOffset: 0
+      pcellIndividualOffset: 0
+      ncellIndividualOffsets: {}
       hysteresis: 0
-      eventa3params:
-        a3offset: 0
-        reportonleave: false
-    pci: 137
+      eventA3Params:
+        a3Offset: 0
+        reportOnLeave: false
+    pci: 106
     earfcn: 0
-    celltype: 2
-    channel:
-      ssbfrequency: 0
-      arfcndl: 71
-      arfcnul: 71
-      environment: ""
-      bschannelbwdl: 0
-      bschannelbwul: 0
-      bschannelbwsul: 0
-      los: false
-    beam:
-      h3dbangle: 0
-      v3dbangle: 0
-      maxgain: 0
-      maxattenuationdb: 0
-      vsidelobeattenuationdb: 0
-    rpcoverageboundaries: []
-    coverageboundaries: []
-    rrcidlecount: 0
-    rrcconnectedcount: 0
+    cellType: 2
+    arfcndl: 0
+    arfcnul: 0
+    earfcndl: 0
+    earfcnul: 0
+    bSChannelBwDL: 0
+    bSChannelBwUL: 0
+    bwps: {}
+    rrcIdleCount: 0
+    rrcConnectedCount: 0
+    cached: false
+    cachedStates: {}
+    currentStateHash: ""
+    resourceAllocScheme: ""
+    interfearingBeamsrefs: {}
     grid:
-      shadowingmap: []
-      gridpoints: []
-      boundingbox:
-        minlat: 0
-        minlng: 0
-        maxlat: 0
-        maxlng: 0
+      shadowingMaps: {}
+      gridPoints: {}
+      boundingBoxes: {}
 controllers:
   e2t-1:
     id: e2t-1
@@ -1906,4 +2090,10 @@ guami:
   amfsetid: 0
   amfpointer: 0
 decorrelationdistance: 0
-snapshotid: ""
+snapshotID: ""
+cellMeasurements: []
+creationTimestamp: ""
+servicemappings:
+  rwmutex: {}
+  cellToUEs: {}
+  ueToServingCells: {}

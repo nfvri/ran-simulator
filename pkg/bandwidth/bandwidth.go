@@ -277,7 +277,7 @@ func UtilizationInfoByCell(cellMeasurements []*metrics.Metric) (map[uint64]map[s
 		case metric.Key == ACTIVE_UES_UL_METRIC:
 			numUEsByCell[metric.EntityID][ACTIVE_UES_UL_METRIC] = value
 
-		case MatchesPattern(metric.Key, ACTIVE_UES_DL_PATTERN):
+		case MatchesPattern(metric.Key, ACTIVE_UES_UL_PATTERN):
 			numUEsByCell[metric.EntityID][metric.Key] = value
 
 		// PRB Measurements

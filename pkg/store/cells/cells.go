@@ -25,6 +25,8 @@ import (
 
 var log = liblog.GetLogger()
 
+const cellNotFoundMsg = "cell not found"
+
 // Store tracks inventory of simulated cells.
 type Store interface {
 	// Add adds the specified cell to the registry
@@ -143,7 +145,7 @@ func (s *store) Get(ctx context.Context, ncgi types.NCGI) (*model.Cell, error) {
 		return cell, nil
 	}
 
-	return nil, errors.New(errors.NotFound, "cell not found")
+	return nil, errors.New(errors.NotFound, cellNotFoundMsg)
 }
 
 // Update updates a cell
@@ -172,7 +174,7 @@ func (s *store) Update(ctx context.Context, cell *model.Cell) error {
 		return nil
 	}
 
-	return errors.New(errors.NotFound, "cell not found")
+	return errors.New(errors.NotFound, cellNotFoundMsg)
 }
 
 // Delete deletes a cell
@@ -193,7 +195,7 @@ func (s *store) Delete(ctx context.Context, ncgi types.NCGI) (*model.Cell, error
 		}
 		return cell, nil
 	}
-	return nil, errors.New(errors.NotFound, "cell not found")
+	return nil, errors.New(errors.NotFound, cellNotFoundMsg)
 }
 
 // Watch watch cell events

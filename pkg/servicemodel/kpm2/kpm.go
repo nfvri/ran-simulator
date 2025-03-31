@@ -225,13 +225,13 @@ func NewServiceModel(node model.Node, model *model.Model,
 	return kpmSm, nil
 }
 
-func float_encoder(data float32) int64 {
+func floatEncoderFunc(data float32) int64 {
 	var buf [4]byte
 	binary.BigEndian.PutUint32(buf[:], math.Float32bits(data))
-	int_data := int64(binary.BigEndian.Uint32(buf[:]))
+	intData := int64(binary.BigEndian.Uint32(buf[:]))
 	log.Infof("data : %+v", data)
-	log.Infof("int_data : %+v", int_data)
-	return int_data
+	log.Infof("int_data : %+v", intData)
+	return intData
 }
 
 func (sm *Client) collect(ctx context.Context,
@@ -261,7 +261,7 @@ func (sm *Client) collect(ctx context.Context,
 						log.Debugf("utilization per slice for Cell %v set for value: %+v",
 							cellNCGI, utilization)
 						measRecordReal := measurments.NewMeasurementRecordItemInteger(
-							measurments.WithIntegerValue(float_encoder(float32(utilization))),
+							measurments.WithIntegerValue(floatEncoderFunc(float32(utilization))),
 						).Build()
 						measRecord.Value = append(measRecord.Value, measRecordReal)
 					}
@@ -275,7 +275,7 @@ func (sm *Client) collect(ctx context.Context,
 						log.Debugf("volume for Cell %v set for value: %+v",
 							cellNCGI, volume)
 						measRecordReal := measurments.NewMeasurementRecordItemInteger(
-							measurments.WithIntegerValue(float_encoder(float32(volume))),
+							measurments.WithIntegerValue(floatEncoderFunc(float32(volume))),
 						).Build()
 						measRecord.Value = append(measRecord.Value, measRecordReal)
 					}
@@ -289,7 +289,7 @@ func (sm *Client) collect(ctx context.Context,
 						log.Debugf("pdcp rate for Cell %v set for value: %+v",
 							cellNCGI, pdcp_rate)
 						measRecordReal := measurments.NewMeasurementRecordItemInteger(
-							measurments.WithIntegerValue(float_encoder(float32(pdcp_rate))),
+							measurments.WithIntegerValue(floatEncoderFunc(float32(pdcp_rate))),
 						).Build()
 						measRecord.Value = append(measRecord.Value, measRecordReal)
 					}
@@ -485,9 +485,9 @@ func (sm *Client) reportIndication(ctx context.Context, interval int64, subscrip
 
 	defer nsDataFile.Close()
 
-	node_cell := sm.ServiceModel.Node.Cells
+	nodeCell := sm.ServiceModel.Node.Cells
 	var index int = 0
-	var node_cell_length int = len(node_cell)
+	var nodeCellLength int = len(nodeCell)
 
 	for {
 		select {
@@ -498,13 +498,13 @@ func (sm *Client) reportIndication(ctx context.Context, interval int64, subscrip
 			// 	log.Error("creating indication message is failed", err)
 			// 	return err
 			// }
-			err = sm.sendRicIndicationFormat1(ctx, node_cell[index], subscription, actionDefinitions, interval)
+			err = sm.sendRicIndicationFormat1(ctx, nodeCell[index], subscription, actionDefinitions, interval)
 			if err != nil {
 				log.Error(err)
 				return err
 			}
 			index++
-			if index >= node_cell_length {
+			if index >= nodeCellLength {
 				index = 0
 			}
 

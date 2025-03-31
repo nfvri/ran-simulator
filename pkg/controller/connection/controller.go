@@ -38,6 +38,10 @@ var log = logging.GetLogger()
 const defaultTimeout = 30 * time.Second
 const queueSize = 100
 
+const failedToOpenConnectionMsg = "Failed to reconcile opening connection %+v: %s"
+const failedToConfigConnectionMsg = "Failed to reconcile configuring connection %+v: %s"
+const failedToCloseConnectionMsg = "Failed to reconcile closing connection %+v: %s"
+
 // NewController returns a new connection controller. This controller is responsible to open and close
 // E2 connections that are the result of the E2 Connection Update procedure or E2 Configuration update procedure
 func NewController(connections connections.Store, node model.Node, model *model.Model,
@@ -109,17 +113,17 @@ func (r *Reconciler) configureDataConn(ctx context.Context, connection *connecti
 		configupdate.WithPlmnID(plmnID.Value())).
 		Build()
 	if err != nil {
-		log.Warnf("Failed to reconcile opening connection %+v: %s", connection, err)
+		log.Warnf(failedToOpenConnectionMsg, connection, err)
 		return controller.Result{}, err
 	}
 	log.Infof("Sending Configuration update request:%+v", configUpdate)
 	configUpdateAck, configUpdateFailure, err := connection.Client.E2ConfigurationUpdate(ctx, configUpdate)
 	if err != nil {
-		log.Warnf("Failed to reconcile configuring connection %+v: %s", connection, err)
+		log.Warnf(failedToConfigConnectionMsg, connection, err)
 		return controller.Result{}, err
 	}
 	if configUpdateFailure != nil {
-		err = errors.NewUnknown("Failed to reconcile configuring connection %+v: %s", connection, err)
+		err = errors.NewUnknown(failedToConfigConnectionMsg, connection, err)
 		log.Warn(err)
 		return controller.Result{}, err
 	}
@@ -130,7 +134,7 @@ func (r *Reconciler) configureDataConn(ctx context.Context, connection *connecti
 		connection.Status.State = connections.Configured
 		err = r.connections.Update(ctx, connection)
 		if err != nil {
-			log.Warnf("Failed to reconcile configuring connection %+v: %s", connection, err)
+			log.Warnf(failedToConfigConnectionMsg, connection, err)
 			return controller.Result{}, err
 		}
 	}
@@ -173,7 +177,7 @@ func (r *Reconciler) reconcileOpenConnection(connection *connections.Connection)
 		})
 
 		if err != nil {
-			log.Warnf("Failed to reconcile opening connection %+v: %s", connection, err)
+			log.Warnf(failedToOpenConnectionMsg, connection, err)
 			return controller.Result{}, err
 		}
 
@@ -182,7 +186,7 @@ func (r *Reconciler) reconcileOpenConnection(connection *connections.Connection)
 		connection.Status.State = connections.Connected
 		err = r.connections.Update(ctx, connection)
 		if err != nil {
-			log.Warnf("Failed to reconcile opening connection %+v: %s", connection, err)
+			log.Warnf(failedToOpenConnectionMsg, connection, err)
 			return controller.Result{}, err
 		}
 	}
@@ -195,7 +199,7 @@ func (r *Reconciler) reconcileOpenConnection(connection *connections.Connection)
 		connection.Status.State = connections.Configuring
 		err := r.connections.Update(ctx, connection)
 		if err != nil {
-			log.Warnf("Failed to reconcile opening connection %+v: %s", connection, err)
+			log.Warnf(failedToOpenConnectionMsg, connection, err)
 			return controller.Result{}, err
 		}
 		return controller.Result{}, nil
@@ -213,7 +217,7 @@ func (r *Reconciler) reconcileClosedConnection(connection *connections.Connectio
 		log.Infof("Reconcile disconnected connection %+v", connection)
 		err := r.connections.Remove(ctx, connection.ID)
 		if err != nil {
-			log.Warnf("Failed to reconcile closing connection %+v: %s", connection, err)
+			log.Warnf(failedToCloseConnectionMsg, connection, err)
 			return controller.Result{}, err
 		}
 		return controller.Result{}, nil
@@ -225,13 +229,13 @@ func (r *Reconciler) reconcileClosedConnection(connection *connections.Connectio
 		//      (i.e. before calling close function)
 		err := connection.Client.Close()
 		if err != nil {
-			log.Warnf("Failed to reconcile closing connection %+v: %s", connection, err)
+			log.Warnf(failedToCloseConnectionMsg, connection, err)
 			return controller.Result{}, err
 		}
 		connection.Status.State = connections.Disconnected
 		err = r.connections.Update(ctx, connection)
 		if err != nil {
-			log.Warnf("Failed to reconcile closing connection %+v: %s", connection, err)
+			log.Warnf(failedToCloseConnectionMsg, connection, err)
 			return controller.Result{}, err
 		}
 		return controller.Result{}, nil

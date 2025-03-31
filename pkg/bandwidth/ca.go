@@ -720,10 +720,6 @@ func (ca *CarrierAggregatorEUTRA) IsValidBandCombination(bandCombo string) bool 
 	return found
 }
 
-func (ca *CarrierAggregatorEUTRA) GetValidCACombinations() {
-
-}
-
 type CarrierAggregatorNR struct {
 	bandCombinationsNRTree art.Tree
 }

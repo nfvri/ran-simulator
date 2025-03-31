@@ -15,6 +15,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const errorParsingBeamIdMsg = "error in parsing beam id: %v"
+
 type Store interface {
 	AddCellGroup(ctx context.Context, snapshotId string, cellGroupPtr map[string]*model.Cell) error
 	GetCellGroup(ctx context.Context, snapshotId string) (map[string]model.Cell, error)
@@ -345,7 +347,7 @@ func redisToCellCachedStates(redisCachedStates map[string]*RedisCellCoverageInfo
 		for beamIdStr, RPCoverageBoundary := range redisCellCoverageInfo.RPCoverageBoundaries {
 			beamID, err := model.ParseBeamID(beamIdStr)
 			if err != nil {
-				log.Warnf("error in parsing beam id: %v", beamIdStr)
+				log.Warnf(errorParsingBeamIdMsg, beamIdStr)
 				continue
 			}
 			cellCachedStates[hashedKey].RPCoverageBoundaries[beamID] = RPCoverageBoundary
@@ -364,7 +366,7 @@ func redisToCellInterferingBeams(redisInterferingBeams map[string][]model.BeamID
 	for beamIdStr, interferingBeams := range redisInterferingBeams {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
-			log.Warnf("error in parsing beam id: %v", beamIdStr)
+			log.Warnf(errorParsingBeamIdMsg, beamIdStr)
 			continue
 		}
 		cellInterferingBeams[beamID] = interferingBeams
@@ -382,7 +384,7 @@ func redisToCellGrid(redisGrid RedisGrid) model.Grid {
 	for beamIdStr, boundingBox := range redisGrid.BoundingBoxes {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
-			log.Warnf("error in parsing beam id: %v", beamIdStr)
+			log.Warnf(errorParsingBeamIdMsg, beamIdStr)
 			continue
 		}
 		cellGrid.BoundingBoxes[beamID] = boundingBox
@@ -391,7 +393,7 @@ func redisToCellGrid(redisGrid RedisGrid) model.Grid {
 	for beamIdStr, gridPoints := range redisGrid.GridPoints {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
-			log.Warnf("error in parsing beam id: %v", beamIdStr)
+			log.Warnf(errorParsingBeamIdMsg, beamIdStr)
 			continue
 		}
 		cellGrid.GridPoints[beamID] = gridPoints
@@ -400,7 +402,7 @@ func redisToCellGrid(redisGrid RedisGrid) model.Grid {
 	for beamIdStr, shadowingMap := range redisGrid.ShadowingMaps {
 		beamID, err := model.ParseBeamID(beamIdStr)
 		if err != nil {
-			log.Warnf("error in parsing beam id: %v", beamIdStr)
+			log.Warnf(errorParsingBeamIdMsg, beamIdStr)
 			continue
 		}
 		cellGrid.ShadowingMaps[beamID] = shadowingMap

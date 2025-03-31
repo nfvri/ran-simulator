@@ -21,6 +21,8 @@ import (
 
 var log = liblog.GetLogger()
 
+const routeNotFoundMsg = "route not found"
+
 // Store tracks a collection of routes used to simulate UE mobility
 type Store interface {
 	// Len returns the number of active routes
@@ -118,7 +120,7 @@ func (s *store) Get(ctx context.Context, imsi types.IMSI) (*model.Route, error) 
 		return route, nil
 	}
 
-	return nil, errors.New(errors.NotFound, "route not found")
+	return nil, errors.New(errors.NotFound, routeNotFoundMsg)
 }
 
 func (s *store) Start(ctx context.Context, imsi types.IMSI, speedAvg uint32, speedStdDev uint32) error {
@@ -137,7 +139,7 @@ func (s *store) Start(ctx context.Context, imsi types.IMSI, speedAvg uint32, spe
 		s.watchers.Send(updateEvent)
 		return nil
 	}
-	return errors.New(errors.NotFound, "route not found")
+	return errors.New(errors.NotFound, routeNotFoundMsg)
 }
 
 func (s *store) Advance(ctx context.Context, imsi types.IMSI) error {
@@ -163,7 +165,7 @@ func (s *store) Advance(ctx context.Context, imsi types.IMSI) error {
 		s.watchers.Send(updateEvent)
 		return nil
 	}
-	return errors.New(errors.NotFound, "route not found")
+	return errors.New(errors.NotFound, routeNotFoundMsg)
 }
 
 // Delete deletes a UE based on a given imsi
@@ -180,7 +182,7 @@ func (s *store) Delete(ctx context.Context, imsi types.IMSI) (*model.Route, erro
 		s.watchers.Send(deleteEvent)
 		return route, nil
 	}
-	return nil, errors.New(errors.NotFound, "route not found")
+	return nil, errors.New(errors.NotFound, routeNotFoundMsg)
 }
 
 func (s *store) List(ctx context.Context) []*model.Route {

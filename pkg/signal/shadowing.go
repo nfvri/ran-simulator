@@ -9,21 +9,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ComputeGridPoints(bb *model.BoundingBox, d_c float64, beamID model.BeamID) []model.Coordinate {
+func ComputeGridPoints(bb *model.BoundingBox, dc float64, beamID model.BeamID) []model.Coordinate {
 
 	log.Debugf("square min point(%v, %v), max point(%v, %v)\n", bb.MinLat, bb.MinLng, bb.MaxLat, bb.MaxLng)
 
 	latDiff := math.Abs(bb.MaxLat - bb.MinLat)
 	lngDiff := math.Abs(bb.MaxLng - bb.MinLng)
 
-	// Convert d_c from meters to degrees
-	d_c_lat := utils.MetersToLatDegrees(d_c)
+	// Convert dc from meters to degrees
+	dcLat := utils.MetersToLatDegrees(dc)
 	avgLat := (bb.MinLat + bb.MaxLat) / 2.0
-	d_c_lng := utils.MetersToLngDegrees(d_c, avgLat)
+	dcLng := utils.MetersToLngDegrees(dc, avgLat)
 
-	// Calculate the number of grid points based on d_c
-	numLatPoints := int(math.Ceil(latDiff / d_c_lat))
-	numLngPoints := int(math.Ceil(lngDiff / d_c_lng))
+	// Calculate the number of grid points based on dc
+	numLatPoints := int(math.Ceil(latDiff / dcLat))
+	numLngPoints := int(math.Ceil(lngDiff / dcLng))
 
 	if numLatPoints != numLngPoints {
 		log.Warnf("%+v: grid dimensions unequal: lat:%v, lng:%v", beamID, numLatPoints, numLngPoints)
@@ -32,21 +32,21 @@ func ComputeGridPoints(bb *model.BoundingBox, d_c float64, beamID model.BeamID) 
 
 	gridPoints := make([]model.Coordinate, 0, maxDim*maxDim)
 	for i := 0; i <= maxDim; i++ {
-		lat := bb.MinLat + float64(i)*d_c_lat
+		lat := bb.MinLat + float64(i)*dcLat
 		for j := 0; j <= maxDim; j++ {
-			lng := bb.MinLng + float64(j)*d_c_lng
+			lng := bb.MinLng + float64(j)*dcLng
 			gridPoints = append(gridPoints, model.Coordinate{Lat: lat, Lng: lng})
 		}
 	}
 	return gridPoints
 }
 
-func CalculateShadowMap(gridPoints []model.Coordinate, d_c float64, sigma float64) []float64 {
+func CalculateShadowMap(gridPoints []model.Coordinate, dc float64, sigma float64) []float64 {
 	A := func(i, j int) float64 {
 		if i == j {
 			return 1
 		}
-		return math.Exp(-utils.GetSphericalDistance(gridPoints[i], gridPoints[j]) / d_c)
+		return math.Exp(-utils.GetSphericalDistance(gridPoints[i], gridPoints[j]) / dc)
 	}
 
 	n := len(gridPoints)
@@ -163,7 +163,7 @@ func FindOverlappingGridPoints(cell1, cell2 *model.Cell, beamID1, beamID2 model.
 	return
 }
 
-func InitShadowMap(cell *model.Cell, beamID model.BeamID, d_c float64) {
+func InitShadowMap(cell *model.Cell, beamID model.BeamID, dc float64) {
 	carrier := cell.GetCarrier(beamID)
 
 	sigma := 6.0
@@ -188,10 +188,10 @@ func InitShadowMap(cell *model.Cell, beamID model.BeamID, d_c float64) {
 	if cell.BoundingBoxes[beamID] == nil || boundingBox.GreaterThan(cell.BoundingBoxes[beamID]) {
 		cell.BoundingBoxes[beamID] = boundingBox
 
-		cell.GridPoints[beamID] = ComputeGridPoints(cell.BoundingBoxes[beamID], d_c, beamID)
+		cell.GridPoints[beamID] = ComputeGridPoints(cell.BoundingBoxes[beamID], dc, beamID)
 
 		log.Infof("NCGI: %v: len(gridPoints): %d", cell.NCGI, len(cell.GridPoints[beamID]))
-		cell.ShadowingMaps[beamID] = CalculateShadowMap(cell.GridPoints[beamID], d_c, sigma)
+		cell.ShadowingMaps[beamID] = CalculateShadowMap(cell.GridPoints[beamID], dc, sigma)
 		log.Infof("NCGI: %v: len(ShadowingMap): %d", cell.NCGI, len(cell.ShadowingMaps[beamID]))
 	}
 }

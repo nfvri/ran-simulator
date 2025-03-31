@@ -42,6 +42,8 @@ var _ servicemodel.Client = &Client{}
 
 var log = logging.GetLogger()
 
+const e2ChanClosedForSubMsg = "E2 channel is closed for subscription: %v"
+
 // Client rc service model client
 type Client struct {
 	ServiceModel   *registry.ServiceModel
@@ -868,7 +870,7 @@ func (c *Client) reportOnCellConfigurationChange(ctx context.Context, subscripti
 
 			}
 		case <-sub.E2Channel.Context().Done():
-			log.Debugf("E2 channel is closed for subscription: %v", subID)
+			log.Debugf(e2ChanClosedForSubMsg, subID)
 			return nil
 
 		}
@@ -914,7 +916,7 @@ func (c *Client) reportOnCellNeighborRelationChange(ctx context.Context, subscri
 
 			}
 		case <-sub.E2Channel.Context().Done():
-			log.Debugf("E2 channel is closed for subscription: %v", subID)
+			log.Debugf(e2ChanClosedForSubMsg, subID)
 			return nil
 
 		}
@@ -959,7 +961,7 @@ func (c *Client) insertOnA3MeasurementReceived(ctx context.Context, subscription
 	for {
 		select {
 		case <-sub.E2Channel.Context().Done():
-			log.Debugf("E2 channel is closed for subscription: %v", subID)
+			log.Debugf(e2ChanClosedForSubMsg, subID)
 			return nil
 		case report := <-c.ServiceModel.A3Chan:
 			log.Debugf("received event a3 measurement report: %v", report)

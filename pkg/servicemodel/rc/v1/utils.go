@@ -412,7 +412,7 @@ func (c *Client) getPlmnID() ransimtypes.Uint24 {
 	return plmnIDUint24
 }
 
-func float_decoder(data int32) float32 {
+func floatDecoder(data int32) float32 {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, data)
 	bits := binary.LittleEndian.Uint32(buf.Bytes())
@@ -664,18 +664,18 @@ func (c *Client) checkAndSetPCI(ctx context.Context, controlMessage *e2smrcies.E
 			}
 		}
 		if ranParameterID == NSRANParameterID {
-			var control_values []float32
+			var controlValues []float32
 			ranParameter := ranParameter.GetRanParameterValueType().GetRanPChoiceStructure().GetRanParameterStructure().GetSequenceOfRanParameters()
 			if ranParameter != nil {
 				for index := 0; index < len(ranParameter); index++ {
-					control_value := int32(ranParameter[index].GetRanParameterValueType().GetRanPChoiceElementFalse().GetRanParameterValue().GetValueInt())
-					convert_control_value := float_decoder(control_value)
-					control_values = append(control_values, convert_control_value)
+					controlValue := int32(ranParameter[index].GetRanParameterValueType().GetRanPChoiceElementFalse().GetRanParameterValue().GetValueInt())
+					convertControlValue := floatDecoder(controlValue)
+					controlValues = append(controlValues, convertControlValue)
 				}
 			} else {
 				return errors.NewInvalid("Can not get control values")
 			}
-			log.Infof("control values : %v", control_values)
+			log.Infof("control values : %v", controlValues)
 		}
 	}
 	return nil

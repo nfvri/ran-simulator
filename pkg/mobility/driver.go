@@ -28,6 +28,8 @@ import (
 
 // var log = logging.GetLogger()
 
+const unableToFindUEMsg = "Unable to find UE %d"
+
 // Driver is an abstraction of an entity driving the UE mobility
 type Driver interface {
 	// Start starts the driving engine
@@ -178,7 +180,7 @@ func (d *driver) Handover(ctx context.Context, hoDecision handover.HandoverDecis
 func (d *driver) UpdateUESignalStrength(imsi types.IMSI) {
 	ue, ok := d.m.UEs[strconv.FormatUint(uint64(imsi), 10)]
 	if !ok {
-		log.Warnf("Unable to find UE %d", imsi)
+		log.Warnf(unableToFindUEMsg, imsi)
 		return
 	}
 
@@ -225,7 +227,7 @@ func (d *driver) linkMeasCtrlHoCtrl() {
 func (d *driver) reportMeasurement(imsi types.IMSI) {
 	ue, ok := d.m.UEs[strconv.FormatUint(uint64(imsi), 10)]
 	if !ok {
-		log.Warnf("Unable to find UE %d", imsi)
+		log.Warnf(unableToFindUEMsg, imsi)
 		return
 	}
 
@@ -299,7 +301,7 @@ func (d *driver) updateUEPosition(ctx context.Context, route *model.Route) {
 	// Get the UE
 	ue, ok := d.m.UEs[strconv.FormatUint(uint64(route.IMSI), 10)]
 	if !ok {
-		log.Warnf("Unable to find UE %d", route.IMSI)
+		log.Warnf(unableToFindUEMsg, route.IMSI)
 		return
 	}
 

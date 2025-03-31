@@ -22,6 +22,8 @@ import (
 
 var log = liblog.GetLogger()
 
+const nodeNotFoundMsg = "node not found"
+
 // Store tracks inventory of simulated E2 nodes.
 type Store interface {
 	// Add adds the specified node to the registry
@@ -135,7 +137,7 @@ func (s *store) Get(ctx context.Context, gnbID types.GnbID) (*model.Node, error)
 		return node, nil
 	}
 
-	return nil, errors.New(errors.NotFound, "node not found")
+	return nil, errors.New(errors.NotFound, nodeNotFoundMsg)
 }
 
 // Update updates a node
@@ -155,7 +157,7 @@ func (s *store) Update(ctx context.Context, node *model.Node) error {
 		return nil
 	}
 
-	return errors.New(errors.NotFound, "node not found")
+	return errors.New(errors.NotFound, nodeNotFoundMsg)
 }
 
 // PruneCell prunes a cell
@@ -186,7 +188,7 @@ func (s *store) SetStatus(ctx context.Context, gnbID types.GnbID, status string)
 		node.Status = status
 		return nil
 	}
-	return errors.New(errors.NotFound, "node not found")
+	return errors.New(errors.NotFound, nodeNotFoundMsg)
 }
 
 // Delete deletes a node
@@ -204,7 +206,7 @@ func (s *store) Delete(ctx context.Context, gnbID types.GnbID) (*model.Node, err
 		s.watchers.Send(deleteEvent)
 		return node, nil
 	}
-	return nil, errors.New(errors.NotFound, "node not found")
+	return nil, errors.New(errors.NotFound, nodeNotFoundMsg)
 }
 
 // Watch

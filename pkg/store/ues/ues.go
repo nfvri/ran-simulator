@@ -33,6 +33,8 @@ const (
 
 var log = liblog.GetLogger()
 
+const ueNotFoundMsg = "UE not found"
+
 // Store tracks inventory of user-equipment for the simulation
 type Store interface {
 	// SetUECount updates the UE count and creates or deletes new UEs as needed
@@ -315,7 +317,7 @@ func (s *store) Get(ctx context.Context, imsi types.IMSI) (*model.UE, error) {
 		return node, nil
 	}
 
-	return nil, errors.New(errors.NotFound, "UE not found")
+	return nil, errors.New(errors.NotFound, ueNotFoundMsg)
 }
 
 func (s *store) GetWithGNbUeID(ctx context.Context, gNBUeID *e2smcommonies.UeidGnb) (*model.UE, error) {
@@ -347,7 +349,7 @@ func (s *store) Delete(ctx context.Context, imsi types.IMSI) (*model.UE, error) 
 		s.watchers.Send(deleteEvent)
 		return ue, nil
 	}
-	return nil, errors.New(errors.NotFound, "UE not found")
+	return nil, errors.New(errors.NotFound, ueNotFoundMsg)
 }
 
 func (s *store) ListAllUEs(ctx context.Context) []*model.UE {
@@ -376,7 +378,7 @@ func (s *store) MoveToCell(ctx context.Context, imsi types.IMSI, ncgi types.NCGI
 		s.watchers.Send(updateEvent)
 		return nil
 	}
-	return errors.New(errors.NotFound, "UE not found")
+	return errors.New(errors.NotFound, ueNotFoundMsg)
 }
 
 func (s *store) MoveToCoordinate(ctx context.Context, imsi types.IMSI, location model.Coordinate, heading uint32) error {
@@ -393,7 +395,7 @@ func (s *store) MoveToCoordinate(ctx context.Context, imsi types.IMSI, location 
 		s.watchers.Send(updateEvent)
 		return nil
 	}
-	return errors.New(errors.NotFound, "UE not found")
+	return errors.New(errors.NotFound, ueNotFoundMsg)
 }
 
 func (s *store) UpdateUE(ctx context.Context, imsi types.IMSI, fiveQi int, isChanged bool) error {
@@ -410,7 +412,7 @@ func (s *store) UpdateUE(ctx context.Context, imsi types.IMSI, fiveQi int, isCha
 		s.watchers.Send(updateEvent)
 		return nil
 	}
-	return errors.New(errors.NotFound, "UE not found")
+	return errors.New(errors.NotFound, ueNotFoundMsg)
 }
 
 func (s *store) UpdateCells(ctx context.Context, imsi types.IMSI, cells []*model.UECell) error {
@@ -426,7 +428,7 @@ func (s *store) UpdateCells(ctx context.Context, imsi types.IMSI, cells []*model
 		s.watchers.Send(updateEvent)
 		return nil
 	}
-	return errors.New(errors.NotFound, "UE not found")
+	return errors.New(errors.NotFound, ueNotFoundMsg)
 }
 
 func (s *store) UpdateCell(ctx context.Context, imsi types.IMSI, cell *model.UECell) error {
@@ -443,7 +445,7 @@ func (s *store) UpdateCell(ctx context.Context, imsi types.IMSI, cell *model.UEC
 		return nil
 	}
 
-	return errors.New(errors.NotFound, "UE not found")
+	return errors.New(errors.NotFound, ueNotFoundMsg)
 }
 
 func (s *store) ListUEs(ctx context.Context, ncgi types.NCGI) []*model.UE {

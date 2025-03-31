@@ -51,8 +51,8 @@ func UEThpDlQOS(totalDataDlQOS map[int]int, duration float64, cqi int) float64 {
 	return float64(data) / duration
 }
 
-// RRU.PrbUsedDl.QOS calculates the PRBs used in downlink with a certain QoS class.
-func PrbUsedDlQOS(prbs map[int]int, cqi int) int {
+// RRU.PrbUsed.QOS calculates the PRBs used with a certain QoS class.
+func PrbUsedQOS(prbs map[int]int, cqi int) int {
 	prb, exists := prbs[cqi]
 	if !exists {
 		return 0
@@ -60,16 +60,7 @@ func PrbUsedDlQOS(prbs map[int]int, cqi int) int {
 	return prb
 }
 
-// RRU.PrbUsedUl.QOS calculates the PRBs used in uplink with a certain QoS class.
-func PrbUsedUlQOS(prbs map[int]int, cqi int) int {
-	prb, exists := prbs[cqi]
-	if !exists {
-		return 0
-	}
-	return prb
-}
-
-// CalculateThroughputMbpsNR_CA calculates the maximum data rate based on 3GPP TS 38.306
+// CalculateThroughputMbpsNRCA calculates the maximum data rate based on 3GPP TS 38.306
 //
 // J - number of CCs aggregated, MAX_VALUE = 16 (3GPP 38.802)
 //
@@ -89,7 +80,7 @@ func PrbUsedUlQOS(prbs map[int]int, cqi int) int {
 // # Tµ,s is the average OFDM symbol duration in a subframe for numerology μ
 //
 // NbwPRB(j),μ -maximum number of PRB (3GPP 38.104) for selected BW(j), FR(j), µ(j).
-func CalculateThroughputMbpsNR_CA(J int, N []int, Qm []int, v []int, f []float64, SCS []float64, fr, direction string) float64 {
+func CalculateThroughputMbpsNRCA(J int, N []int, Qm []int, v []int, f []float64, SCS []float64, fr, direction string) float64 {
 	Rmax := 948.0 / 1024.0
 	throughput := 0.0
 
@@ -103,10 +94,10 @@ func CalculateThroughputMbpsNR_CA(J int, N []int, Qm []int, v []int, f []float64
 	return 1e-6 * throughput
 }
 
-// DataRateMbpsEUTRA_MRDC calculates the approximate maximum data rate for EUTRA in MR-DC (in Mbps).
+// DataRateMbpsEUTRAMRDC calculates the approximate maximum data rate for EUTRA in MR-DC (in Mbps).
 // J: Number of aggregated EUTRA component carriers in MR-DC band combination
 // tbs: Slice containing the total maximum number of DL-SCH or UL-SCH transport block bits for each component carrier.
-func DataRateMbpsEUTRA_MRDC(J int, tbs []int) float64 {
+func DataRateMbpsEUTRAMRDC(J int, tbs []int) float64 {
 	if len(tbs) != J {
 		fmt.Println("Error: The length of the TBS slice must match the number of component carriers (J).")
 		return 0.0

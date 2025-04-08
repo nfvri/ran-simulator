@@ -3,6 +3,55 @@ Thank you for installing {{ .Chart.Name }} Helm chart.
 Your release is named {{ .Release.Name }} in namespace {{.Release.Namespace}}.
 See https://docs.onosproject.org/developers/deploy_with_helm/
 
+==================================================================
+Deployment Summary for ran-simulator
+==================================================================
+
+Image Pull Secret:
+  - Name: {{ .Values.global.imagePullSecrets | first | default (dict "name" "N/A") | pluck "name" | first }}
+  - Create Secret: {{ .Values.global.createImagePullSecret }}
+  - Created Secret Name: {{ .Values.global.createdImagePullSecretName }}
+
+Image Credentials:
+  - Registry: {{ .Values.imageCredentials.registry }}
+  - Username: {{ .Values.imageCredentials.username }}
+  - Email: {{ .Values.imageCredentials.email }}
+  - Password: {{ if .Values.imageCredentials.password }}Provided (Secure){{ else }}Not Provided{{ end }}
+
+Openshift Certified Tests Enabled: {{ .Values.global.openshiftCertTests }}
+
+Deployment Configuration:
+  - Replica Count: {{ .Values.replicaCount }}
+  - Image Registry: {{ .Values.image.registry }}
+  - Image Pull Policy: {{ .Values.image.pullPolicy }}
+  - Image Tag: {{ if .Values.image.tag | quote | eq "\"\"" }}latest{{ else }}{{ .Values.image.tag }}{{ end }}
+
+Service Configuration:
+  - Type: {{ .Values.service.type }}
+  - Port: {{ .Values.service.port }}
+  - NodePort: {{ .Values.service.nodePort }}
+
+PCI Configuration:
+  - Model Name: {{ .Values.pci.modelName }}
+  - Metric Name: {{ if .Values.pci.metricName }}{{ .Values.pci.metricName }}{{ else }}(empty){{ end }}
+
+Mobility Configuration:
+  - HO Logic: {{ .Values.mobility.hoLogic }}
+
+
+Redis Configuration:
+  - Enabled: {{ .Values.redis.enabled }}
+  - Host: {{ if .Values.redis.host }}{{ .Values.redis.host }}{{ else }}(default in-cluster){{ end }}
+  - Port: {{ .Values.redis.port }}
+  - Username: {{ if .Values.redis.username }}{{ .Values.redis.username }}{{ else }}(empty){{ end }}
+  - Password: {{ if .Values.redis.password }}Provided (Secure){{ else }}Not Provided{{ end }}
+  - Cache DB Indexes:
+      - Cell DB: {{ .Values.redis.cache.cellDB }}
+      - UE DB: {{ .Values.redis.cache.ueDB }}
+
+Configuration Parameters:
+  - Reference Signal Strength: {{ .Values.config.referenceSignalStrength }}
+
 To learn more about the release, try:
   $ helm -n {{.Release.Namespace}} status {{ .Release.Name }}
   $ helm -n {{.Release.Namespace}} get all {{ .Release.Name }}
